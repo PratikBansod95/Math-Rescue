@@ -285,7 +285,7 @@ function template() {
 
     <aside class="play-footer" aria-label="Player status">
       <div class="mascot" aria-hidden="true">
-        <img src="./assets/mascot.png" alt="" width="88" height="88" />
+        <img src="./assets/mascot.png?v=2" alt="" width="88" height="88" />
       </div>
       <div class="welcome-card">
         <strong data-welcome>Welcome to Math Rescue.</strong>
