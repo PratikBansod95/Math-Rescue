@@ -191,7 +191,7 @@ function template() {
   return `
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
-      <img class="play-bg-art" src="./assets/play-bg.svg" alt="" />
+      <img class="play-bg-art" src="./assets/play-bg.svg?v=2" alt="" />
     </div>
 
     <header class="top-bar" aria-label="Game status">
@@ -255,10 +255,6 @@ function template() {
           </span>
         </div>
         <p class="equation-tip" data-equation-hint></p>
-        <p class="play-status">
-          <strong data-welcome>Welcome to Math Rescue.</strong>
-          <small data-board-meta>Board 1 · Task 1/15</small>
-        </p>
         <section class="correction-panel" data-correction hidden aria-live="polite"></section>
       </section>
 
@@ -291,7 +287,9 @@ function template() {
       <div class="mascot" aria-hidden="true">
         <img src="./assets/mascot.svg" alt="" width="88" height="88" />
       </div>
-      <div class="welcome-card welcome-card--footer">
+      <div class="welcome-card">
+        <strong data-welcome>Welcome to Math Rescue.</strong>
+        <small data-board-meta>Board 1 · Task 1/15</small>
         <button class="player-chip" data-player type="button" hidden>Player</button>
       </div>
       <div class="best-card">
@@ -407,8 +405,19 @@ function renderCards(container, state, onAppend) {
     button.setAttribute("aria-label", `Use number card ${card.label}`);
     button.innerHTML = `
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
-      <span class="number-card__tech number-card__tech--tl" aria-hidden="true"></span>
-      <span class="number-card__tech number-card__tech--br" aria-hidden="true"></span>
+      <svg class="number-card__tech number-card__tech--tr" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M8 10h22M30 10v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M14 22h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="30" cy="10" r="2.4" fill="currentColor"/>
+        <circle cx="14" cy="22" r="2.1" fill="currentColor"/>
+        <path d="M24 30c6-3 9-8 8-14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <svg class="number-card__tech number-card__tech--bl" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M32 30H10M10 30V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="10" cy="30" r="2.4" fill="currentColor"/>
+        <circle cx="24" cy="18" r="2.1" fill="currentColor"/>
+        <path d="M10 18h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
       <span class="number-card__shine" aria-hidden="true"></span>
     `;
     button.append(renderCardValue(card));

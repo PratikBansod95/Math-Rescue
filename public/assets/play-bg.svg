@@ -1,33 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
-  <!-- faint graph paper -->
-  <defs>
-    <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
-      <path d="M22 0H0V22" fill="none" stroke="#C5D3E6" stroke-width="1" opacity=".55"/>
-    </pattern>
-  </defs>
-  <rect width="390" height="844" fill="#F7FAFF"/>
-  <rect width="390" height="844" fill="url(#grid)" opacity=".7"/>
-
-  <g fill="none" stroke="#8FA8C8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".42">
-    <!-- triangle left -->
-    <path d="M28 170 58 122 88 170Z"/><path d="M36 170h44"/>
-    <!-- cube top right -->
-    <path d="M300 118h42v36H300z"/><path d="M300 118l18-14 24 14"/><path d="M318 104v14"/><path d="M342 118l-24-14"/>
-    <!-- axes -->
-    <path d="M42 470v-70h70"/><path d="M42 430h18M42 410h28M60 470v-18"/>
-    <!-- graph -->
-    <path d="M280 520c18-28 28-20 40-40 10-16 22-12 34-28"/>
+  <g fill="none" stroke="#8FA8C8" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" opacity=".4">
+    <!-- right triangle -->
+    <path d="M26 178 L62 118 L98 178 Z"/>
+    <path d="M62 178 V152 H86"/>
+    <!-- 3D cube -->
+    <path d="M298 112h46v40H298z"/>
+    <path d="M298 112l20-16 26 16"/>
+    <path d="M318 96v16"/>
+    <path d="M344 112l-26-16"/>
+    <path d="M344 152l-26-16V96"/>
+    <!-- axes + bars -->
+    <path d="M34 455 V385 H104"/>
+    <path d="M34 415 H52 M34 395 H62"/>
+    <path d="M52 455 V430 M72 455 V408 M92 455 V420"/>
+    <!-- curve graph -->
+    <path d="M268 505 C286 472 302 484 318 458 C330 440 346 446 362 428"/>
+    <path d="M268 505 H362 M268 505 V428"/>
     <!-- sqrt -->
-    <path d="M48 620h10l8-28 14 52 12-24h22"/>
+    <path d="M42 628 H54 L64 592 L80 656 L94 624 H118"/>
+    <!-- protractor arc -->
+    <path d="M300 640 A36 36 0 0 1 368 640"/>
+    <path d="M334 640 V612"/>
+    <path d="M318 636 L334 612 L350 636"/>
     <!-- small diamond -->
-    <path d="M310 250 328 262 310 274 292 262Z"/>
+    <path d="M318 236 L336 248 L318 260 L300 248 Z"/>
+    <!-- angle mark -->
+    <path d="M48 268 L48 232 L86 268"/>
+    <path d="M48 252 A18 18 0 0 1 62 264"/>
+    <!-- function wave top -->
+    <path d="M140 92 C152 78 164 106 176 92 C188 78 200 106 212 92"/>
+    <!-- brackets mid-right -->
+    <path d="M352 320 C342 320 338 328 338 340 C338 352 342 360 352 360"/>
+    <path d="M368 320 C378 320 382 328 382 340 C382 352 378 360 368 360"/>
+    <!-- fraction -->
+    <path d="M300 700 H348"/>
+    <path d="M316 686 H332 M312 714 H336"/>
+    <!-- grid cell highlight -->
+    <path d="M56 740 H88 V772 H56 Z" opacity=".7"/>
   </g>
 
-  <g fill="#8FA8C8" opacity=".34" font-family="Segoe UI, Helvetica, sans-serif" font-weight="700">
-    <text transform="translate(24 220) rotate(-11)" font-size="15">2x+3=7</text>
-    <text transform="translate(250 236) rotate(8)" font-size="14">a²+b²=c²</text>
-    <text x="318" y="420" font-size="28">À</text>
-    <text transform="translate(36 690) rotate(6)" font-size="16">x</text>
-    <text transform="translate(250 700) rotate(-7)" font-size="14">(a+b)²</text>
+  <g fill="#8FA8C8" opacity=".36" font-family="Quicksand, Segoe UI, Helvetica, sans-serif" font-weight="700">
+    <text transform="translate(22 214) rotate(-12)" font-size="15">2x+3=7</text>
+    <text transform="translate(248 228) rotate(9)" font-size="14">a&#178;+b&#178;=c&#178;</text>
+    <text x="328" y="400" font-size="30">&#960;</text>
+    <text transform="translate(30 678) rotate(5)" font-size="16">&#8730;x</text>
+    <text transform="translate(248 712) rotate(-8)" font-size="14">(a+b)&#178;</text>
+    <text transform="translate(300 300) rotate(14)" font-size="15">x&#178;</text>
+    <text transform="translate(18 520) rotate(-6)" font-size="13">y=mx+c</text>
+    <text transform="translate(150 790) rotate(3)" font-size="13">1/2 + 1/3</text>
+    <text x="360" y="180" font-size="18" opacity=".9">&#8734;</text>
+  </g>
+
+  <g fill="none" stroke="#A8BDD8" stroke-width="1.2" opacity=".28">
+    <circle cx="70" cy="310" r="18"/>
+    <circle cx="70" cy="310" r="8"/>
+    <path d="M70 292 V328 M52 310 H88"/>
+    <path d="M220 120 L236 136 M236 120 L220 136" opacity=".8"/>
   </g>
 </svg>

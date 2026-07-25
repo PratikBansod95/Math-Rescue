@@ -85,21 +85,31 @@ button:disabled { cursor: not-allowed }
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: #f7faff
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 18%, rgba(91, 140, 255, .07), transparent 58%),
+    #f7faff
 }
 
 .play-grid {
-  display: none
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(154, 174, 204, .3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(154, 174, 204, .3) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: .72;
+  mask-image: radial-gradient(ellipse 92% 88% at 50% 45%, #000 35%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 92% 88% at 50% 45%, #000 35%, transparent 100%)
 }
 
 .play-bg-art,
 .play-doodles {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -2% -4%;
+  width: 108%;
+  height: 104%;
   object-fit: cover;
-  opacity: 1;
+  opacity: .88;
   pointer-events: none
 }
 
@@ -288,11 +298,12 @@ button:disabled { cursor: not-allowed }
 
 .orbit-ring {
   position: absolute;
-  width: min(78%, 17rem);
+  width: min(84%, 18.5rem);
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 2px dashed rgba(91, 140, 255, .42);
-  pointer-events: none
+  border: 2px dashed rgba(91, 140, 255, .38);
+  pointer-events: none;
+  z-index: 0
 }
 
 .orbit-dot {
@@ -325,18 +336,20 @@ button:disabled { cursor: not-allowed }
   grid-area: 2 / 2;
   position: relative;
   z-index: 2;
-  width: clamp(6rem, 22cqw, 7.4rem);
-  min-height: clamp(6rem, 22cqw, 7.4rem);
+  width: clamp(6.2rem, 23cqw, 7.6rem);
+  min-height: clamp(6.2rem, 23cqw, 7.6rem);
   border-radius: 50%;
   display: grid;
   place-content: center;
-  gap: .1rem;
+  gap: .12rem;
   color: #fff;
-  background: radial-gradient(circle at 38% 30%, #2f4fb8 0%, #0a1931 72%);
+  background:
+    radial-gradient(circle at 36% 28%, #3a5fc8 0%, #0b1a36 70%);
   box-shadow:
-    0 0 0 4px #6ec8ff,
-    0 12px 28px rgba(10, 25, 49, .3),
-    inset 0 1px 0 rgba(255, 255, 255, .2)
+    0 0 0 3px #6ec8ff,
+    0 0 22px rgba(110, 200, 255, .45),
+    0 14px 30px rgba(10, 25, 49, .32),
+    inset 0 1px 0 rgba(255, 255, 255, .22)
 }
 
 .target-badge--pulse { animation: target-pulse .55s ease }
@@ -364,19 +377,19 @@ button:disabled { cursor: not-allowed }
 .number-card {
   --accent: var(--blue);
   position: relative;
-  width: clamp(4.8rem, 19cqw, 6.1rem);
-  min-height: clamp(4.8rem, 19cqw, 6.1rem);
+  width: clamp(5rem, 20cqw, 6.35rem);
+  min-height: clamp(5rem, 20cqw, 6.35rem);
   display: grid;
   place-items: center;
   cursor: pointer;
   color: var(--accent);
-  background: linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
-  border: 3px solid var(--accent);
-  border-radius: 1.25rem;
+  background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
+  border: 3.5px solid var(--accent);
+  border-radius: 1.45rem;
   box-shadow:
-    0 12px 26px rgba(26, 43, 74, .11),
-    inset 0 1px 0 #fff,
-    inset 0 -8px 16px rgba(26, 43, 74, .035);
+    0 14px 28px rgba(26, 43, 74, .12),
+    0 2px 0 rgba(255, 255, 255, .9) inset,
+    0 -10px 18px rgba(26, 43, 74, .04) inset;
   transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
   overflow: hidden
 }
@@ -384,24 +397,22 @@ button:disabled { cursor: not-allowed }
 .number-card__shine {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.65), transparent 42%);
+  background: linear-gradient(135deg, rgba(255,255,255,.72), transparent 44%);
   pointer-events: none
 }
 
 .number-card__tech {
   position: absolute;
-  width: 1.35rem;
-  height: 1.35rem;
-  opacity: .35;
+  width: 1.55rem;
+  height: 1.55rem;
+  opacity: .28;
   pointer-events: none;
-  background:
-    linear-gradient(var(--accent), var(--accent)) center / 100% 1.5px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) center / 1.5px 100% no-repeat,
-    radial-gradient(circle, var(--accent) 1.4px, transparent 1.6px) 20% 20% / 8px 8px no-repeat
+  color: var(--accent);
+  z-index: 1
 }
 
-.number-card__tech--tl { top: .35rem; right: .4rem }
-.number-card__tech--br { right: .35rem; bottom: .35rem; opacity: .28 }
+.number-card__tech--tr { top: .4rem; right: .38rem }
+.number-card__tech--bl { left: .38rem; bottom: .38rem; opacity: .22 }
 
 .number-card--top { grid-area: 1 / 2; --accent: #3b82f6 }
 .number-card--left { grid-area: 2 / 1; justify-self: end; --accent: #9063cd }
@@ -412,18 +423,18 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   top: .42rem;
   left: .42rem;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: .48rem;
   display: grid;
   place-items: center;
   color: #fff;
   background: var(--accent);
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  box-shadow: 0 4px 10px rgba(26, 43, 74, .2);
+  box-shadow: 0 4px 10px rgba(26, 43, 74, .18);
   z-index: 3
 }
 
-.number-card__badge svg { width: .78rem; height: .78rem }
+.number-card__badge svg { width: .8rem; height: .8rem }
 
 .card-value {
   position: relative;
@@ -465,22 +476,18 @@ button:disabled { cursor: not-allowed }
 }
 
 .play-status {
-  margin: .15rem 0 0;
-  display: grid;
-  gap: .12rem;
-  text-align: center
+  display: none
 }
 
-.play-status strong {
-  font-size: .92rem;
-  font-weight: 800;
-  color: var(--blue)
-}
-
-.play-status small {
-  color: var(--muted);
-  font-size: .74rem;
-  font-weight: 650
+.equation-tip {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: #5b7ab0;
+  font-size: .84rem;
+  font-weight: 650;
+  line-height: 1.35
 }
 
 /* ── Equation ── */
@@ -580,17 +587,6 @@ button:disabled { cursor: not-allowed }
 
 .equation-pencil svg { width: 100%; height: 100% }
 
-.equation-tip {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  color: var(--muted);
-  font-size: .84rem;
-  font-weight: 650;
-  line-height: 1.35
-}
-
 .equation-tip .tip-ico { font-size: .95rem }
 .equation-tip b { color: var(--blue); font-weight: 800 }
 
@@ -645,7 +641,7 @@ button:disabled { cursor: not-allowed }
 
 /* ── Controls ── */
 .control-deck {
-  width: min(100%, 28rem);
+  width: min(100%, 26rem);
   margin-inline: auto;
   display: grid;
   gap: .55rem
@@ -660,13 +656,14 @@ button:disabled { cursor: not-allowed }
 .operator-button {
   min-height: 3.05rem;
   border-radius: 1.05rem;
-  background: #fff;
+  background: linear-gradient(180deg, #ffffff, #f5f8fd);
   color: var(--blue);
   font-family: "Space Grotesk", Quicksand, sans-serif;
   font-size: 1.45rem;
   font-weight: 700;
   box-shadow: 0 8px 18px rgba(26, 43, 74, .07);
   border: 1px solid #edf2fa;
+  border-bottom: 3px solid #d7e3f5;
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease
 }
@@ -788,26 +785,12 @@ button:disabled { cursor: not-allowed }
   min-height: 0
 }
 
-.mascot {
-  line-height: 0;
-  width: 4.6rem;
-  height: 4.6rem;
-  display: grid;
-  place-items: end center
-}
-
-.mascot img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 10px rgba(59, 130, 246, .22))
-}
-
 .welcome-card {
   display: grid;
   gap: .12rem;
   min-width: 0;
-  text-align: start;
+  text-align: center;
+  justify-items: center;
   background: transparent;
   box-shadow: none;
   padding: 0
@@ -821,13 +804,29 @@ button:disabled { cursor: not-allowed }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--ink)
+  color: var(--blue);
+  max-width: 100%
 }
 
 .welcome-card small {
   color: var(--muted);
   font-size: .74rem;
   font-weight: 650
+}
+
+.mascot {
+  line-height: 0;
+  width: 4.6rem;
+  height: 4.6rem;
+  display: grid;
+  place-items: end center
+}
+
+.mascot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(59, 130, 246, .22))
 }
 
 .best-card {
