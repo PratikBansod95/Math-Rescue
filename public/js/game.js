@@ -32,12 +32,12 @@ const POINTS_REVEAL = 1;
 const MAX_RETRIES = 2;
 
 const TIMER_LIMITS = {
-  easy: 90,
-  normal: 75,
+  easy: 30,
+  normal: 60,
   medium: 60,
-  advanced: 45,
-  olympic: 35,
-  legendary: 25,
+  advanced: 60,
+  olympic: 90,
+  legendary: 90,
 };
 
 export function createGame({ mount }) {
