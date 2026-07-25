@@ -1,8 +1,25 @@
-const STORAGE_KEY = "mathmaster-v1";
-const VERSION = 1;
+const STORAGE_KEY = "mathmaster-v2";
+const LEGACY_KEY = "mathmaster-v1";
+const VERSION = 2;
+
+export const BOARD_LENGTHS = [10, 15, 30];
+export const DEFAULT_BOARD_LENGTH = 15;
+
+export function defaultSettings() {
+  return {
+    sound: true,
+    boardLength: DEFAULT_BOARD_LENGTH,
+  };
+}
 
 export function emptyProfile() {
-  return { bestScore: 0, unlockedBoard: 1 };
+  return {
+    bestScore: 0,
+    unlockedBoard: 1,
+    bestStars: 0,
+    tutorialSeen: false,
+    taskStars: {},
+  };
 }
 
 export function normalizeUsername(name) {
@@ -12,19 +29,36 @@ export function normalizeUsername(name) {
 export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { profiles: {}, lastUsername: "" };
-    const data = JSON.parse(raw);
-    if (data?.version !== VERSION) return { profiles: {}, lastUsername: "" };
-    return {
-      profiles: normalizeProfiles(data.profiles),
-      lastUsername: typeof data.lastUsername === "string" ? data.lastUsername : "",
-    };
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data?.version === VERSION) {
+        return {
+          profiles: normalizeProfiles(data.profiles),
+          lastUsername: typeof data.lastUsername === "string" ? data.lastUsername : "",
+          settings: normalizeSettings(data.settings),
+        };
+      }
+    }
+
+    // Migrate v1 if present
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      const data = JSON.parse(legacy);
+      const migrated = {
+        profiles: normalizeProfiles(data.profiles),
+        lastUsername: typeof data.lastUsername === "string" ? data.lastUsername : "",
+        settings: defaultSettings(),
+      };
+      saveState(migrated);
+      return migrated;
+    }
   } catch {
-    return { profiles: {}, lastUsername: "" };
+    // fall through
   }
+  return { profiles: {}, lastUsername: "", settings: defaultSettings() };
 }
 
-export function saveState({ profiles, lastUsername }) {
+export function saveState({ profiles, lastUsername, settings }) {
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -32,11 +66,34 @@ export function saveState({ profiles, lastUsername }) {
         version: VERSION,
         profiles: normalizeProfiles(profiles),
         lastUsername: typeof lastUsername === "string" ? lastUsername : "",
+        settings: normalizeSettings(settings),
       })
     );
   } catch {
     // Ignore quota / private mode failures.
   }
+}
+
+export function topProfilesByScore(profiles, limit = 5) {
+  return Object.values(profiles)
+    .slice()
+    .sort((a, b) => (b.bestScore || 0) - (a.bestScore || 0))
+    .slice(0, limit);
+}
+
+export function stepBoardLength(current, step) {
+  const index = Math.max(0, BOARD_LENGTHS.indexOf(current));
+  return BOARD_LENGTHS[(index + step + BOARD_LENGTHS.length) % BOARD_LENGTHS.length];
+}
+
+function normalizeSettings(settings) {
+  const base = defaultSettings();
+  if (!settings || typeof settings !== "object") return base;
+  const length = Number(settings.boardLength);
+  return {
+    sound: settings.sound !== false,
+    boardLength: BOARD_LENGTHS.includes(length) ? length : DEFAULT_BOARD_LENGTH,
+  };
 }
 
 function normalizeProfiles(profiles) {
@@ -45,6 +102,7 @@ function normalizeProfiles(profiles) {
   for (const [key, value] of Object.entries(profiles)) {
     const id = normalizeUsername(key);
     if (!id || !value || typeof value !== "object") continue;
+    const fresh = emptyProfile();
     result[id] = {
       name:
         typeof value.name === "string" && value.name.trim()
@@ -54,6 +112,12 @@ function normalizeProfiles(profiles) {
       unlockedBoard: Number.isFinite(value.unlockedBoard)
         ? Math.max(1, value.unlockedBoard)
         : 1,
+      bestStars: Number.isFinite(value.bestStars) ? Math.max(0, value.bestStars) : 0,
+      tutorialSeen: Boolean(value.tutorialSeen),
+      taskStars:
+        value.taskStars && typeof value.taskStars === "object" && !Array.isArray(value.taskStars)
+          ? value.taskStars
+          : fresh.taskStars,
     };
   }
   return result;

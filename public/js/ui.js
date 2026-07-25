@@ -7,6 +7,21 @@ const OPERATORS = [
   { label: ")", value: ")" },
 ];
 
+const TUTORIAL_COPY = {
+  1: {
+    title: "Step 1 · Cards",
+    body: "Tap the number cards around the target to add them to your equation.",
+  },
+  2: {
+    title: "Step 2 · Operators",
+    body: "Use +, −, ×, ÷ and parentheses from the pad below.",
+  },
+  3: {
+    title: "Step 3 · Submit",
+    body: "Hit Submit when your equation equals the target. You get free retries!",
+  },
+};
+
 export function createUI({ mount, handlers }) {
   const shell = document.createElement("section");
   shell.className = "math-game game-surface";
@@ -17,12 +32,16 @@ export function createUI({ mount, handlers }) {
     shell,
     topRound: shell.querySelector("[data-round]"),
     topScore: shell.querySelector("[data-score]"),
+    topStars: shell.querySelector("[data-stars]"),
     bestScore: shell.querySelector("[data-best]"),
+    muteButton: shell.querySelector("[data-mute]"),
     divisionLabel: shell.querySelector("[data-division-label]"),
     divisionGrade: shell.querySelector("[data-division-grade]"),
     difficultyLabel: shell.querySelector("[data-difficulty-label]"),
+    lengthLabel: shell.querySelector("[data-length-label]"),
     divisionButtons: shell.querySelectorAll("[data-division-step]"),
     difficultyButtons: shell.querySelectorAll("[data-difficulty-step]"),
+    lengthButtons: shell.querySelectorAll("[data-length-step]"),
     numbers: shell.querySelector("[data-numbers]"),
     input: shell.querySelector("[data-input]"),
     feedback: shell.querySelector("[data-feedback]"),
@@ -32,7 +51,7 @@ export function createUI({ mount, handlers }) {
     operatorPad: shell.querySelector("[data-operators]"),
     clearButton: shell.querySelector("[data-clear]"),
     submitButton: shell.querySelector("[data-submit]"),
-    skipButton: shell.querySelector("[data-skip]"),
+    hintButton: shell.querySelector("[data-hint]"),
     startOverlay: shell.querySelector("[data-start-overlay]"),
     startButton: shell.querySelector("[data-start]"),
     startText: shell.querySelector("[data-start-text]"),
@@ -40,10 +59,17 @@ export function createUI({ mount, handlers }) {
     profileText: shell.querySelector("[data-profile-text]"),
     resultsOverlay: shell.querySelector("[data-results]"),
     resultScore: shell.querySelector("[data-result-score]"),
+    resultStars: shell.querySelector("[data-result-stars]"),
     resultRank: shell.querySelector("[data-result-rank]"),
     resultMessage: shell.querySelector("[data-result-message]"),
     resultBest: shell.querySelector("[data-result-best]"),
+    resultBoard: shell.querySelector("[data-result-board]"),
     newGameButton: shell.querySelector("[data-new-game]"),
+    tutorial: shell.querySelector("[data-tutorial]"),
+    tutorialTitle: shell.querySelector("[data-tutorial-title]"),
+    tutorialBody: shell.querySelector("[data-tutorial-body]"),
+    tutorialNext: shell.querySelector("[data-tutorial-next]"),
+    tutorialSkip: shell.querySelector("[data-tutorial-skip]"),
   };
 
   const listeners = [];
@@ -64,34 +90,42 @@ export function createUI({ mount, handlers }) {
   for (const button of els.difficultyButtons) {
     on(button, "click", () => handlers.onDifficultyChange(Number(button.dataset.difficultyStep)));
   }
+  for (const button of els.lengthButtons) {
+    on(button, "click", () => handlers.onBoardLengthChange(Number(button.dataset.lengthStep)));
+  }
 
-  on(els.input, "input", () => handlers.onInput(els.input.value));
-  on(els.input, "keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handlers.onSubmit();
-    }
-  });
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
-  on(els.skipButton, "click", handlers.onSkip);
+  on(els.hintButton, "click", handlers.onHintOrNext);
   on(els.newGameButton, "click", handlers.onNewGame);
+  on(els.muteButton, "click", handlers.onToggleSound);
+  on(els.tutorialNext, "click", handlers.onTutorialNext);
+  on(els.tutorialSkip, "click", handlers.onTutorialSkip);
 
   return {
     render(state, options = {}) {
       shell.dataset.phase = state.phase;
-      els.topRound.textContent = `Board ${state.boardIndex} · Task ${state.taskIndex}`;
+      shell.classList.toggle("is-shaking", Boolean(state.shake));
+      shell.classList.toggle("tutorial-on", Boolean(state.showTutorial));
+      if (state.showTutorial) shell.dataset.tutorialStep = String(state.tutorialStep);
+      else delete shell.dataset.tutorialStep;
+
+      els.topRound.textContent = `Board ${state.boardIndex} · Task ${state.taskIndex}/${state.tasksPerBoard}`;
       els.topScore.textContent = String(state.score);
+      els.topStars.textContent = `★ ${state.runStars || 0}`;
       els.bestScore.textContent = `Unlocked ${state.unlockedBoard}`;
+      els.muteButton.textContent = state.soundOn ? "🔊" : "🔇";
+      els.muteButton.setAttribute("aria-label", state.soundOn ? "Mute sound" : "Unmute sound");
       els.divisionLabel.textContent = state.division.shortLabel;
       els.divisionGrade.textContent = state.division.gradeLabel;
       els.difficultyLabel.textContent = state.difficulty.label;
+      els.lengthLabel.textContent = `${state.tasksPerBoard} tasks`;
 
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
       }
       els.profileText.textContent = state.profileMessage;
-      els.input.value = state.expression;
+      els.input.textContent = state.expression || " ";
       els.feedback.textContent = state.feedback.text;
       els.feedback.dataset.kind = state.feedback.kind;
       els.feedbackDetail.textContent = state.feedback.detail || "";
@@ -100,16 +134,10 @@ export function createUI({ mount, handlers }) {
 
       renderCorrection(els.correction, state.correction);
       renderCards(els.numbers, state, handlers.onAppend);
-      updateControls(els, state.phase);
+      updateControls(els, state);
       updateStartOverlay(els, state);
       updateResults(els, state);
-
-      if (options.focusInput) {
-        els.input.focus({ preventScroll: true });
-      }
-      if (options.keepFocus && document.activeElement === els.input) {
-        els.input.setSelectionRange(els.input.value.length, els.input.value.length);
-      }
+      updateTutorial(els, state);
     },
 
     hideStartOverlay() {
@@ -125,6 +153,7 @@ export function createUI({ mount, handlers }) {
   };
 
   function on(el, type, fn) {
+    if (!el) return;
     el.addEventListener(type, fn);
     listeners.push([el, type, fn]);
   }
@@ -138,17 +167,20 @@ function template() {
     <header class="math-hud" aria-label="Current run status">
       <div class="hud-badge">
         <span>Board / Task</span>
-        <strong data-round>Board 1 · Task 1</strong>
+        <strong data-round>Board 1 · Task 1/15</strong>
       </div>
-      <div class="hud-best" data-best>Unlocked 1</div>
+      <div class="hud-center">
+        <div class="hud-best" data-best>Unlocked 1</div>
+        <button class="hud-mute" data-mute type="button" aria-label="Mute sound">🔊</button>
+      </div>
       <div class="hud-badge hud-badge--score">
-        <span>Score</span>
-        <strong data-score>0</strong>
+        <span>Score · Stars</span>
+        <strong><span data-score>0</span> · <span data-stars>★ 0</span></strong>
       </div>
     </header>
 
     <main class="math-play" aria-label="MathMaster puzzle board">
-      <section class="settings-panel" aria-label="Division and difficulty">
+      <section class="settings-panel" aria-label="Division difficulty and length">
         <div class="setting-control">
           <span>Division</span>
           <div class="stepper">
@@ -169,15 +201,25 @@ function template() {
             </button>
           </div>
         </div>
+        <div class="setting-control setting-control--wide">
+          <span>Board length</span>
+          <div class="stepper">
+            <button data-length-step="-1" type="button" aria-label="Shorter board">‹</button>
+            <button data-length-step="1" class="setting-value" type="button" aria-label="Change board length">
+              <strong data-length-label>15 tasks</strong>
+              <small>10 · 15 · 30</small>
+            </button>
+          </div>
+        </div>
       </section>
 
       <section class="math-card" aria-label="Target and equation">
         <div class="card-cross" data-numbers aria-label="Four number cards and center target"></div>
 
-        <label class="equation-box">
+        <div class="equation-box">
           <span>Equation</span>
-          <input data-input class="equation-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Enter your equation" placeholder="e.g. (3/4 + 8) * 2" />
-        </label>
+          <div data-input class="equation-input" role="textbox" aria-readonly="true" aria-label="Your equation"> </div>
+        </div>
 
         <section class="correction-panel" data-correction hidden aria-live="polite"></section>
       </section>
@@ -196,7 +238,7 @@ function template() {
       <div class="action-row">
         <button class="secondary danger" data-clear type="button">Clear</button>
         <button class="primary" data-submit type="button">Submit</button>
-        <button class="secondary" data-skip type="button">Skip</button>
+        <button class="secondary" data-hint type="button">Hint</button>
       </div>
     </footer>
 
@@ -208,7 +250,7 @@ function template() {
           <span>Username</span>
           <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
         </label>
-        <small data-profile-text>Type a username to save your progress.</small>
+        <small data-profile-text>Type a username to save progress. Unlocked = highest board you can start.</small>
         <p data-start-text>Loading puzzles…</p>
         <button data-start type="button" disabled>Tap to start</button>
       </div>
@@ -216,13 +258,26 @@ function template() {
 
     <div class="result-overlay" data-results hidden>
       <section class="result-card" aria-label="Final result">
-        <span class="result-kicker">30-task board score</span>
+        <span class="result-kicker">Board complete</span>
         <strong data-result-score>0</strong>
+        <p class="result-stars" data-result-stars>★ 0</p>
         <h2 data-result-rank>Practice Explorer</h2>
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
+        <div class="local-board" data-result-board></div>
         <button data-new-game type="button">Start unlocked board</button>
       </section>
+    </div>
+
+    <div class="tutorial-overlay" data-tutorial hidden>
+      <div class="tutorial-card">
+        <strong data-tutorial-title>Step 1</strong>
+        <p data-tutorial-body>Tap cards to build your equation.</p>
+        <div class="tutorial-actions">
+          <button data-tutorial-skip type="button" class="secondary">Skip</button>
+          <button data-tutorial-next type="button" class="primary">Got it</button>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -268,23 +323,22 @@ function renderCards(container, state, onAppend) {
 
   const target = document.createElement("div");
   target.className = "target-badge";
+  if (state.feedback.kind === "good") target.classList.add("target-badge--pulse");
   target.setAttribute(
     "aria-label",
     `Target number ${state.round.targetLabel || state.round.target}`
   );
   target.innerHTML = `<span>Target</span><strong>${state.round.targetLabel || state.round.target}</strong>`;
-  if (state.feedback.kind === "good") target.classList.add("target-badge--pulse");
   container.append(target);
 }
 
-function updateControls(els, phase) {
-  const playing = phase === "playing";
-  const review = phase === "review";
-  els.input.disabled = !playing;
+function updateControls(els, state) {
+  const playing = state.phase === "playing";
+  const review = state.phase === "review";
   els.clearButton.disabled = !playing;
   els.submitButton.disabled = !playing;
-  els.skipButton.disabled = !playing && !review;
-  els.skipButton.textContent = review ? "Next" : "Skip";
+  els.hintButton.disabled = !playing && !review;
+  els.hintButton.textContent = state.hintLabel || (review ? "Next" : "Hint");
   for (const button of els.operatorPad.querySelectorAll("button")) {
     button.disabled = !playing;
   }
@@ -297,7 +351,7 @@ function updateStartOverlay(els, state) {
   els.startOverlay.hidden = false;
   els.startButton.disabled = state.phase !== "ready" || !state.usernameKey;
   els.startText.textContent = state.usernameKey
-    ? "Use a different username for another saved profile."
+    ? "Pick board length above, then tap start."
     : "Type a username, then start.";
 }
 
@@ -306,9 +360,40 @@ function updateResults(els, state) {
   els.resultsOverlay.hidden = !show;
   if (!show) return;
   els.resultScore.textContent = String(state.score);
+  els.resultStars.textContent = `★ ${state.runStars} this run`;
   els.resultRank.textContent = state.result.title;
   els.resultMessage.textContent = `${state.result.message} Board ${state.unlockedBoard} is now unlocked.`;
-  els.resultBest.textContent = `Best score ${state.bestScore}`;
+  els.resultBest.textContent = `Best score ${state.bestScore} · Best ★ ${state.bestStars}`;
+
+  const board = els.resultBoard;
+  board.replaceChildren();
+  const title = document.createElement("strong");
+  title.textContent = "This device";
+  board.append(title);
+  const list = state.leaderboard || [];
+  if (list.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "No other scores yet.";
+    board.append(empty);
+    return;
+  }
+  const ol = document.createElement("ol");
+  for (const entry of list) {
+    const li = document.createElement("li");
+    li.textContent = `${entry.name} — ${entry.bestScore}`;
+    ol.append(li);
+  }
+  board.append(ol);
+}
+
+function updateTutorial(els, state) {
+  const show = Boolean(state.showTutorial && state.tutorialStep >= 1);
+  els.tutorial.hidden = !show;
+  if (!show) return;
+  const copy = TUTORIAL_COPY[state.tutorialStep] || TUTORIAL_COPY[1];
+  els.tutorialTitle.textContent = copy.title;
+  els.tutorialBody.textContent = copy.body;
+  els.tutorialNext.textContent = state.tutorialStep >= 3 ? "Play" : "Got it";
 }
 
 function renderCorrection(panel, correction) {

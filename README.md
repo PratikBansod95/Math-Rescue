@@ -12,11 +12,13 @@ Open http://localhost:5173
 
 ## Vercel
 
-Static site. Project settings:
+- Framework: Other
+- Output Directory: `public`
+- Build Command: empty
 
-- **Framework Preset:** Other
-- **Root Directory:** `.` (repo root)
-- **Build Command:** leave empty
-- **Output Directory:** `public`
+## Polish features
 
-`vercel.json` already sets `outputDirectory` to `public`.
+- Free retries before solution review
+- Hint ladder (Tip → Nudge → Reveal)
+- Board length 10 / 15 / 30
+- Stars, mute, tutorial, pad-only equation input

@@ -1,8 +1,12 @@
 /** Lightweight Web Audio SFX for MathMaster. */
 
-export function createAudio() {
+export function createAudio(isSoundOn = () => true) {
   let context = null;
   let unlocked = false;
+
+  function allowed() {
+    return isSoundOn() !== false;
+  }
 
   return {
     unlockFromGesture() {
@@ -15,22 +19,24 @@ export function createAudio() {
       } else {
         unlocked = true;
       }
-      const buffer = context.createBuffer(1, 1, 22050);
-      const source = context.createBufferSource();
-      source.buffer = buffer;
-      source.connect(context.destination);
-      source.start(0);
+      try {
+        const buffer = context.createBuffer(1, 1, 22050);
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.start(0);
+      } catch {}
     },
 
     play(kind) {
-      if (!unlocked || !context || context.state !== "running") return;
+      if (!allowed() || !unlocked || !context || context.state !== "running") return;
       if (kind === "correct") playCorrect();
       else if (kind === "incorrect") playIncorrect();
       else if (kind === "skip") playSkip();
     },
 
     playBlip(frequency, { duration = 0.06, volume = 0.1, type = "sine" } = {}) {
-      if (!unlocked || !context || context.state !== "running") return;
+      if (!allowed() || !unlocked || !context || context.state !== "running") return;
       const now = context.currentTime;
       const osc = context.createOscillator();
       const gain = context.createGain();

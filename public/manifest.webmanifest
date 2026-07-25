@@ -1,0 +1,17 @@
+{
+  "name": "MathMaster",
+  "short_name": "MathMaster",
+  "description": "Build equations from four cards to hit the target.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101820",
+  "theme_color": "#0A1628",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

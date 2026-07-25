@@ -10,7 +10,6 @@ import {
   getDivision,
   getDifficulty,
   getRank,
-  sanitizeExpression,
   needsSpaceBefore,
   stepOption,
   displayExpression,
@@ -18,11 +17,20 @@ import {
 } from "./puzzle.js";
 import { createUI } from "./ui.js";
 import { createAudio } from "./audio.js";
-import { loadState, saveState, emptyProfile, normalizeUsername } from "./storage.js";
+import {
+  loadState,
+  saveState,
+  emptyProfile,
+  normalizeUsername,
+  defaultSettings,
+  stepBoardLength,
+  topProfilesByScore,
+} from "./storage.js";
 
 const POINTS_CORRECT = 10;
 const POINTS_WRONG = 2;
-const POINTS_SKIP = 1;
+const POINTS_REVEAL = 1;
+const MAX_RETRIES = 2;
 
 export function createGame({ mount }) {
   let destroyFn = () => {};
@@ -30,14 +38,14 @@ export function createGame({ mount }) {
   return {
     start() {
       let disposed = false;
-      const audio = createAudio();
+      let settings = defaultSettings();
 
       const state = {
         phase: "loading",
         boardIndex: 1,
         unlockedBoard: 1,
         taskIndex: 1,
-        tasksPerBoard: 30,
+        tasksPerBoard: settings.boardLength,
         divisions: DIVISIONS,
         difficulties: DIFFICULTIES,
         divisionId: DEFAULT_DIVISION_ID,
@@ -46,16 +54,26 @@ export function createGame({ mount }) {
         difficulty: getDifficulty(DEFAULT_DIFFICULTY_ID),
         score: 0,
         bestScore: 0,
+        bestStars: 0,
+        runStars: 0,
+        taskStarsEarned: 0,
         username: "",
         usernameKey: "",
         profiles: {},
-        profileMessage: "Type a username to save your progress.",
-        round: createRound({
-          boardIndex: 1,
-          taskIndex: 1,
-          divisionId: DEFAULT_DIVISION_ID,
-          difficultyId: DEFAULT_DIFFICULTY_ID,
-        }),
+        profileMessage: "Type a username to save progress. Unlocked = highest board you can start.",
+        settings,
+        soundOn: true,
+        tutorialSeen: false,
+        tutorialStep: 0,
+        showTutorial: false,
+        retriesLeft: MAX_RETRIES,
+        hintStage: 0,
+        usedTip: false,
+        usedReveal: false,
+        attempts: 0,
+        firstTry: true,
+        shake: false,
+        round: null,
         expression: "",
         feedback: {
           kind: "neutral",
@@ -65,22 +83,30 @@ export function createGame({ mount }) {
         correction: null,
         usedCounts: new Map(),
         result: null,
+        leaderboard: [],
       };
+
+      const audio = createAudio(() => state.soundOn);
+
+      state.round = makeRound(state);
 
       const ui = createUI({
         mount,
         handlers: {
           onStart,
           onAppend,
-          onInput,
           onBackspace,
           onClear,
           onSubmit,
-          onSkip,
+          onHintOrNext,
           onNewGame,
           onDivisionChange,
           onDifficultyChange,
+          onBoardLengthChange,
           onUsernameInput,
+          onToggleSound,
+          onTutorialNext,
+          onTutorialSkip,
         },
       });
 
@@ -99,13 +125,17 @@ export function createGame({ mount }) {
         if (disposed) return;
         const saved = loadState();
         state.profiles = saved.profiles;
+        settings = saved.settings;
+        state.settings = settings;
+        state.soundOn = settings.sound !== false;
+        state.tasksPerBoard = settings.boardLength;
         applyUsername(state.usernameKey ? state.username : saved.lastUsername || "");
-        state.round = createRound(state);
+        state.round = makeRound(state);
         state.phase = "ready";
         state.feedback = {
           kind: "neutral",
           text: state.usernameKey ? `Ready, ${state.username}.` : "Type a username to save progress.",
-          detail: "",
+          detail: "Unlocked board is the highest board you can start.",
         };
         state.correction = null;
         render();
@@ -122,7 +152,11 @@ export function createGame({ mount }) {
           render();
           return;
         }
+        resetTaskFlags();
         state.phase = "playing";
+        state.runStars = 0;
+        state.showTutorial = !state.tutorialSeen;
+        state.tutorialStep = state.showTutorial ? 1 : 0;
         ui.hideStartOverlay();
         render();
         audio.unlockFromGesture();
@@ -135,10 +169,13 @@ export function createGame({ mount }) {
         state.boardIndex = state.unlockedBoard;
         state.taskIndex = 1;
         state.score = 0;
-        state.round = createRound(state);
+        state.runStars = 0;
+        state.round = makeRound(state);
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
+        state.leaderboard = [];
+        resetTaskFlags();
         state.feedback = {
           kind: "neutral",
           text: "New run. Find the exact target!",
@@ -146,19 +183,6 @@ export function createGame({ mount }) {
         };
         state.correction = null;
         render();
-      }
-
-      function onInput(value) {
-        if (!isPlaying()) return;
-        state.expression = sanitizeExpression(value);
-        state.usedCounts = countUsedCards(state.expression, state.round.cards);
-        state.feedback = {
-          kind: "neutral",
-          text: "Use at least two cards, then submit.",
-          detail: "",
-        };
-        state.correction = null;
-        render({ keepFocus: true });
       }
 
       function onAppend(fragment) {
@@ -172,10 +196,11 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "neutral",
           text: "Nice. Keep shaping the equation.",
-          detail: "",
+          detail: retriesDetail(),
         };
         state.correction = null;
-        render({ keepFocus: true });
+        if (state.showTutorial && state.tutorialStep === 1) state.tutorialStep = 2;
+        render();
         audio.playBlip(560, { duration: 0.045, volume: 0.08 });
       }
 
@@ -186,10 +211,10 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "neutral",
           text: "Adjust and try again.",
-          detail: "",
+          detail: retriesDetail(),
         };
         state.correction = null;
-        render({ keepFocus: true });
+        render();
       }
 
       function onClear() {
@@ -199,33 +224,55 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "neutral",
           text: "Fresh equation. You’ve got this.",
-          detail: "",
+          detail: retriesDetail(),
         };
         state.correction = null;
-        render({ keepFocus: true });
+        render();
       }
 
       function onSubmit() {
         if (!isPlaying()) return;
+        state.attempts += 1;
+        if (state.showTutorial && state.tutorialStep === 3) {
+          // allow submit during tutorial
+        }
         const result = evaluateSubmission(state.expression, state.round);
 
         if (!result.ok) {
-          const correction = buildWrongCorrection(state.expression, result, state.round);
-          state.phase = "review";
-          state.score = Math.max(0, state.score - POINTS_WRONG);
-          state.expression = correction.solution;
-          state.usedCounts = countUsedCards(state.expression, state.round.cards);
-          state.feedback = {
-            kind: "bad",
-            text: result.reason || "Incorrect. Study the solution.",
-            detail: `−${POINTS_WRONG} points · Tap Next when ready`,
-          };
-          state.correction = correction;
-          audio.play("incorrect");
-          vibrate(24);
-          render();
+          state.firstTry = false;
+          if (state.retriesLeft > 0) {
+            state.retriesLeft -= 1;
+            state.shake = true;
+            state.feedback = {
+              kind: "bad",
+              text: softNudge(result.reason),
+              detail: `${state.retriesLeft} retr${state.retriesLeft === 1 ? "y" : "ies"} left`,
+            };
+            state.correction = null;
+            audio.play("incorrect");
+            vibrate(18);
+            render();
+            window.setTimeout(() => {
+              state.shake = false;
+              render();
+            }, 400);
+            return;
+          }
+
+          enterFailReview(result);
           return;
         }
+
+        // Correct
+        const stars = calcTaskStars({
+          firstTry: state.firstTry && state.attempts <= 1,
+          usedTip: state.usedTip,
+          usedReveal: false,
+          retriesUsed: MAX_RETRIES - state.retriesLeft,
+        });
+        state.taskStarsEarned = stars;
+        state.runStars += stars;
+        recordTaskStars(stars);
 
         state.phase = "review";
         state.score += POINTS_CORRECT;
@@ -235,33 +282,92 @@ export function createGame({ mount }) {
           text: state.correction.solutions?.length > 1
             ? "Correct! Brilliant solve — here are other paths."
             : "Correct! Brilliant solve!",
-          detail: `+${POINTS_CORRECT} points · Tap Next`,
+          detail: `+${POINTS_CORRECT} · ★${stars} · Tap Next`,
         };
+        if (state.showTutorial) {
+          state.showTutorial = false;
+          state.tutorialSeen = true;
+          state.tutorialStep = 0;
+        }
         audio.play("correct");
         audio.playBlip(880, { duration: 0.08, volume: 0.13 });
         vibrate(35);
         render();
       }
 
-      function onSkip() {
+      function enterFailReview(result) {
+        const correction = buildWrongCorrection(state.expression, result, state.round);
+        state.phase = "review";
+        state.score = Math.max(0, state.score - POINTS_WRONG);
+        state.expression = correction.solution;
+        state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        state.taskStarsEarned = 1;
+        state.runStars += 1;
+        recordTaskStars(1);
+        state.feedback = {
+          kind: "bad",
+          text: result.reason || "Incorrect. Study the solution.",
+          detail: `−${POINTS_WRONG} points · ★1 · Tap Next`,
+        };
+        state.correction = correction;
+        audio.play("incorrect");
+        vibrate(24);
+        render();
+      }
+
+      function onHintOrNext() {
         if (state.phase === "review") {
           advanceTask();
           return;
         }
         if (!isPlaying()) return;
 
-        state.score = Math.max(0, state.score - POINTS_SKIP);
+        if (state.hintStage === 0) {
+          state.hintStage = 1;
+          state.usedTip = true;
+          state.firstTry = false;
+          state.feedback = {
+            kind: "skip",
+            text: "Tip: use at least two cards. Parentheses help control order.",
+            detail: "Hint again for a stronger nudge",
+          };
+          audio.play("skip");
+          render();
+          return;
+        }
+
+        if (state.hintStage === 1) {
+          state.hintStage = 2;
+          state.usedTip = true;
+          state.firstTry = false;
+          state.feedback = {
+            kind: "skip",
+            text: operatorNudge(state.round.exampleSolution),
+            detail: "Hint again to reveal a full solution (−1)",
+          };
+          audio.play("skip");
+          render();
+          return;
+        }
+
+        // Reveal
+        state.usedReveal = true;
+        state.firstTry = false;
+        state.score = Math.max(0, state.score - POINTS_REVEAL);
         state.phase = "review";
         state.expression = displayExpression(state.round.exampleSolution);
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        state.taskStarsEarned = 1;
+        state.runStars += 1;
+        recordTaskStars(1);
         state.feedback = {
           kind: "skip",
-          text: "Skipped. Review the solution, then tap Next.",
-          detail: `−${POINTS_SKIP} point`,
+          text: "Solution revealed. Review it, then tap Next.",
+          detail: `−${POINTS_REVEAL} point · ★1`,
         };
         state.correction = {
           title: "One possible solve",
-          attempted: "Skipped",
+          attempted: "Revealed",
           result: "",
           solution: displayExpression(state.round.exampleSolution),
           target: state.round.targetLabel || state.round.target,
@@ -277,17 +383,18 @@ export function createGame({ mount }) {
           return;
         }
         state.taskIndex += 1;
-        state.round = createRound(state);
+        state.round = makeRound(state);
         state.expression = "";
         state.usedCounts = new Map();
         state.phase = "playing";
+        resetTaskFlags();
         state.feedback = {
           kind: "neutral",
           text: "Next puzzle. Spot the path!",
           detail: "",
         };
         state.correction = null;
-        render({ focusInput: true });
+        render();
       }
 
       function finishBoard() {
@@ -298,10 +405,23 @@ export function createGame({ mount }) {
           state.unlockedBoard = finishedBoard + 1;
         }
         state.bestScore = Math.max(state.bestScore, state.score);
+        state.bestStars = Math.max(state.bestStars, state.runStars);
+        state.leaderboard = topProfilesByScore(
+          {
+            ...state.profiles,
+            [state.usernameKey]: {
+              name: state.username,
+              bestScore: state.bestScore,
+              unlockedBoard: state.unlockedBoard,
+              bestStars: state.bestStars,
+            },
+          },
+          5
+        );
         state.feedback = {
           kind: "good",
           text: `Board ${finishedBoard} complete!`,
-          detail: `Board ${state.unlockedBoard} unlocked`,
+          detail: `Board ${state.unlockedBoard} unlocked · ★${state.runStars} this run`,
         };
         state.correction = null;
         render();
@@ -316,6 +436,14 @@ export function createGame({ mount }) {
 
       function render(options = {}) {
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        state.hintLabel =
+          state.phase === "review"
+            ? "Next"
+            : state.hintStage === 0
+              ? "Hint"
+              : state.hintStage === 1
+                ? "Nudge"
+                : "Reveal";
         ui.render(state, options);
       }
 
@@ -333,10 +461,52 @@ export function createGame({ mount }) {
         resetRun("Difficulty changed. New challenge ready.");
       }
 
+      function onBoardLengthChange(step) {
+        if (state.phase === "loading" || state.phase === "review") return;
+        state.tasksPerBoard = stepBoardLength(state.tasksPerBoard, step);
+        settings.boardLength = state.tasksPerBoard;
+        state.settings = settings;
+        persistSettings();
+        resetRun(`Board length set to ${state.tasksPerBoard} tasks.`);
+      }
+
+      function onToggleSound() {
+        state.soundOn = !state.soundOn;
+        settings.sound = state.soundOn;
+        state.settings = settings;
+        persistSettings();
+        if (state.soundOn) {
+          audio.unlockFromGesture();
+          audio.playBlip(660, { duration: 0.05, volume: 0.08 });
+        }
+        render();
+      }
+
+      function onTutorialNext() {
+        if (!state.showTutorial) return;
+        if (state.tutorialStep < 3) {
+          state.tutorialStep += 1;
+        } else {
+          state.showTutorial = false;
+          state.tutorialSeen = true;
+          state.tutorialStep = 0;
+          persist();
+        }
+        render();
+      }
+
+      function onTutorialSkip() {
+        state.showTutorial = false;
+        state.tutorialSeen = true;
+        state.tutorialStep = 0;
+        persist();
+        render();
+      }
+
       function onUsernameInput(value) {
         if (!["loading", "ready"].includes(state.phase)) return;
         applyUsername(value);
-        state.round = createRound(state);
+        state.round = makeRound(state);
         state.feedback = {
           kind: state.usernameKey ? "neutral" : "bad",
           text: state.usernameKey
@@ -357,14 +527,18 @@ export function createGame({ mount }) {
           const fresh = emptyProfile();
           state.bestScore = fresh.bestScore;
           state.unlockedBoard = fresh.unlockedBoard;
+          state.bestStars = fresh.bestStars;
+          state.tutorialSeen = false;
           state.boardIndex = fresh.unlockedBoard;
-          state.profileMessage = "Type a username to save your progress.";
+          state.profileMessage = "Type a username to save progress. Unlocked = highest board you can start.";
           return;
         }
 
         const profile = state.profiles[key] || { name: trimmed, ...emptyProfile() };
         state.bestScore = profile.bestScore;
         state.unlockedBoard = profile.unlockedBoard;
+        state.bestStars = profile.bestStars || 0;
+        state.tutorialSeen = Boolean(profile.tutorialSeen);
         state.boardIndex = profile.unlockedBoard;
         state.profileMessage = state.profiles[key]
           ? `Loaded ${profile.name || trimmed}: Board ${profile.unlockedBoard} unlocked.`
@@ -372,40 +546,88 @@ export function createGame({ mount }) {
       }
 
       function persist() {
-        if (!state.usernameKey) return;
+        if (!state.usernameKey) {
+          persistSettings();
+          return;
+        }
+        const existing = state.profiles[state.usernameKey] || emptyProfile();
         state.profiles[state.usernameKey] = {
           name: state.username,
           bestScore: state.bestScore,
           unlockedBoard: state.unlockedBoard,
+          bestStars: Math.max(existing.bestStars || 0, state.bestStars || 0),
+          tutorialSeen: state.tutorialSeen,
+          taskStars: existing.taskStars || {},
         };
         saveState({
           profiles: state.profiles,
           lastUsername: state.username,
+          settings,
         });
+      }
+
+      function persistSettings() {
+        saveState({
+          profiles: state.profiles,
+          lastUsername: state.username,
+          settings,
+        });
+      }
+
+      function recordTaskStars(stars) {
+        if (!state.usernameKey) return;
+        const profile = state.profiles[state.usernameKey] || {
+          name: state.username,
+          ...emptyProfile(),
+        };
+        const key = `${state.boardIndex}-${state.taskIndex}-${state.divisionId}-${state.difficultyId}`;
+        const prev = Number(profile.taskStars?.[key]) || 0;
+        if (!profile.taskStars) profile.taskStars = {};
+        if (stars > prev) profile.taskStars[key] = stars;
+        state.profiles[state.usernameKey] = profile;
       }
 
       function resetRun(message) {
         state.phase = state.phase === "ready" ? "ready" : "playing";
         state.taskIndex = 1;
         state.score = 0;
-        state.round = createRound(state);
+        state.runStars = 0;
+        state.round = makeRound(state);
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
+        resetTaskFlags();
         state.feedback = {
           kind: "neutral",
           text: message,
           detail: state.division.gradeLabel,
         };
         state.correction = null;
-        render({ focusInput: state.phase === "playing" });
+        render();
+      }
+
+      function resetTaskFlags() {
+        state.retriesLeft = MAX_RETRIES;
+        state.hintStage = 0;
+        state.usedTip = false;
+        state.usedReveal = false;
+        state.attempts = 0;
+        state.firstTry = true;
+        state.taskStarsEarned = 0;
+        state.shake = false;
+      }
+
+      function retriesDetail() {
+        return state.retriesLeft < MAX_RETRIES
+          ? `${state.retriesLeft} retr${state.retriesLeft === 1 ? "y" : "ies"} left`
+          : "";
       }
 
       function vibrate(ms) {
         try {
           if (navigator.vibrate) navigator.vibrate(ms);
         } catch {
-          // Ignore unsupported environments.
+          // Ignore
         }
       }
     },
@@ -415,6 +637,37 @@ export function createGame({ mount }) {
       destroyFn = () => {};
     },
   };
+}
+
+/** Wrapper: bump effective boardIndex for late tasks without changing puzzle.js. */
+function makeRound(state) {
+  const ramp = Math.floor((state.taskIndex - 1) / 10);
+  return createRound({
+    boardIndex: state.boardIndex + ramp,
+    taskIndex: state.taskIndex,
+    divisionId: state.divisionId,
+    difficultyId: state.difficultyId,
+  });
+}
+
+function calcTaskStars({ firstTry, usedTip, usedReveal, retriesUsed }) {
+  if (usedReveal) return 1;
+  if (firstTry && !usedTip && retriesUsed === 0) return 3;
+  return 2;
+}
+
+function softNudge(reason) {
+  if (reason && /card|repeat|equation|parenthesis|Division/i.test(reason)) {
+    return `${reason} Try a different grouping.`;
+  }
+  return "Not quite — try regrouping with parentheses.";
+}
+
+function operatorNudge(exampleSolution) {
+  const match = String(exampleSolution).match(/[+\-*/]/);
+  const map = { "+": "addition (+)", "-": "subtraction (−)", "*": "multiplication (×)", "/": "division (÷)" };
+  if (!match) return "Nudge: try combining two cards first, then use the rest.";
+  return `Nudge: a strong path starts with ${map[match[0]] || match[0]}.`;
 }
 
 function buildWrongCorrection(expression, result, round) {

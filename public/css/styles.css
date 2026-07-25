@@ -59,11 +59,15 @@ button:disabled,input:disabled {
 .math-game {
     --math-bg: linear-gradient(145deg, #103a51, #1d7280);
     --card-paper: linear-gradient(160deg, #fff, #edf6fb);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
     isolation: isolate;
     background: linear-gradient(180deg, #05122414, #05122461), var(--math-bg) center / cover no-repeat, #123d52;
     grid-template-rows: auto minmax(0,1fr) auto;
     gap: .75rem;
-    padding: clamp(.65rem,3%,1.25rem);
+    padding: calc(.65rem + var(--safe-top)) calc(clamp(.65rem,3%,1.25rem) + var(--safe-right)) calc(.65rem + var(--safe-bottom)) calc(clamp(.65rem,3%,1.25rem) + var(--safe-left));
     display: grid;
     position: relative;
     overflow: hidden;
@@ -153,6 +157,10 @@ button:disabled,input:disabled {
     gap: .55rem;
     width: min(100%,42rem);
     margin-inline:auto;display: grid
+}
+
+.setting-control--wide {
+    grid-column: 1 / -1
 }
 
 .setting-control {
@@ -355,8 +363,6 @@ button:disabled,input:disabled {
 .equation-input {
     box-sizing: border-box;
     color: #15283b;
-    -webkit-user-select: text;
-    user-select: text;
     background: #ffffffdb;
     border: 1px solid #1c334829;
     border-radius: 1rem;
@@ -364,12 +370,10 @@ button:disabled,input:disabled {
     width: 100%;
     min-height: 4.1rem;
     padding: .65rem .85rem;
-    font: 850 1.65rem/1.1 Inter,ui-sans-serif,system-ui,sans-serif
-}
-
-.equation-input:focus {
-    border-color: #236fca8c;
-    box-shadow: 0 0 0 .2rem #236fca24
+    font: 850 1.65rem/1.1 Inter,ui-sans-serif,system-ui,sans-serif;
+    display: flex;
+    align-items: center;
+    word-break: break-word
 }
 
 .feedback-line {
@@ -523,7 +527,7 @@ button:disabled,input:disabled {
     grid-template-columns: 1fr
 }
 
-.math-game[data-phase=review] [data-skip] {
+.math-game[data-phase=review] [data-hint] {
     background: linear-gradient(#39d02f,#1fa914);
     min-height: 3.25rem;
     font-size: 1.35rem
@@ -548,6 +552,7 @@ button:disabled,input:disabled {
     color: #fff;
     background: linear-gradient(#17657d,#0d4c62);
     min-height: 3.25rem;
+    min-height: 48px;
     font-size: 1.55rem;
     font-weight: 850
 }
@@ -568,6 +573,7 @@ button:disabled,input:disabled {
     text-transform: uppercase;
     letter-spacing: .03em;
     min-height: 3.45rem;
+    min-height: 48px;
     padding-inline:.7rem;font-weight: 850
 }
 
@@ -826,4 +832,161 @@ button:disabled,input:disabled {
     0% { transform: scale(1) }
     40% { transform: scale(1.08) }
     100% { transform: scale(1) }
+}
+
+.hud-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .35rem;
+    justify-self: center;
+}
+
+.hud-mute {
+    background: #07182b3d;
+    border: 1px solid #ffffff2e;
+    border-radius: 999px;
+    min-width: 44px;
+    min-height: 44px;
+    color: #f8fbff;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.math-game.is-shaking .math-card {
+    animation: shake-board .4s ease
+}
+
+@keyframes shake-board {
+    0%, 100% { transform: translateX(0) }
+    25% { transform: translateX(-6px) }
+    75% { transform: translateX(6px) }
+}
+
+.tutorial-overlay {
+    z-index: 6;
+    background: #08122066;
+    place-items: end center;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    position: absolute;
+    inset: 0;
+}
+
+.tutorial-card {
+    color: #16293b;
+    background: linear-gradient(#fffffcfa,#edfaf7fa);
+    border-radius: 1.2rem;
+    width: min(100%, 22rem);
+    padding: 1rem 1.1rem;
+    display: grid;
+    gap: .45rem;
+    box-shadow: 0 1rem 2.4rem #00000040;
+    animation: fade-up-soft .3s ease
+}
+
+.tutorial-card strong {
+    font-family: Outfit,Inter,sans-serif;
+    font-size: 1.15rem
+}
+
+.tutorial-card p {
+    margin: 0;
+    color: #526374;
+    font-weight: 650;
+    line-height: 1.35
+}
+
+.tutorial-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: .45rem;
+    margin-top: .25rem
+}
+
+.tutorial-actions button {
+    min-height: 44px;
+    border-radius: .9rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #fff;
+    cursor: pointer
+}
+
+.tutorial-actions .primary {
+    background: linear-gradient(#66d685,#3aae60)
+}
+
+.tutorial-actions .secondary {
+    background: linear-gradient(#7d8793,#5d6570)
+}
+
+.math-game.tutorial-on[data-tutorial-step="1"] .card-cross {
+    outline: 3px solid #9ae0ff;
+    outline-offset: 4px;
+    border-radius: 1rem
+}
+
+.math-game.tutorial-on[data-tutorial-step="2"] .operator-grid {
+    outline: 3px solid #9ae0ff;
+    outline-offset: 4px;
+    border-radius: .8rem
+}
+
+.math-game.tutorial-on[data-tutorial-step="3"] [data-submit] {
+    outline: 3px solid #9af0b1;
+    outline-offset: 3px
+}
+
+.result-stars {
+    margin: 0;
+    color: #246fd0;
+    font-weight: 850;
+    font-size: 1.2rem
+}
+
+.local-board {
+    text-align: start;
+    background: #edf4fa;
+    border-radius: .9rem;
+    padding: .65rem .75rem;
+    display: grid;
+    gap: .3rem
+}
+
+.local-board strong {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #647386
+}
+
+.local-board ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #16293b;
+    font-weight: 750
+}
+
+.local-board p {
+    margin: 0;
+    color: #647386;
+    font-weight: 650;
+    font-size: .85rem
+}
+
+@keyframes fade-up-soft {
+    from { opacity: 0; transform: translateY(.5rem) }
+    to { opacity: 1; transform: translateY(0) }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+    .settings-panel {
+        display: none
+    }
+    .card-cross {
+        min-height: 11rem
+    }
 }
