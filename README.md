@@ -1,4 +1,4 @@
-# MathMaster
+# Math Rescue
 
 Card equation puzzle — match the target with four number cards.
 

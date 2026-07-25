@@ -1,4 +1,4 @@
-/** Lightweight Web Audio SFX for MathMaster. */
+/** Lightweight Web Audio SFX for Math Rescue. */
 
 export function createAudio(isSoundOn = () => true) {
   let context = null;

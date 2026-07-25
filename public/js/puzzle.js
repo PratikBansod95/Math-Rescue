@@ -1,4 +1,4 @@
-/** Puzzle generation, parsing, and evaluation for MathMaster. */
+/** Puzzle generation, parsing, and evaluation for Math Rescue. */
 
 export const DIVISIONS = [
   {

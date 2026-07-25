@@ -1,6 +1,6 @@
 {
-  "name": "MathMaster",
-  "short_name": "MathMaster",
+  "name": "Math Rescue",
+  "short_name": "Math Rescue",
   "description": "Build equations from four cards to hit the target.",
   "start_url": "/",
   "display": "standalone",

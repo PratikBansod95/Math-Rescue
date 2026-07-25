@@ -179,7 +179,7 @@ function template() {
       </div>
     </header>
 
-    <main class="math-play" aria-label="MathMaster puzzle board">
+    <main class="math-play" aria-label="Math Rescue puzzle board">
       <section class="settings-panel" aria-label="Division difficulty and length">
         <div class="setting-control">
           <span>Division</span>
@@ -244,7 +244,7 @@ function template() {
 
     <div class="start-overlay" data-start-overlay>
       <div class="start-prompt">
-        <p class="brand-mark">MathMaster</p>
+        <p class="brand-mark">Math Rescue</p>
         <h1>Hit the target with four cards</h1>
         <label class="profile-entry">
           <span>Username</span>

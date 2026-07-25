@@ -1,9 +1,9 @@
 {
-  "name": "mathmaster",
+  "name": "math-rescue",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "MathMaster — card equation puzzle game",
+  "description": "Math Rescue — card equation puzzle game",
   "scripts": {
     "start": "npx --yes serve public -p 5173",
     "build": "echo Static site — files are in public/"

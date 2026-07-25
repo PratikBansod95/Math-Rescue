@@ -1,6 +1,6 @@
-const STORAGE_KEY = "mathmaster-v2";
-const LEGACY_KEY = "mathmaster-v1";
-const VERSION = 2;
+const STORAGE_KEY = "math-rescue-v1";
+const LEGACY_KEYS = ["mathmaster-v2", "mathmaster-v1"];
+const VERSION = 1;
 
 export const BOARD_LENGTHS = [10, 15, 30];
 export const DEFAULT_BOARD_LENGTH = 15;
@@ -40,14 +40,15 @@ export function loadState() {
       }
     }
 
-    // Migrate v1 if present
-    const legacy = localStorage.getItem(LEGACY_KEY);
-    if (legacy) {
+    // Migrate older MathMaster saves if present
+    for (const key of LEGACY_KEYS) {
+      const legacy = localStorage.getItem(key);
+      if (!legacy) continue;
       const data = JSON.parse(legacy);
       const migrated = {
         profiles: normalizeProfiles(data.profiles),
         lastUsername: typeof data.lastUsername === "string" ? data.lastUsername : "",
-        settings: defaultSettings(),
+        settings: normalizeSettings(data.settings),
       };
       saveState(migrated);
       return migrated;
