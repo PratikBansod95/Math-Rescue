@@ -175,15 +175,10 @@ function template() {
 
     <main class="math-play" aria-label="Math Rescue puzzle board">
       <section class="math-card" aria-label="Target and equation">
-        <div class="math-stage">
-          <div class="card-cross" data-numbers aria-label="Four number cards and center target"></div>
-        </div>
+        <div class="card-cross" data-numbers aria-label="Four number cards and center target"></div>
 
         <div class="equation-box">
-          <div class="equation-box__head">
-            <span>Equation</span>
-            <span class="equation-box__hint">Tap cards &amp; operators</span>
-          </div>
+          <span>Equation</span>
           <div data-input class="equation-input" role="textbox" aria-readonly="true" aria-label="Your equation"> </div>
         </div>
 
@@ -301,7 +296,7 @@ function renderCards(container, state, onAppend) {
     "aria-label",
     `Target number ${state.round.targetLabel || state.round.target}`
   );
-  target.innerHTML = `<span class="target-badge__label">Target</span><strong class="target-badge__value">${state.round.targetLabel || state.round.target}</strong>`;
+  target.innerHTML = `<span>Target</span><strong>${state.round.targetLabel || state.round.target}</strong>`;
   container.append(target);
 }
 
