@@ -31,11 +31,7 @@ export function loadState() {
     if (raw) {
       const data = JSON.parse(raw);
       if (data?.version === VERSION) {
-        return {
-          profiles: normalizeProfiles(data.profiles),
-          lastUsername: typeof data.lastUsername === "string" ? data.lastUsername : "",
-          settings: normalizeSettings(data.settings),
-        };
+        return normalizeSave(data);
       }
     }
 
@@ -44,29 +40,36 @@ export function loadState() {
       const legacy = localStorage.getItem(key);
       if (!legacy) continue;
       const data = JSON.parse(legacy);
-      const migrated = {
-        profiles: normalizeProfiles(data.profiles),
-        lastUsername: typeof data.lastUsername === "string" ? data.lastUsername : "",
-        settings: normalizeSettings(data.settings),
-      };
+      const migrated = normalizeSave({
+        ...data,
+        version: VERSION,
+        resume: null,
+      });
       saveState(migrated);
       return migrated;
     }
   } catch {
     // fall through
   }
-  return { profiles: {}, lastUsername: "", settings: defaultSettings() };
+  return emptySave();
 }
 
-export function saveState({ profiles, lastUsername, settings }) {
+export function saveState({ profiles, lastUsername, settings, resume }) {
   try {
+    const previous = safeReadRaw();
+    const nextUsername =
+      typeof lastUsername === "string" && lastUsername.trim()
+        ? lastUsername.trim().slice(0, 24)
+        : previous?.lastUsername || "";
+
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         version: VERSION,
         profiles: normalizeProfiles(profiles),
-        lastUsername: typeof lastUsername === "string" ? lastUsername : "",
+        lastUsername: nextUsername,
         settings: normalizeSettings(settings),
+        resume: normalizeResume(resume === undefined ? previous?.resume : resume),
       })
     );
   } catch {
@@ -81,12 +84,58 @@ export function topProfilesByScore(profiles, limit = 5) {
     .slice(0, limit);
 }
 
+function emptySave() {
+  return {
+    profiles: {},
+    lastUsername: "",
+    settings: defaultSettings(),
+    resume: null,
+  };
+}
+
+function normalizeSave(data) {
+  return {
+    profiles: normalizeProfiles(data.profiles),
+    lastUsername: typeof data.lastUsername === "string" ? data.lastUsername.trim().slice(0, 24) : "",
+    settings: normalizeSettings(data.settings),
+    resume: normalizeResume(data.resume),
+  };
+}
+
+function safeReadRaw() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data?.version === VERSION ? normalizeSave(data) : null;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeSettings(settings) {
   const base = defaultSettings();
   if (!settings || typeof settings !== "object") return base;
   return {
     sound: settings.sound !== false,
     boardLength: DEFAULT_BOARD_LENGTH,
+  };
+}
+
+function normalizeResume(resume) {
+  if (!resume || typeof resume !== "object") return null;
+  const usernameKey = normalizeUsername(String(resume.usernameKey || ""));
+  if (!usernameKey) return null;
+  const boardIndex = Number(resume.boardIndex);
+  const taskIndex = Number(resume.taskIndex);
+  const score = Number(resume.score);
+  const runStars = Number(resume.runStars);
+  return {
+    usernameKey,
+    boardIndex: Number.isFinite(boardIndex) ? Math.max(1, boardIndex) : 1,
+    taskIndex: Number.isFinite(taskIndex) ? Math.max(1, Math.min(DEFAULT_BOARD_LENGTH, taskIndex)) : 1,
+    score: Number.isFinite(score) ? Math.max(0, score) : 0,
+    runStars: Number.isFinite(runStars) ? Math.max(0, runStars) : 0,
   };
 }
 

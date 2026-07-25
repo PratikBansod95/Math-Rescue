@@ -81,6 +81,8 @@ export function createGame({ mount }) {
         usedCounts: new Map(),
         result: null,
         leaderboard: [],
+        resume: null,
+        storageReady: false,
       };
 
       const audio = createAudio(() => state.soundOn);
@@ -101,6 +103,7 @@ export function createGame({ mount }) {
           onToggleSound,
           onTutorialNext,
           onTutorialSkip,
+          onSwitchPlayer,
         },
       });
 
@@ -119,19 +122,48 @@ export function createGame({ mount }) {
         if (disposed) return;
         const saved = loadState();
         state.profiles = saved.profiles;
+        state.resume = saved.resume;
         settings = saved.settings;
         state.settings = settings;
         state.soundOn = settings.sound !== false;
         state.tasksPerBoard = DEFAULT_BOARD_LENGTH;
-        applyUsername(state.usernameKey ? state.username : saved.lastUsername || "");
+        applyUsername(saved.lastUsername || "");
+        state.storageReady = true;
+
+        if (state.usernameKey) {
+          const resume =
+            state.resume && state.resume.usernameKey === state.usernameKey ? state.resume : null;
+          if (resume) {
+            state.boardIndex = resume.boardIndex;
+            state.taskIndex = resume.taskIndex;
+            state.score = resume.score;
+            state.runStars = resume.runStars;
+          } else {
+            state.boardIndex = state.unlockedBoard;
+            state.taskIndex = 1;
+            state.score = 0;
+            state.runStars = 0;
+          }
+          state.round = makeRound(state);
+          state.phase = "playing";
+          state.feedback = {
+            kind: "neutral",
+            text: `Welcome back, ${state.username}.`,
+            detail: `Board ${state.boardIndex} · Task ${state.taskIndex}/${state.tasksPerBoard}`,
+          };
+          state.correction = null;
+          ui.hideStartOverlay();
+          persist();
+          render();
+          return;
+        }
+
         state.round = makeRound(state);
         state.phase = "ready";
         state.feedback = {
           kind: "neutral",
-          text: state.usernameKey ? `Welcome back, ${state.username}.` : "Enter a name to save your progress.",
-          detail: state.usernameKey
-            ? `Board ${state.boardIndex} ready · ${state.tasksPerBoard} puzzles`
-            : "Your scores stay on this device.",
+          text: "Enter a name to save your progress.",
+          detail: "Progress stays on this device until cloud save is added.",
         };
         state.correction = null;
         render();
@@ -149,15 +181,38 @@ export function createGame({ mount }) {
           return;
         }
         resetTaskFlags();
-        state.phase = "playing";
+        state.boardIndex = state.unlockedBoard;
+        state.taskIndex = 1;
+        state.score = 0;
         state.runStars = 0;
+        state.round = makeRound(state);
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.phase = "playing";
         state.showTutorial = !state.tutorialSeen;
         state.tutorialStep = state.showTutorial ? 1 : 0;
+        state.resume = buildResume();
         ui.hideStartOverlay();
         render();
         audio.unlockFromGesture();
         vibrate(12);
         persist();
+      }
+
+      function onSwitchPlayer() {
+        state.phase = "ready";
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.correction = null;
+        state.showTutorial = false;
+        state.feedback = {
+          kind: "neutral",
+          text: "Switch player or keep your saved name.",
+          detail: "Each name keeps its own board progress on this device.",
+        };
+        render();
       }
 
       function onNewGame() {
@@ -178,7 +233,9 @@ export function createGame({ mount }) {
           detail: "",
         };
         state.correction = null;
+        state.resume = buildResume();
         render();
+        persist();
       }
 
       function onAppend(fragment) {
@@ -390,7 +447,9 @@ export function createGame({ mount }) {
           detail: "",
         };
         state.correction = null;
+        state.resume = buildResume();
         render();
+        persist();
       }
 
       function finishBoard() {
@@ -420,6 +479,7 @@ export function createGame({ mount }) {
           detail: `Board ${state.unlockedBoard} unlocked · ★${state.runStars} this run`,
         };
         state.correction = null;
+        state.resume = null;
         render();
         audio.playBlip(660, { duration: 0.1, volume: 0.12 });
         audio.playBlip(990, { duration: 0.13, volume: 0.12 });
@@ -485,8 +545,11 @@ export function createGame({ mount }) {
           text: state.usernameKey
             ? `Welcome, ${state.username}.`
             : "Enter a name to save progress.",
-          detail: state.profileMessage,
+          detail: state.usernameKey
+            ? `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`
+            : "Progress stays on this device.",
         };
+        if (state.usernameKey) persist();
         render();
       }
 
@@ -508,6 +571,12 @@ export function createGame({ mount }) {
         }
 
         const profile = state.profiles[key] || { name: trimmed, ...emptyProfile() };
+        if (!state.profiles[key]) {
+          state.profiles[key] = {
+            name: trimmed,
+            ...emptyProfile(),
+          };
+        }
         state.bestScore = profile.bestScore;
         state.unlockedBoard = profile.unlockedBoard;
         state.bestStars = profile.bestStars || 0;
@@ -516,7 +585,20 @@ export function createGame({ mount }) {
         state.profileMessage = "Welcome";
       }
 
+      function buildResume() {
+        if (!state.usernameKey) return null;
+        if (!["playing", "review"].includes(state.phase)) return null;
+        return {
+          usernameKey: state.usernameKey,
+          boardIndex: state.boardIndex,
+          taskIndex: state.taskIndex,
+          score: state.score,
+          runStars: state.runStars,
+        };
+      }
+
       function persist() {
+        if (!state.storageReady) return;
         if (!state.usernameKey) {
           persistSettings();
           return;
@@ -530,18 +612,24 @@ export function createGame({ mount }) {
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
         };
+        if (["playing", "review"].includes(state.phase)) {
+          state.resume = buildResume();
+        }
         saveState({
           profiles: state.profiles,
           lastUsername: state.username,
           settings,
+          resume: state.resume,
         });
       }
 
       function persistSettings() {
+        if (!state.storageReady) return;
         saveState({
           profiles: state.profiles,
           lastUsername: state.username,
           settings,
+          resume: state.resume,
         });
       }
 

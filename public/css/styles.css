@@ -695,6 +695,15 @@ button:disabled,input:disabled {
     box-shadow: none
 }
 
+.start-save-hint {
+    margin: 0;
+    color: #647386;
+    font-size: .72rem;
+    font-weight: 650;
+    line-height: 1.35;
+    text-align: center
+}
+
 .result-overlay {
     background: #06122070
 }
@@ -839,6 +848,23 @@ button:disabled,input:disabled {
     min-height: 44px;
     color: #f8fbff;
     font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.hud-player {
+    background: #07182b3d;
+    border: 1px solid #ffffff2e;
+    border-radius: 999px;
+    min-height: 1.9rem;
+    padding: .2rem .7rem;
+    color: #e8f7ff;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     cursor: pointer;
 }
 

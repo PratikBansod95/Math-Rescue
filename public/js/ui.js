@@ -35,6 +35,7 @@ export function createUI({ mount, handlers }) {
     topStars: shell.querySelector("[data-stars]"),
     bestScore: shell.querySelector("[data-best]"),
     muteButton: shell.querySelector("[data-mute]"),
+    playerButton: shell.querySelector("[data-player]"),
     numbers: shell.querySelector("[data-numbers]"),
     input: shell.querySelector("[data-input]"),
     feedback: shell.querySelector("[data-feedback]"),
@@ -82,6 +83,7 @@ export function createUI({ mount, handlers }) {
   on(els.hintButton, "click", handlers.onHintOrNext);
   on(els.newGameButton, "click", handlers.onNewGame);
   on(els.muteButton, "click", handlers.onToggleSound);
+  on(els.playerButton, "click", handlers.onSwitchPlayer);
   on(els.tutorialNext, "click", handlers.onTutorialNext);
   on(els.tutorialSkip, "click", handlers.onTutorialSkip);
 
@@ -99,6 +101,12 @@ export function createUI({ mount, handlers }) {
       els.bestScore.textContent = `Unlocked ${state.unlockedBoard}`;
       els.muteButton.textContent = state.soundOn ? "🔊" : "🔇";
       els.muteButton.setAttribute("aria-label", state.soundOn ? "Mute sound" : "Unmute sound");
+      els.playerButton.textContent = state.usernameKey ? state.username : "Player";
+      els.playerButton.hidden = !state.usernameKey;
+      els.playerButton.setAttribute(
+        "aria-label",
+        state.usernameKey ? `Saved player ${state.username}. Switch player` : "Player"
+      );
 
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
@@ -155,6 +163,7 @@ function template() {
         <strong data-round>Board 1 · Task 1/15</strong>
       </div>
       <div class="hud-center">
+        <button class="hud-player" data-player type="button" hidden>Player</button>
         <div class="hud-best" data-best>Unlocked 1</div>
         <button class="hud-mute" data-mute type="button" aria-label="Mute sound">🔊</button>
       </div>
@@ -211,6 +220,7 @@ function template() {
         <p class="start-note" data-start-text>Four cards. One target. Make the equation.</p>
         <p class="start-status-chip" data-start-status hidden></p>
         <button data-start type="button" disabled>Start playing</button>
+        <p class="start-save-hint">Progress saves in this browser. Cloud save comes later.</p>
       </div>
     </div>
 
@@ -308,6 +318,7 @@ function updateStartOverlay(els, state) {
   }
   els.startOverlay.hidden = false;
   els.startButton.disabled = state.phase !== "ready" || !state.usernameKey;
+  els.startButton.textContent = state.usernameKey ? "Continue" : "Start playing";
   els.startText.textContent = "Four cards. One target. Make the equation.";
 
   if (els.startStatus) {
