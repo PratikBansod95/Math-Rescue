@@ -1,13 +1,13 @@
 html,body {
     overscroll-behavior: none;
-    color: #f8fbff;
-    background: #101820;
+    color: #f4f8fb;
+    background: #0b1520;
     width: 100%;
     min-width: 0;
     height: 100%;
     min-height: 0;
     margin: 0;
-    font-family: Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
+    font-family: "Space Grotesk",ui-sans-serif,system-ui,sans-serif;
     overflow: hidden
 }
 
@@ -57,14 +57,25 @@ button:disabled,input:disabled {
 }
 
 .math-game {
-    --math-bg: linear-gradient(145deg, #103a51, #1d7280);
-    --card-paper: linear-gradient(160deg, #fff, #edf6fb);
+    --math-bg: linear-gradient(160deg, #0c2438 0%, #123d52 42%, #0f6b6a 100%);
+    --surface: #f3f7fa;
+    --surface-elevated: #ffffff;
+    --ink: #102033;
+    --ink-soft: #5b6f82;
+    --line: #d7e3ec;
+    --accent: #0f8f8a;
+    --accent-deep: #0a5f6a;
+    --target: #0d2a3d;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
     --safe-right: env(safe-area-inset-right, 0px);
     isolation: isolate;
-    background: linear-gradient(180deg, #05122414, #05122461), var(--math-bg) center / cover no-repeat, #123d52;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, #2bb7ae33, transparent 55%),
+      linear-gradient(180deg, #05122418, #05122455),
+      var(--math-bg) center / cover no-repeat,
+      #0f2f40;
     grid-template-rows: auto minmax(0,1fr) auto;
     gap: .75rem;
     padding: calc(.65rem + var(--safe-top)) calc(clamp(.65rem,3%,1.25rem) + var(--safe-right)) calc(.65rem + var(--safe-bottom)) calc(clamp(.65rem,3%,1.25rem) + var(--safe-left));
@@ -112,17 +123,17 @@ button:disabled,input:disabled {
     justify-items: end
 }
 
-.hud-badge span,.hud-best,.result-kicker,.equation-box span {
+.hud-badge span,.hud-best,.result-kicker {
     color: #e8f7ffb8;
     text-transform: uppercase;
     letter-spacing: .08em;
     font-size: .76rem;
-    font-weight: 850
+    font-weight: 700
 }
 
 .hud-badge strong {
     letter-spacing: -.04em;
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif;
+    font-family: Sora,"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
     font-size: 2.35rem;
     line-height: .95
 }
@@ -153,114 +164,183 @@ button:disabled,input:disabled {
 }
 
 .math-card {
-    color: #14273a;
-    background: linear-gradient(#fffef6fa,#f5fafaf5);
-    border: 1px solid #0c22341a;
-    border-radius: 1.7rem;
+    --card-ink: var(--ink);
+    color: var(--card-ink);
+    background:
+      linear-gradient(180deg, #ffffffee 0%, #eef4f8f5 100%);
+    border: 1px solid #ffffff55;
+    border-radius: 1.75rem;
     place-self: center;
-    gap: .75rem;
-    width: min(100%,42rem);
-    margin-inline:auto;padding: clamp(1rem,5%,1.55rem);
+    gap: 1rem;
+    width: min(100%, 42rem);
+    margin-inline: auto;
+    padding: clamp(1rem, 4.5%, 1.45rem);
     display: grid;
-    box-shadow: 0 1rem 2.2rem #05162733,inset 0 1px #ffffffe6
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 #ffffffcc inset,
+      0 18px 40px #04131f3d,
+      0 2px 8px #04131f22;
+    animation: stage-in .45s cubic-bezier(.2, .8, .2, 1) both
+}
+
+.math-card::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 45% at 50% 0%, #2bb7ae18, transparent 60%),
+      linear-gradient(135deg, #ffffff40, transparent 40%);
+    z-index: 0
+}
+
+.math-card > * {
+    position: relative;
+    z-index: 1
+}
+
+.math-stage {
+    border-radius: 1.25rem;
+    background:
+      linear-gradient(180deg, #e8f1f6 0%, #dce8ef 100%);
+    border: 1px solid #c9d9e6;
+    padding: clamp(.7rem, 2.8%, 1rem);
+    box-shadow: inset 0 1px 0 #ffffffa6, inset 0 -1px 0 #0c22340d
 }
 
 .card-cross {
     grid-template-rows: auto auto auto;
     grid-template-columns: minmax(0,1fr) minmax(5.8rem,.86fr) minmax(0,1fr);
     place-items: center;
-    gap: clamp(.35rem,1.5cqh,.8rem) clamp(.42rem,2cqw,.8rem);
-    min-height: 18.2rem;
+    gap: clamp(.4rem, 1.6cqh, .85rem) clamp(.45rem, 2cqw, .9rem);
+    min-height: 17.5rem;
     display: grid
 }
 
 .target-badge {
-    color: #fff;
+    color: #f7fcff;
     z-index: 1;
-    background: radial-gradient(circle at 48% 40%,#3c99e7e6,#123a59 72%);
+    background:
+      radial-gradient(circle at 42% 32%, #1a4d66 0%, var(--target) 68%);
     border-radius: 50%;
     grid-area: 2/2;
     justify-self: center;
     place-items: center;
-    width: clamp(5.8rem,21cqw,8rem);
-    min-height: clamp(5.8rem,21cqw,8rem);
+    align-content: center;
+    gap: .05rem;
+    width: clamp(5.6rem, 20cqw, 7.6rem);
+    min-height: clamp(5.6rem, 20cqw, 7.6rem);
     display: grid;
-    box-shadow: 0 0 0 .34rem #9ae0ffd1,0 0 1.8rem #76d4ffb3,inset 0 0 0 1px #ffffff40
+    border: 1px solid #ffffff28;
+    box-shadow:
+      0 0 0 .28rem #0f8f8a33,
+      0 0 0 .5rem #0f8f8a14,
+      0 12px 28px #04131f40,
+      inset 0 1px 0 #ffffff30;
+    transition: transform .2s ease, box-shadow .2s ease
 }
 
 .target-badge--pulse {
     animation: target-pulse .55s ease
 }
 
-.target-badge span {
+.target-badge__label {
     text-transform: uppercase;
-    letter-spacing: .05em;
+    letter-spacing: .14em;
     align-self: end;
-    margin-block-end:-.15rem;font-size: .9rem;
-    font-weight: 850
+    margin-block-end: -.1rem;
+    font-size: .62rem;
+    font-weight: 700;
+    color: #9ec9d8
 }
 
-.target-badge strong {
-    letter-spacing: -.05em;
+.target-badge__value {
+    letter-spacing: -.06em;
     align-self: start;
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif;
-    font-size: clamp(2.45rem,11cqw,3.4rem);
-    line-height: .95
+    font-family: Sora,"Space Grotesk",ui-sans-serif,sans-serif;
+    font-size: clamp(2.2rem, 10cqw, 3.1rem);
+    font-weight: 800;
+    line-height: .92
 }
 
 .number-card,.operator-button,.action-row button,.start-prompt button,.result-card button {
     cursor: pointer;
     border-radius: 1rem;
-    transition: transform .14s,box-shadow .14s,filter .14s;
-    box-shadow: 0 .28rem #1024362e,0 .8rem 1.3rem #0a22361f
+    transition: transform .16s cubic-bezier(.2,.8,.2,1), box-shadow .16s ease, filter .16s ease, background .16s ease;
+    box-shadow: 0 .28rem #1024362e, 0 .8rem 1.3rem #0a22361f
 }
 
 .number-card:active,.operator-button:active,.action-row button:active,.start-prompt button:active,.result-card button:active {
     transform: translateY(.12rem);
-    box-shadow: 0 .12rem #10243638,0 .4rem .8rem #0a22361a
+    box-shadow: 0 .12rem #10243638, 0 .4rem .8rem #0a22361a
 }
 
 .number-card {
-    background: radial-gradient(circle at 0 0, #2d75a7d1 0 22%, transparent 23%), radial-gradient(circle at 100% 100%, #2d75a7d1 0 22%, transparent 23%), var(--card-paper) center / cover, linear-gradient(160deg, #fff, #edf6fb);
-    color: #142b3d;
+    background: var(--surface-elevated);
+    color: var(--ink);
     text-align: center;
-    border: .18rem solid #ffffffe6;
+    border: 1px solid var(--line);
+    border-radius: 1.15rem;
     place-items: center;
-    width: clamp(4.8rem,23cqw,7.5rem);
-    min-height: clamp(4.9rem,17cqh,7.4rem);
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif;
-    font-size: clamp(2.25rem,12cqw,3.55rem);
-    font-weight: 800;
+    width: clamp(4.6rem, 22cqw, 7rem);
+    min-height: clamp(4.7rem, 16cqh, 6.8rem);
+    font-family: Sora,"Space Grotesk",ui-sans-serif,sans-serif;
+    font-size: clamp(2.05rem, 11cqw, 3.2rem);
+    font-weight: 700;
     display: grid;
     position: relative;
-    overflow: hidden
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 #fff inset,
+      0 8px 18px #0a22361a,
+      0 2px 4px #0a223612
 }
 
-.number-card:after {
+.number-card::before {
     content: "";
     pointer-events: none;
-    border: 1px solid #142b3d14;
-    border-radius: .72rem;
     position: absolute;
-    inset: .32rem
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: .22rem;
+    background: linear-gradient(90deg, var(--accent), #3db8c4)
+}
+
+.number-card:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: #b7cedd;
+    box-shadow:
+      0 1px 0 #fff inset,
+      0 14px 28px #0a223624,
+      0 4px 8px #0a223612
+}
+
+.number-card:active:not(:disabled) {
+    transform: translateY(1px) scale(.98)
 }
 
 .number-card--top {
-    grid-area: 1/2
+    grid-area: 1/2;
+    animation: card-rise .4s .04s both
 }
 
 .number-card--left {
     grid-area: 2/1;
-    justify-self: end
+    justify-self: end;
+    animation: card-rise .4s .08s both
 }
 
 .number-card--right {
     grid-area: 2/3;
-    justify-self: start
+    justify-self: start;
+    animation: card-rise .4s .12s both
 }
 
 .number-card--bottom {
-    grid-area: 3/2
+    grid-area: 3/2;
+    animation: card-rise .4s .16s both
 }
 
 .card-value {
@@ -285,30 +365,65 @@ button:disabled,input:disabled {
 }
 
 .number-card:disabled {
-    filter: grayscale(.75);
-    opacity: .38;
-    transform: none
+    filter: grayscale(.55);
+    opacity: .34;
+    transform: none;
+    box-shadow: none
 }
 
 .equation-box {
-    gap: .35rem;
+    gap: .45rem;
     display: grid
+}
+
+.equation-box__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .75rem
+}
+
+.equation-box__head > span:first-child {
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: .7rem;
+    font-weight: 700
+}
+
+.equation-box__hint {
+    color: #8aa0b3;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none
 }
 
 .equation-input {
     box-sizing: border-box;
-    color: #15283b;
-    background: #ffffffdb;
-    border: 1px solid #1c334829;
-    border-radius: 1rem;
+    color: var(--ink);
+    background: var(--surface-elevated);
+    border: 1px solid var(--line);
+    border-radius: 1.05rem;
     outline: none;
     width: 100%;
-    min-height: 4.1rem;
-    padding: .65rem .85rem;
-    font: 850 1.65rem/1.1 Inter,ui-sans-serif,system-ui,sans-serif;
+    min-height: 4.15rem;
+    padding: .75rem 1rem;
+    font: 700 clamp(1.25rem, 4.8cqw, 1.65rem)/1.15 Sora,"Space Grotesk",ui-sans-serif,sans-serif;
+    letter-spacing: -.02em;
     display: flex;
     align-items: center;
-    word-break: break-word
+    overflow-x: auto;
+    white-space: nowrap;
+    box-shadow: inset 0 1px 2px #0a22360d, 0 1px 0 #ffffffaa;
+    transition: border-color .16s ease, box-shadow .16s ease
+}
+
+.math-game[data-phase=playing] .equation-input {
+    border-color: #9ec9d4;
+    box-shadow:
+      inset 0 1px 2px #0a22360d,
+      0 0 0 3px #0f8f8a18
 }
 
 .feedback-line {
@@ -389,7 +504,7 @@ button:disabled,input:disabled {
     background: #ffffff1a;
     border-radius: .38rem;
     padding: .08rem .28rem;
-    font-family: Inter,ui-sans-serif,system-ui,sans-serif;
+    font-family: "Space Grotesk",ui-sans-serif,sans-serif;
     font-weight: 850;
     display: inline
 }
@@ -400,11 +515,15 @@ button:disabled,input:disabled {
     gap: .7rem .85rem
 }
 
-.math-game[data-phase=review] .card-cross {
+.math-game[data-phase=review] .math-stage {
     grid-area: 1/1/span 2;
-    align-self: center;
-    min-height: 11.5rem;
-    transform: translate(-.15rem)
+    align-self: stretch;
+    padding: .55rem
+}
+
+.math-game[data-phase=review] .card-cross {
+    min-height: 11rem;
+    transform: none
 }
 
 .math-game[data-phase=review] .equation-box {
@@ -419,35 +538,40 @@ button:disabled,input:disabled {
 }
 
 .math-game[data-phase=review] .number-card {
-    border-width: .12rem;
-    border-radius: .75rem;
+    border-radius: .9rem;
     width: clamp(2.9rem,12cqw,4.5rem);
     min-height: clamp(3.1rem,9cqh,4.4rem);
     font-size: clamp(1.25rem,6cqw,2rem)
 }
 
-.math-game[data-phase=review] .number-card:after {
-    border-radius: .5rem;
-    inset: .2rem
+.math-game[data-phase=review] .number-card::before {
+    height: .14rem
 }
 
 .math-game[data-phase=review] .target-badge {
     width: clamp(3.5rem,13cqw,4.8rem);
     min-height: clamp(3.5rem,13cqw,4.8rem);
-    box-shadow: 0 0 0 .2rem #9ae0ffd1,0 0 1.1rem #76d4ff8c,inset 0 0 0 1px #ffffff40
+    box-shadow:
+      0 0 0 .18rem #0f8f8a33,
+      0 8px 16px #04131f33,
+      inset 0 1px 0 #ffffff30
 }
 
-.math-game[data-phase=review] .target-badge span {
-    font-size: .62rem
+.math-game[data-phase=review] .target-badge__label {
+    font-size: .52rem
 }
 
-.math-game[data-phase=review] .target-badge strong {
-    font-size: clamp(1.45rem,6.5cqw,2rem)
+.math-game[data-phase=review] .target-badge__value {
+    font-size: clamp(1.35rem,6.5cqw,1.85rem)
 }
 
 .math-game[data-phase=review] .equation-input {
     min-height: 3.5rem;
     font-size: clamp(1rem,4.5cqw,1.45rem)
+}
+
+.math-game[data-phase=review] .equation-box__hint {
+    display: none
 }
 
 .math-game[data-phase=review] .operator-grid,.math-game[data-phase=review] [data-clear],.math-game[data-phase=review] [data-submit] {
@@ -571,7 +695,7 @@ button:disabled,input:disabled {
 .start-prompt .brand-mark {
     letter-spacing: -.05em;
     margin: 0;
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif;
+    font-family: Sora,"Space Grotesk",ui-sans-serif,sans-serif;
     font-size: clamp(2.1rem, 8vw, 2.55rem);
     line-height: .92;
     font-weight: 800;
@@ -589,7 +713,7 @@ button:disabled,input:disabled {
     letter-spacing: -.02em;
     line-height: 1.25;
     max-width: 18rem;
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif
+    font-family: Sora,"Space Grotesk",ui-sans-serif,sans-serif
 }
 
 .start-lead {
@@ -661,7 +785,7 @@ button:disabled,input:disabled {
     width: 100%;
     min-height: 3.2rem;
     padding: .7rem .9rem;
-    font: 850 1.05rem/1.1 Inter,ui-sans-serif,system-ui,sans-serif;
+    font: 700 1.05rem/1.1 Sora,"Space Grotesk",ui-sans-serif,sans-serif;
     box-shadow: inset 0 1px 0 #fff, 0 .35rem .8rem #05162712
 }
 
@@ -722,7 +846,7 @@ button:disabled,input:disabled {
 
 .result-card>strong {
     color: #246fd0;
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif;
+    font-family: Sora,"Space Grotesk",ui-sans-serif,sans-serif;
     font-size: 4rem;
     line-height: .92
 }
@@ -733,7 +857,7 @@ button:disabled,input:disabled {
 
 .result-card h2 {
     letter-spacing: -.03em;
-    font-family: Outfit,Inter,ui-sans-serif,system-ui,sans-serif;
+    font-family: Sora,"Space Grotesk",ui-sans-serif,sans-serif;
     font-size: 1.65rem
 }
 
@@ -762,32 +886,38 @@ button:disabled,input:disabled {
 
     .math-card {
         border-radius: 1.25rem;
-        gap: .55rem;
+        gap: .7rem;
         padding: .8rem
     }
 
-    .target-badge {
-        width: 6.3rem;
-        min-height: 6.3rem
+    .math-stage {
+        padding: .55rem;
+        border-radius: 1rem
     }
 
-    .target-badge strong {
-        font-size: 2.7rem
+    .target-badge {
+        width: 6rem;
+        min-height: 6rem
+    }
+
+    .target-badge__value {
+        font-size: 2.4rem
     }
 
     .card-cross {
         gap: .3rem .4rem;
-        min-height: 14.6rem
+        min-height: 14rem
     }
 
     .number-card {
-        min-height: 4.1rem;
-        font-size: 2rem
+        min-height: 4rem;
+        font-size: 1.9rem;
+        border-radius: 1rem
     }
 
     .equation-input {
         min-height: 3.2rem;
-        font-size: 1.3rem
+        font-size: 1.25rem
     }
 
     .feedback-line {
@@ -830,6 +960,16 @@ button:disabled,input:disabled {
     0% { transform: scale(1) }
     40% { transform: scale(1.08) }
     100% { transform: scale(1) }
+}
+
+@keyframes stage-in {
+    from { opacity: 0; transform: translateY(.55rem) scale(.985) }
+    to { opacity: 1; transform: translateY(0) scale(1) }
+}
+
+@keyframes card-rise {
+    from { opacity: 0; transform: translateY(.4rem) scale(.96) }
+    to { opacity: 1; transform: translateY(0) scale(1) }
 }
 
 .hud-center {
@@ -902,7 +1042,7 @@ button:disabled,input:disabled {
 }
 
 .tutorial-card strong {
-    font-family: Outfit,Inter,sans-serif;
+    font-family: Sora,"Space Grotesk",sans-serif;
     font-size: 1.15rem
 }
 
