@@ -60,7 +60,7 @@ export function createGame({ mount }) {
         username: "",
         usernameKey: "",
         profiles: {},
-        profileMessage: "Progress saves to your name on this device.",
+        profileMessage: "Welcome",
         settings,
         soundOn: true,
         tutorialSeen: false,
@@ -561,7 +561,7 @@ export function createGame({ mount }) {
           state.bestStars = fresh.bestStars;
           state.tutorialSeen = false;
           state.boardIndex = fresh.unlockedBoard;
-          state.profileMessage = "Progress saves to your name on this device.";
+          state.profileMessage = "Welcome";
           return;
         }
 
@@ -571,9 +571,7 @@ export function createGame({ mount }) {
         state.bestStars = profile.bestStars || 0;
         state.tutorialSeen = Boolean(profile.tutorialSeen);
         state.boardIndex = profile.unlockedBoard;
-        state.profileMessage = state.profiles[key]
-          ? `Welcome back — Board ${profile.unlockedBoard} unlocked.`
-          : `New profile ready — progress will save as ${trimmed}.`;
+        state.profileMessage = "Welcome";
       }
 
       function persist() {

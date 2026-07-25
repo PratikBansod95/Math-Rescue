@@ -697,48 +697,6 @@ button:disabled,input:disabled {
     font-weight: 850
 }
 
-.start-length-block {
-    width: 100%;
-    display: grid;
-    gap: .4rem;
-    justify-items: stretch
-}
-
-.start-length-label {
-    color: #647386;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    font-size: .7rem;
-    font-weight: 850;
-    text-align: start
-}
-
-.start-length {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: .4rem
-}
-
-.start-length button {
-    min-height: 2.8rem;
-    min-width: 0;
-    margin: 0;
-    border-radius: .9rem;
-    background: #e7f1f7;
-    color: #1c3348;
-    font-weight: 850;
-    font-size: 1.05rem;
-    box-shadow: inset 0 0 0 1px #1c33481a;
-    text-transform: none;
-    letter-spacing: 0
-}
-
-.start-length button.is-active {
-    background: linear-gradient(180deg, #3c99e7, #1d6fa8);
-    color: #fff;
-    box-shadow: 0 .35rem .8rem #1d6fa855
-}
-
 .profile-entry {
     text-align: start;
     justify-items: start;

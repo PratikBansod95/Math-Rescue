@@ -39,8 +39,6 @@ export function createUI({ mount, handlers }) {
     divisionGrade: shell.querySelector("[data-division-grade]"),
     difficultyLabel: shell.querySelector("[data-difficulty-label]"),
     lengthLabel: shell.querySelector("[data-length-label]"),
-    startLengthButtons: shell.querySelectorAll("[data-start-length]"),
-    startStatus: shell.querySelector("[data-start-status]"),
     divisionButtons: shell.querySelectorAll("[data-division-step]"),
     difficultyButtons: shell.querySelectorAll("[data-difficulty-step]"),
     lengthButtons: shell.querySelectorAll("[data-length-step]"),
@@ -95,9 +93,6 @@ export function createUI({ mount, handlers }) {
   for (const button of els.lengthButtons) {
     on(button, "click", () => handlers.onBoardLengthChange(Number(button.dataset.lengthStep)));
   }
-  for (const button of els.startLengthButtons) {
-    on(button, "click", () => handlers.onSetBoardLength(Number(button.dataset.startLength)));
-  }
 
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
@@ -125,16 +120,11 @@ export function createUI({ mount, handlers }) {
       els.divisionGrade.textContent = state.division.gradeLabel;
       els.difficultyLabel.textContent = state.difficulty.label;
       els.lengthLabel.textContent = `${state.tasksPerBoard} tasks`;
-      for (const button of els.startLengthButtons) {
-        const active = Number(button.dataset.startLength) === state.tasksPerBoard;
-        button.classList.toggle("is-active", active);
-        button.setAttribute("aria-pressed", String(active));
-      }
 
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
       }
-      els.profileText.textContent = state.profileMessage;
+      els.profileText.textContent = state.usernameKey ? "Welcome" : "Enter a name to save progress.";
       els.input.textContent = state.expression || " ";
       els.feedback.textContent = state.feedback.text;
       els.feedback.dataset.kind = state.feedback.kind;
@@ -264,16 +254,7 @@ function template() {
           <span>Your name</span>
           <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Enter a name to save progress" aria-label="Username for saving progress" />
         </label>
-        <p class="start-status" data-profile-text>Progress is saved to your name on this device.</p>
-
-        <div class="start-length-block">
-          <span class="start-length-label">Puzzles this run</span>
-          <div class="start-length" role="group" aria-label="Board length">
-            <button type="button" data-start-length="10">10</button>
-            <button type="button" data-start-length="15">15</button>
-            <button type="button" data-start-length="30">30</button>
-          </div>
-        </div>
+        <p class="start-status" data-profile-text>Welcome</p>
 
         <p class="start-note" data-start-text>Loading…</p>
         <p class="start-status-chip" data-start-status hidden></p>
