@@ -698,13 +698,18 @@ export function createGame({ mount }) {
   };
 }
 
-/** Shared path: Board 1 = Easy, then harder board by board for every player. */
+/** Shared path: Boards 1–5 stay Easy; then difficulty rises board by board. */
 function applyLevelProgression(state, effectiveBoard) {
   const board = Math.max(1, effectiveBoard);
-  const difficultyIndex = Math.min(DIFFICULTIES.length - 1, board - 1);
-  const divisionIndex = Math.min(DIVISIONS.length - 1, Math.floor((board - 1) / 2));
-  state.difficultyId = DIFFICULTIES[difficultyIndex].id;
-  state.divisionId = DIVISIONS[divisionIndex].id;
+  if (board <= 5) {
+    state.difficultyId = "easy";
+    state.divisionId = DIVISIONS[0].id;
+  } else {
+    const difficultyIndex = Math.min(DIFFICULTIES.length - 1, board - 5);
+    const divisionIndex = Math.min(DIVISIONS.length - 1, Math.floor((board - 1) / 2));
+    state.difficultyId = DIFFICULTIES[difficultyIndex].id;
+    state.divisionId = DIVISIONS[divisionIndex].id;
+  }
   state.difficulty = getDifficulty(state.difficultyId);
   state.division = getDivision(state.divisionId);
 }

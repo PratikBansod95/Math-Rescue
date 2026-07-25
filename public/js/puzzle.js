@@ -78,6 +78,9 @@ export function createRound({
   divisionId = DEFAULT_DIVISION_ID,
   difficultyId = DEFAULT_DIFFICULTY_ID,
 } = {}) {
+  // Same board + task always yields the same puzzle (stable across reloads).
+  seedRandom(hashSeed(boardIndex, taskIndex, divisionId, difficultyId));
+
   const division = getDivision(divisionId);
   const difficulty = getDifficulty(difficultyId);
   const special = specialTypeForTask(taskIndex, division);
@@ -91,9 +94,12 @@ export function createRound({
 
   for (let attempt = 0; attempt < 180; attempt += 1) {
     const cards = generateCards(division, difficulty, boardIndex);
+    if (cards.every((card) => card.key === cards[0].key)) continue;
+
     const solutions = findIntegerTargets(cards, boardIndex, difficulty);
-    if (solutions.length > 0) {
-      const picked = solutions[randomInt(0, solutions.length - 1)];
+    const pool = preferFriendlyTargets(solutions, boardIndex, difficultyId);
+    if (pool.length > 0) {
+      const picked = pool[randomInt(0, pool.length - 1)];
       return {
         cards,
         target: picked.value,
@@ -281,6 +287,18 @@ function findIntegerTargets(cards, boardIndex, difficulty) {
     }
   }
   return Array.from(map.values());
+}
+
+/** Keep early boards friendly: prefer small positive targets. */
+function preferFriendlyTargets(solutions, boardIndex, difficultyId) {
+  if (!solutions.length) return solutions;
+  if (boardIndex > 5 && difficultyId !== "easy") return solutions;
+
+  const positive = solutions.filter((s) => s.value > 0);
+  const gentle = positive.filter((s) => s.value <= 24 + boardIndex * 4);
+  if (gentle.length) return gentle;
+  if (positive.length) return positive;
+  return solutions;
 }
 
 function enumerateSolutions(round) {
@@ -559,8 +577,31 @@ function shuffle(array) {
   }
 }
 
+/** Deterministic PRNG so puzzles stay fixed for a given board/task. */
+let rngState = 0x9e3779b9;
+
+function seedRandom(seed) {
+  rngState = (seed >>> 0) || 0x9e3779b9;
+}
+
+function hashSeed(boardIndex, taskIndex, divisionId, difficultyId) {
+  const text = `${boardIndex}|${taskIndex}|${divisionId}|${difficultyId}`;
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
 function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  // mulberry32
+  rngState |= 0;
+  rngState = (rngState + 0x6d2b79f5) | 0;
+  let t = Math.imul(rngState ^ (rngState >>> 15), 1 | rngState);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  const unit = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  return Math.floor(unit * (max - min + 1)) + min;
 }
 
 function fail(reason, value = null) {
