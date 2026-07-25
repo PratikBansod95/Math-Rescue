@@ -60,7 +60,7 @@ export function createGame({ mount }) {
         username: "",
         usernameKey: "",
         profiles: {},
-        profileMessage: "Type a username to save progress. Unlocked = highest board you can start.",
+        profileMessage: "Progress saves to your name on this device.",
         settings,
         soundOn: true,
         tutorialSeen: false,
@@ -103,6 +103,7 @@ export function createGame({ mount }) {
           onDivisionChange,
           onDifficultyChange,
           onBoardLengthChange,
+          onSetBoardLength,
           onUsernameInput,
           onToggleSound,
           onTutorialNext,
@@ -134,8 +135,10 @@ export function createGame({ mount }) {
         state.phase = "ready";
         state.feedback = {
           kind: "neutral",
-          text: state.usernameKey ? `Ready, ${state.username}.` : "Type a username to save progress.",
-          detail: "Unlocked board is the highest board you can start.",
+          text: state.usernameKey ? `Welcome back, ${state.username}.` : "Enter a name to save your progress.",
+          detail: state.usernameKey
+            ? `Board ${state.boardIndex} ready · ${state.tasksPerBoard} puzzles`
+            : "Your scores stay on this device.",
         };
         state.correction = null;
         render();
@@ -146,7 +149,7 @@ export function createGame({ mount }) {
         if (!state.usernameKey) {
           state.feedback = {
             kind: "bad",
-            text: "Type a username first.",
+            text: "Enter your name to begin.",
             detail: "Use a different name for another saved profile.",
           };
           render();
@@ -467,7 +470,35 @@ export function createGame({ mount }) {
         settings.boardLength = state.tasksPerBoard;
         state.settings = settings;
         persistSettings();
-        resetRun(`Board length set to ${state.tasksPerBoard} tasks.`);
+        if (state.phase === "ready") {
+          state.feedback = {
+            kind: "neutral",
+            text: `${state.tasksPerBoard} puzzles this run.`,
+            detail: "",
+          };
+          render();
+          return;
+        }
+        resetRun(`Board length set to ${state.tasksPerBoard} puzzles.`);
+      }
+
+      function onSetBoardLength(length) {
+        if (state.phase === "loading" || state.phase === "review") return;
+        if (![10, 15, 30].includes(length)) return;
+        state.tasksPerBoard = length;
+        settings.boardLength = length;
+        state.settings = settings;
+        persistSettings();
+        if (state.phase === "ready") {
+          state.feedback = {
+            kind: "neutral",
+            text: `${length} puzzles this run.`,
+            detail: "",
+          };
+          render();
+          return;
+        }
+        resetRun(`Board length set to ${length} puzzles.`);
       }
 
       function onToggleSound() {
@@ -510,8 +541,8 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: state.usernameKey ? "neutral" : "bad",
           text: state.usernameKey
-            ? `Profile loaded: ${state.username}.`
-            : "Type a username to save progress.",
+            ? `Welcome, ${state.username}.`
+            : "Enter a name to save progress.",
           detail: state.profileMessage,
         };
         render();
@@ -530,7 +561,7 @@ export function createGame({ mount }) {
           state.bestStars = fresh.bestStars;
           state.tutorialSeen = false;
           state.boardIndex = fresh.unlockedBoard;
-          state.profileMessage = "Type a username to save progress. Unlocked = highest board you can start.";
+          state.profileMessage = "Progress saves to your name on this device.";
           return;
         }
 
@@ -541,8 +572,8 @@ export function createGame({ mount }) {
         state.tutorialSeen = Boolean(profile.tutorialSeen);
         state.boardIndex = profile.unlockedBoard;
         state.profileMessage = state.profiles[key]
-          ? `Loaded ${profile.name || trimmed}: Board ${profile.unlockedBoard} unlocked.`
-          : `New profile: ${trimmed}.`;
+          ? `Welcome back — Board ${profile.unlockedBoard} unlocked.`
+          : `New profile ready — progress will save as ${trimmed}.`;
       }
 
       function persist() {

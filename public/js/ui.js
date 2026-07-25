@@ -39,6 +39,8 @@ export function createUI({ mount, handlers }) {
     divisionGrade: shell.querySelector("[data-division-grade]"),
     difficultyLabel: shell.querySelector("[data-difficulty-label]"),
     lengthLabel: shell.querySelector("[data-length-label]"),
+    startLengthButtons: shell.querySelectorAll("[data-start-length]"),
+    startStatus: shell.querySelector("[data-start-status]"),
     divisionButtons: shell.querySelectorAll("[data-division-step]"),
     difficultyButtons: shell.querySelectorAll("[data-difficulty-step]"),
     lengthButtons: shell.querySelectorAll("[data-length-step]"),
@@ -93,6 +95,9 @@ export function createUI({ mount, handlers }) {
   for (const button of els.lengthButtons) {
     on(button, "click", () => handlers.onBoardLengthChange(Number(button.dataset.lengthStep)));
   }
+  for (const button of els.startLengthButtons) {
+    on(button, "click", () => handlers.onSetBoardLength(Number(button.dataset.startLength)));
+  }
 
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
@@ -120,6 +125,11 @@ export function createUI({ mount, handlers }) {
       els.divisionGrade.textContent = state.division.gradeLabel;
       els.difficultyLabel.textContent = state.difficulty.label;
       els.lengthLabel.textContent = `${state.tasksPerBoard} tasks`;
+      for (const button of els.startLengthButtons) {
+        const active = Number(button.dataset.startLength) === state.tasksPerBoard;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", String(active));
+      }
 
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
@@ -244,15 +254,30 @@ function template() {
 
     <div class="start-overlay" data-start-overlay>
       <div class="start-prompt">
-        <p class="brand-mark">Math Rescue</p>
-        <h1>Hit the target with four cards</h1>
+        <div class="start-hero">
+          <p class="brand-mark">Math Rescue</p>
+          <h1>Combine four cards. Hit the target.</h1>
+          <p class="start-lead">Build smart equations with +, −, ×, ÷ and parentheses.</p>
+        </div>
+
         <label class="profile-entry">
-          <span>Username</span>
-          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
+          <span>Your name</span>
+          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Enter a name to save progress" aria-label="Username for saving progress" />
         </label>
-        <small data-profile-text>Type a username to save progress. Unlocked = highest board you can start.</small>
-        <p data-start-text>Loading puzzles…</p>
-        <button data-start type="button" disabled>Tap to start</button>
+        <p class="start-status" data-profile-text>Progress is saved to your name on this device.</p>
+
+        <div class="start-length-block">
+          <span class="start-length-label">Puzzles this run</span>
+          <div class="start-length" role="group" aria-label="Board length">
+            <button type="button" data-start-length="10">10</button>
+            <button type="button" data-start-length="15">15</button>
+            <button type="button" data-start-length="30">30</button>
+          </div>
+        </div>
+
+        <p class="start-note" data-start-text>Loading…</p>
+        <p class="start-status-chip" data-start-status hidden></p>
+        <button data-start type="button" disabled>Start playing</button>
       </div>
     </div>
 
@@ -351,8 +376,18 @@ function updateStartOverlay(els, state) {
   els.startOverlay.hidden = false;
   els.startButton.disabled = state.phase !== "ready" || !state.usernameKey;
   els.startText.textContent = state.usernameKey
-    ? "Pick board length above, then tap start."
-    : "Type a username, then start.";
+    ? `Ready for ${state.tasksPerBoard} puzzles on Board ${state.boardIndex}.`
+    : "Enter your name to unlock Start.";
+
+  if (els.startStatus) {
+    if (state.usernameKey) {
+      els.startStatus.hidden = false;
+      els.startStatus.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
+    } else {
+      els.startStatus.hidden = true;
+      els.startStatus.textContent = "";
+    }
+  }
 }
 
 function updateResults(els, state) {
