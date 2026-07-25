@@ -38,7 +38,7 @@ export function createUI({ mount, handlers }) {
   const els = {
     shell,
     streakValue: shell.querySelector("[data-streak]"),
-    streakFill: shell.querySelector("[data-streak-fill]"),
+    streakSegs: shell.querySelectorAll("[data-streak-seg]"),
     levelLabel: shell.querySelector("[data-level]"),
     levelTrack: shell.querySelector("[data-level-track]"),
     coins: shell.querySelector("[data-coins]"),
@@ -113,7 +113,9 @@ export function createUI({ mount, handlers }) {
 
       const streak = Math.min(3, Math.max(0, state.runStars || 0));
       els.streakValue.textContent = String(streak);
-      els.streakFill.style.width = `${(streak / 3) * 100}%`;
+      els.streakSegs.forEach((seg, index) => {
+        seg.classList.toggle("is-on", index < streak);
+      });
 
       els.levelLabel.textContent = `LEVEL ${state.boardIndex}`;
       renderLevelTrack(els.levelTrack, state);
@@ -144,9 +146,8 @@ export function createUI({ mount, handlers }) {
       const expression = state.expression.trim();
       els.input.textContent = expression || "";
       els.input.dataset.empty = expression ? "false" : "true";
-      els.equationHint.innerHTML = `💡 Use <b>+ − × ÷</b> and <b>( )</b> to make <b data-target-chip>${
-        state.round?.targetLabel || state.round?.target || "?"
-      }</b>`;
+      const targetLabel = state.round?.targetLabel || state.round?.target || "?";
+      els.equationHint.innerHTML = `<span class="tip-ico" aria-hidden="true">💡</span><span>Use <i class="op op-add">+</i> <i class="op op-sub">−</i> <i class="op op-mul">×</i> <i class="op op-div">÷</i> and <i class="op op-par">( )</i> to make <b class="target-chip">${targetLabel}</b></span>`;
 
       els.feedback.textContent = state.feedback.text;
       els.feedback.dataset.kind = state.feedback.kind;
@@ -184,26 +185,38 @@ function template() {
   return `
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
-      <div class="play-doodles">
-        <span>2x+3=7</span>
-        <span>a²+b²=c²</span>
-        <span>√</x</span>
-        <span>π</span>
-        <span>(a+b)²</span>
-      </div>
+      <svg class="play-sketch" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+        <g fill="none" stroke="#9db4d4" stroke-width="1.4" opacity=".35">
+          <path d="M42 150l28-40 28 40Z"/><path d="M48 150h44"/>
+          <path d="M320 120h40v40h-40z"/><path d="M320 120l20-14 20 14"/><path d="M340 106v14"/>
+          <path d="M48 430a22 22 0 1 0 .1 0M48 430v-22M38 418h20"/>
+          <path d="M330 470c18 0 28 14 28 28s-16 22-28 14c-8-5-10-14-4-20"/>
+        </g>
+        <g fill="#9db4d4" opacity=".28" font-family="Plus Jakarta Sans, sans-serif" font-size="14" font-weight="700">
+          <text x="28" y="210" transform="rotate(-12 28 210)">2x+3=7</text>
+          <text x="290" y="230" transform="rotate(8 290 230)">a²+b²=c²</text>
+          <text x="40" y="520" transform="rotate(6 40 520)">√x</text>
+          <text x="320" y="390" font-size="22">π</text>
+          <text x="300" y="560" transform="rotate(-7 300 560)">(a+b)²</text>
+        </g>
+      </svg>
     </div>
 
     <header class="top-bar" aria-label="Game status">
       <button class="icon-btn" data-menu type="button" aria-label="Switch player">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
 
       <div class="stat-chip stat-chip--streak">
-        <span class="stat-chip__ico" aria-hidden="true">🏆</span>
-        <div>
+        <span class="trophy-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </span>
+        <div class="stat-chip__body">
           <small>Streak</small>
           <strong data-streak>0</strong>
-          <div class="streak-bar"><i data-streak-fill></i></div>
+          <div class="streak-segs" aria-hidden="true">
+            <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
+          </div>
         </div>
       </div>
 
@@ -213,12 +226,15 @@ function template() {
       </div>
 
       <div class="stat-chip stat-chip--coins">
-        <span class="stat-chip__ico" aria-hidden="true">🪙</span>
+        <span class="coin-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fde68a" stroke-width="1.6"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
+        </span>
         <strong data-coins>0</strong>
+        <span class="coin-plus" aria-hidden="true">+</span>
       </div>
 
       <button class="icon-btn" data-mute type="button" aria-label="Mute sound">
-        <svg class="ico-gear" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 13a7.8 7.8 0 0 0 .1-2l2-1.2-2-3.4-2.3.7a7.6 7.6 0 0 0-1.7-1L15 4h-6l-.5 2.1a7.6 7.6 0 0 0-1.7 1L4.5 6.4l-2 3.4 2 1.2a7.8 7.8 0 0 0 0 2l-2 1.2 2 3.4 2.3-.7a7.6 7.6 0 0 0 1.7 1L9 20h6l.5-2.1a7.6 7.6 0 0 0 1.7-1l2.3.7 2-3.4-2-1.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.2 13a7.2 7.2 0 0 0 .1-2l1.9-1.1-1.9-3.3-2.2.6a7 7 0 0 0-1.6-.9L15 4.2H9l-.5 2.1a7 7 0 0 0-1.6.9l-2.2-.6-1.9 3.3 1.9 1.1a7.2 7.2 0 0 0 0 2l-1.9 1.1 1.9 3.3 2.2-.6a7 7 0 0 0 1.6.9l.5 2.1h6l.5-2.1a7 7 0 0 0 1.6-.9l2.2.6 1.9-3.3-1.9-1.1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       </button>
     </header>
 
@@ -235,9 +251,11 @@ function template() {
         </div>
         <div class="equation-field">
           <div data-input class="equation-input" data-empty="true" role="textbox" aria-readonly="true" aria-label="Your equation"></div>
-          <span class="equation-pencil" aria-hidden="true">✎</span>
+          <span class="equation-pencil" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m5 16.5 9.8-9.8 2.5 2.5L7.5 19H5v-2.5Zm11.2-8.7 1.5-1.5a1.2 1.2 0 0 1 1.7 0l1.1 1.1a1.2 1.2 0 0 1 0 1.7l-1.5 1.5-2.8-2.8Z" fill="currentColor"/></svg>
+          </span>
         </div>
-        <p class="equation-tip" data-equation-hint>💡 Use <b>+ − × ÷</b> and <b>( )</b> to make <b>?</b></p>
+        <p class="equation-tip" data-equation-hint></p>
         <section class="correction-panel" data-correction hidden aria-live="polite"></section>
       </section>
 
@@ -250,10 +268,16 @@ function template() {
     <footer class="control-deck" aria-label="Equation controls">
       <div class="operator-grid" data-operators></div>
       <div class="action-row">
-        <button class="btn-clear" data-clear type="button"><span aria-hidden="true">🗑</span> Clear</button>
-        <button class="btn-submit" data-submit type="button"><span aria-hidden="true">✈</span> Submit</button>
+        <button class="btn-clear" data-clear type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h8l-.7 11.2a1.5 1.5 0 0 1-1.5 1.4H10.2a1.5 1.5 0 0 1-1.5-1.4L8 8Zm-1.5-.8h11M10 5.5h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          Clear
+        </button>
+        <button class="btn-submit" data-submit type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4l-4.8 16.5-3.2-6.2L4 11.5Z" fill="currentColor"/></svg>
+          Submit
+        </button>
         <button class="btn-hint" data-hint type="button">
-          <span aria-hidden="true">💡</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5c-1.8-1.2-3-3.2-3-5.4A6.5 6.5 0 0 1 18.5 9c0 2.2-1.2 4.2-3 5.4L15 17H9l-.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span data-hint-label>Hint</span>
           <span class="hint-badge" data-hint-badge>2</span>
         </button>
@@ -262,16 +286,16 @@ function template() {
 
     <aside class="play-footer" aria-label="Player status">
       <div class="mascot" aria-hidden="true">
-        <svg viewBox="0 0 72 72" width="56" height="56">
-          <ellipse cx="36" cy="64" rx="18" ry="4" fill="#c5d4ea"/>
-          <rect x="16" y="22" width="40" height="34" rx="14" fill="#eef5ff" stroke="#3b82f6" stroke-width="2"/>
-          <circle cx="28" cy="38" r="4" fill="#1e3a5f"/>
-          <path d="M40 36c2.5 0 5 2 5 4.5" fill="none" stroke="#1e3a5f" stroke-width="2.2" stroke-linecap="round"/>
-          <path d="M30 48c3 2.5 9 2.5 12 0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
-          <rect x="30" y="10" width="12" height="10" rx="3" fill="#93c5fd"/>
-          <circle cx="36" cy="10" r="3" fill="#60a5fa"/>
-          <path d="M52 40l10-8" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="63" cy="30" r="4" fill="#60a5fa"/>
+        <svg viewBox="0 0 80 80" width="64" height="64">
+          <ellipse cx="40" cy="72" rx="18" ry="4" fill="#c5d4ea" opacity=".7"/>
+          <rect x="18" y="24" width="44" height="38" rx="16" fill="#f8fbff" stroke="#3b82f6" stroke-width="2.2"/>
+          <circle cx="32" cy="40" r="4.2" fill="#1e3a5f"/>
+          <path d="M44 38c3 0 6 2.4 6 5" fill="none" stroke="#1e3a5f" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M32 52c3.5 3 12 3 15.5 0" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round"/>
+          <rect x="34" y="10" width="12" height="12" rx="3" fill="#93c5fd"/>
+          <circle cx="40" cy="10" r="3.2" fill="#3b82f6"/>
+          <path d="M58 44l12-10" stroke="#3b82f6" stroke-width="3.2" stroke-linecap="round"/>
+          <circle cx="72" cy="32" r="4.5" fill="#60a5fa"/>
         </svg>
       </div>
       <div class="welcome-card">
@@ -279,7 +303,9 @@ function template() {
         <small data-board-meta>Board 1 · Task 1/15</small>
       </div>
       <div class="best-card">
-        <span aria-hidden="true">🏆</span>
+        <span class="trophy-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </span>
         <div>
           <small>Best score</small>
           <strong data-best-score>0</strong>
@@ -387,7 +413,11 @@ function renderCards(container, state, onAppend) {
     button.className = `number-card number-card--${theme.position} number-card--${theme.tone}`;
     button.disabled = state.phase !== "playing" || used >= max;
     button.setAttribute("aria-label", `Use number card ${card.label}`);
-    button.innerHTML = `<span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>`;
+    button.innerHTML = `
+      <span class="number-card__sheen" aria-hidden="true"></span>
+      <span class="number-card__circuit" aria-hidden="true"></span>
+      <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
+    `;
     button.append(renderCardValue(card));
     button.addEventListener("click", () => onAppend(card.input));
     container.append(button);
@@ -400,9 +430,11 @@ function renderCards(container, state, onAppend) {
     "aria-label",
     `Target number ${state.round.targetLabel || state.round.target}`
   );
-  target.innerHTML = `<span class="target-badge__label">Target</span><strong class="target-badge__value">${
-    state.round.targetLabel || state.round.target
-  }</strong>`;
+  target.innerHTML = `
+    <span class="target-badge__ring" aria-hidden="true"></span>
+    <span class="target-badge__label">Target</span>
+    <strong class="target-badge__value">${state.round.targetLabel || state.round.target}</strong>
+  `;
   container.append(target);
 }
 
