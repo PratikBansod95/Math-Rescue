@@ -423,28 +423,35 @@ button:disabled { cursor: not-allowed }
     radial-gradient(circle at 36% 28%, #3f6adf 0%, #0b1a36 70%);
   box-shadow:
     0 0 0 3px #7dd3fc,
-    0 0 26px rgba(125, 211, 252, .55),
+    0 0 22px rgba(125, 211, 252, .42),
     0 14px 30px rgba(10, 25, 49, .32),
     inset 0 1px 0 rgba(255, 255, 255, .22);
-  transition: transform .15s ease, box-shadow .15s ease
+  transition: box-shadow .15s ease
+}
+
+.target-badge--start:not(:disabled) {
+  animation: start-breathe 2.2s ease-in-out infinite
 }
 
 .target-badge--start:hover:not(:disabled) {
-  transform: scale(1.04);
+  animation-play-state: paused;
+  transform: scale(1.07);
   box-shadow:
     0 0 0 3px #a5e4ff,
-    0 0 30px rgba(125, 211, 252, .7),
+    0 0 34px rgba(125, 211, 252, .78),
     0 16px 32px rgba(10, 25, 49, .34),
     inset 0 1px 0 rgba(255, 255, 255, .25)
 }
 
 .target-badge--start:active:not(:disabled) {
-  transform: scale(.98)
+  animation: none;
+  transform: scale(.97)
 }
 
 .target-badge--start:disabled {
   opacity: .55;
-  cursor: not-allowed
+  cursor: not-allowed;
+  animation: none
 }
 
 .target-badge__value--start {
@@ -453,6 +460,29 @@ button:disabled { cursor: not-allowed }
   text-transform: uppercase;
   color: #fff;
   text-shadow: 0 0 14px rgba(125, 211, 252, .85)
+}
+
+@keyframes start-breathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 3px #7dd3fc,
+      0 0 18px rgba(125, 211, 252, .35),
+      0 14px 28px rgba(10, 25, 49, .3),
+      inset 0 1px 0 rgba(255, 255, 255, .2)
+  }
+  50% {
+    transform: scale(1.07);
+    box-shadow:
+      0 0 0 4px #9fe0ff,
+      0 0 36px rgba(125, 211, 252, .78),
+      0 16px 34px rgba(10, 25, 49, .34),
+      inset 0 1px 0 rgba(255, 255, 255, .28)
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .target-badge--start:not(:disabled) { animation: none }
 }
 
 .target-badge__label {
