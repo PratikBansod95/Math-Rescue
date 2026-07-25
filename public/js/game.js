@@ -254,7 +254,7 @@ export function createGame({ mount }) {
         resetTaskFlags();
         state.feedback = {
           kind: "neutral",
-          text: "New run. Find the exact target!",
+          text: "Tap Start to reveal the target.",
           detail: "",
         };
         state.correction = null;
