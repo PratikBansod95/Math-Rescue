@@ -4,8 +4,8 @@
   "description": "Build equations from four cards to hit the target.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#101820",
-  "theme_color": "#0A1628",
+  "background_color": "#F5F8FD",
+  "theme_color": "#3B82F6",
   "icons": [
     {
       "src": "./favicon.svg",
