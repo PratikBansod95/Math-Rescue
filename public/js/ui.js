@@ -42,6 +42,8 @@ export function createUI({ mount, handlers }) {
     levelLabel: shell.querySelector("[data-level]"),
     levelTrack: shell.querySelector("[data-level-track]"),
     coins: shell.querySelector("[data-coins]"),
+    timerChip: shell.querySelector("[data-timer-chip]"),
+    timerValue: shell.querySelector("[data-timer]"),
     bestScore: shell.querySelector("[data-best-score]"),
     welcome: shell.querySelector("[data-welcome]"),
     boardMeta: shell.querySelector("[data-board-meta]"),
@@ -121,6 +123,7 @@ export function createUI({ mount, handlers }) {
       renderLevelTrack(els.levelTrack, state);
 
       els.coins.textContent = String(state.score);
+      updateTimerChip(els, state);
       els.bestScore.textContent = String(state.bestScore);
       els.welcome.textContent = state.usernameKey
         ? `Welcome back, ${state.username}.`
@@ -209,6 +212,16 @@ function template() {
           <div class="streak-segs" aria-hidden="true">
             <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
           </div>
+        </div>
+      </div>
+
+      <div class="stat-chip stat-chip--timer" data-timer-chip aria-label="Puzzle timer">
+        <span class="timer-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l2.5 1.5M9 3.5h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <div class="stat-chip__body">
+          <small>Timer</small>
+          <strong data-timer aria-live="polite">1:30</strong>
         </div>
       </div>
 
@@ -348,6 +361,24 @@ function template() {
       </div>
     </div>
   `;
+}
+
+function updateTimerChip(els, state) {
+  if (!els.timerChip || !els.timerValue) return;
+  const playing = state.phase === "playing";
+  els.timerChip.hidden = !playing;
+  const seconds = Math.max(0, Number(state.timeLeft) || 0);
+  els.timerValue.textContent = formatClock(seconds);
+  els.timerValue.setAttribute("aria-live", seconds <= 5 && playing ? "assertive" : "polite");
+  els.timerChip.classList.toggle("is-warn", playing && seconds <= 10 && seconds > 5);
+  els.timerChip.classList.toggle("is-urgent", playing && seconds <= 5);
+  els.timerChip.classList.toggle("is-paused", playing && Boolean(state.showTutorial));
+}
+
+function formatClock(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
 function renderLevelTrack(track, state) {

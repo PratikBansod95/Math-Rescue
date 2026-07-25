@@ -124,7 +124,7 @@ button:disabled { cursor: not-allowed }
 /* ── Header ── */
 .top-bar {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: .5rem
 }
@@ -259,6 +259,67 @@ button:disabled { cursor: not-allowed }
 .stat-chip--coins {
   padding-right: .4rem;
   gap: .35rem
+}
+
+.stat-chip--timer {
+  min-width: 4.4rem;
+  gap: .35rem;
+  color: var(--blue)
+}
+
+.stat-chip--timer .timer-ico {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--blue)
+}
+
+.stat-chip--timer .timer-ico svg {
+  width: 100%;
+  height: 100%
+}
+
+.stat-chip--timer strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em
+}
+
+.stat-chip--timer.is-warn {
+  color: #b45309;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, .18)
+}
+
+.stat-chip--timer.is-warn .timer-ico,
+.stat-chip--timer.is-warn small,
+.stat-chip--timer.is-warn strong {
+  color: #b45309
+}
+
+.stat-chip--timer.is-urgent {
+  color: #dc2626;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, .2);
+  animation: timer-pulse 0.85s ease-in-out infinite
+}
+
+.stat-chip--timer.is-urgent .timer-ico,
+.stat-chip--timer.is-urgent small,
+.stat-chip--timer.is-urgent strong {
+  color: #dc2626
+}
+
+.stat-chip--timer.is-paused {
+  opacity: .72
+}
+
+@keyframes timer-pulse {
+  0%, 100% { transform: scale(1) }
+  50% { transform: scale(1.04) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-chip--timer.is-urgent { animation: none }
 }
 
 .coin-plus {
@@ -1110,6 +1171,8 @@ button:disabled { cursor: not-allowed }
 @container (width <= 420px) {
   .top-bar { gap: .35rem }
   .stat-chip--streak small { font-size: .5rem }
+  .stat-chip--timer { min-width: 3.8rem; padding-inline: .45rem }
+  .stat-chip--timer small { font-size: .5rem }
   .level-pill { min-width: 7.8rem; padding-inline: .75rem }
   .best-card small { display: none }
 }

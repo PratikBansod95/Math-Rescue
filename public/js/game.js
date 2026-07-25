@@ -31,6 +31,15 @@ const POINTS_WRONG = 2;
 const POINTS_REVEAL = 1;
 const MAX_RETRIES = 2;
 
+const TIMER_LIMITS = {
+  easy: 90,
+  normal: 75,
+  medium: 60,
+  advanced: 45,
+  olympic: 35,
+  legendary: 25,
+};
+
 export function createGame({ mount }) {
   let destroyFn = () => {};
 
@@ -83,8 +92,12 @@ export function createGame({ mount }) {
         leaderboard: [],
         resume: null,
         storageReady: false,
+        timerLimit: TIMER_LIMITS.easy,
+        timeLeft: TIMER_LIMITS.easy,
+        timerExpired: false,
       };
 
+      let timerIntervalId = null;
       const audio = createAudio(() => state.soundOn);
 
       state.round = makeRound(state);
@@ -112,6 +125,7 @@ export function createGame({ mount }) {
 
       destroyFn = () => {
         disposed = true;
+        stopPuzzleTimer();
         audio.dispose();
         ui.destroy();
         mount.replaceChildren();
@@ -154,6 +168,7 @@ export function createGame({ mount }) {
           state.correction = null;
           ui.hideStartOverlay();
           persist();
+          startPuzzleTimer();
           render();
           return;
         }
@@ -194,6 +209,7 @@ export function createGame({ mount }) {
         state.tutorialStep = state.showTutorial ? 1 : 0;
         state.resume = buildResume();
         ui.hideStartOverlay();
+        startPuzzleTimer();
         render();
         audio.unlockFromGesture();
         vibrate(12);
@@ -201,6 +217,7 @@ export function createGame({ mount }) {
       }
 
       function onSwitchPlayer() {
+        stopPuzzleTimer();
         state.phase = "ready";
         state.expression = "";
         state.usedCounts = new Map();
@@ -234,6 +251,7 @@ export function createGame({ mount }) {
         };
         state.correction = null;
         state.resume = buildResume();
+        startPuzzleTimer();
         render();
         persist();
       }
@@ -317,6 +335,7 @@ export function createGame({ mount }) {
         }
 
         // Correct
+        stopPuzzleTimer();
         const stars = calcTaskStars({
           firstTry: state.firstTry && state.attempts <= 1,
           usedTip: state.usedTip,
@@ -349,6 +368,7 @@ export function createGame({ mount }) {
       }
 
       function enterFailReview(result) {
+        stopPuzzleTimer();
         const correction = buildWrongCorrection(state.expression, result, state.round);
         state.phase = "review";
         state.score = Math.max(0, state.score - POINTS_WRONG);
@@ -359,13 +379,56 @@ export function createGame({ mount }) {
         recordTaskStars(1);
         state.feedback = {
           kind: "bad",
-          text: result.reason || "Incorrect. Study the solution.",
+          text: state.timerExpired
+            ? "Time’s up! Here’s the solution."
+            : result.reason || "Incorrect. Study the solution.",
           detail: `−${POINTS_WRONG} points · ★1 · Tap Next`,
         };
         state.correction = correction;
         audio.play("incorrect");
         vibrate(24);
         render();
+      }
+
+      function startPuzzleTimer() {
+        stopPuzzleTimer();
+        state.timerExpired = false;
+        state.timerLimit = TIMER_LIMITS[state.difficultyId] ?? TIMER_LIMITS.easy;
+        state.timeLeft = state.timerLimit;
+        if (state.phase === "playing" && !state.showTutorial) {
+          beginTimerTicks();
+        }
+      }
+
+      function beginTimerTicks() {
+        stopPuzzleTimer();
+        if (disposed || state.phase !== "playing" || state.showTutorial) return;
+        timerIntervalId = window.setInterval(() => {
+          if (disposed || state.phase !== "playing" || state.showTutorial) return;
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          if (state.timeLeft <= 0) {
+            onTimerExpire();
+            return;
+          }
+          render();
+        }, 1000);
+      }
+
+      function stopPuzzleTimer() {
+        if (timerIntervalId != null) {
+          window.clearInterval(timerIntervalId);
+          timerIntervalId = null;
+        }
+      }
+
+      function onTimerExpire() {
+        if (!isPlaying() || state.timerExpired) return;
+        state.timerExpired = true;
+        state.timeLeft = 0;
+        enterFailReview({
+          ok: false,
+          reason: "Time’s up. Here’s the solution.",
+        });
       }
 
       function onHintOrNext() {
@@ -404,6 +467,7 @@ export function createGame({ mount }) {
         }
 
         // Reveal
+        stopPuzzleTimer();
         state.usedReveal = true;
         state.firstTry = false;
         state.score = Math.max(0, state.score - POINTS_REVEAL);
@@ -448,11 +512,13 @@ export function createGame({ mount }) {
         };
         state.correction = null;
         state.resume = buildResume();
+        startPuzzleTimer();
         render();
         persist();
       }
 
       function finishBoard() {
+        stopPuzzleTimer();
         state.phase = "finished";
         state.result = getRank(state.score);
         const finishedBoard = state.boardIndex;
@@ -524,6 +590,7 @@ export function createGame({ mount }) {
           state.tutorialSeen = true;
           state.tutorialStep = 0;
           persist();
+          if (isPlaying()) beginTimerTicks();
         }
         render();
       }
@@ -533,6 +600,7 @@ export function createGame({ mount }) {
         state.tutorialSeen = true;
         state.tutorialStep = 0;
         persist();
+        if (isPlaying()) beginTimerTicks();
         render();
       }
 
@@ -674,6 +742,7 @@ export function createGame({ mount }) {
         state.firstTry = true;
         state.taskStarsEarned = 0;
         state.shake = false;
+        state.timerExpired = false;
       }
 
       function retriesDetail() {
