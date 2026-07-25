@@ -124,7 +124,13 @@ export function createUI({ mount, handlers }) {
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
       }
-      els.profileText.textContent = state.usernameKey ? "Welcome" : "Enter a name to save progress.";
+      if (state.usernameKey) {
+        els.profileText.hidden = false;
+        els.profileText.textContent = "Welcome";
+      } else {
+        els.profileText.hidden = true;
+        els.profileText.textContent = "";
+      }
       els.input.textContent = state.expression || " ";
       els.feedback.textContent = state.feedback.text;
       els.feedback.dataset.kind = state.feedback.kind;
@@ -252,11 +258,11 @@ function template() {
 
         <label class="profile-entry">
           <span>Your name</span>
-          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Enter a name to save progress" aria-label="Username for saving progress" />
+          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
         </label>
-        <p class="start-status" data-profile-text>Welcome</p>
+        <p class="start-status" data-profile-text hidden>Welcome</p>
 
-        <p class="start-note" data-start-text>Loading…</p>
+        <p class="start-note" data-start-text>Four cards. One target. Make the equation.</p>
         <p class="start-status-chip" data-start-status hidden></p>
         <button data-start type="button" disabled>Start playing</button>
       </div>
@@ -356,9 +362,7 @@ function updateStartOverlay(els, state) {
   }
   els.startOverlay.hidden = false;
   els.startButton.disabled = state.phase !== "ready" || !state.usernameKey;
-  els.startText.textContent = state.usernameKey
-    ? "Four cards. One target. Make the equation."
-    : "Enter your name to unlock Start.";
+  els.startText.textContent = "Four cards. One target. Make the equation.";
 
   if (els.startStatus) {
     if (state.usernameKey) {
