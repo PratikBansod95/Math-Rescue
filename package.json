@@ -5,7 +5,7 @@
   "type": "module",
   "description": "MathMaster — card equation puzzle game",
   "scripts": {
-    "start": "npx --yes serve . -p 5173",
-    "build": "echo Static site — no build step"
+    "start": "npx --yes serve public -p 5173",
+    "build": "echo Static site — files are in public/"
   }
 }
