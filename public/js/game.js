@@ -95,6 +95,7 @@ export function createGame({ mount }) {
         timerLimit: TIMER_LIMITS.easy,
         timeLeft: TIMER_LIMITS.easy,
         timerExpired: false,
+        awaitingStart: true,
       };
 
       let timerIntervalId = null;
@@ -106,6 +107,7 @@ export function createGame({ mount }) {
         mount,
         handlers: {
           onStart,
+          onPuzzleGo,
           onAppend,
           onBackspace,
           onClear,
@@ -162,7 +164,7 @@ export function createGame({ mount }) {
           state.phase = "playing";
           state.feedback = {
             kind: "neutral",
-            text: `Welcome back, ${state.username}.`,
+            text: "Tap Start to reveal the target.",
             detail: `Board ${state.boardIndex} · Task ${state.taskIndex}/${state.tasksPerBoard}`,
           };
           state.correction = null;
@@ -207,6 +209,12 @@ export function createGame({ mount }) {
         state.phase = "playing";
         state.showTutorial = !state.tutorialSeen;
         state.tutorialStep = state.showTutorial ? 1 : 0;
+        state.feedback = {
+          kind: "neutral",
+          text: "Tap Start to reveal the target.",
+          detail: "",
+        };
+        state.correction = null;
         state.resume = buildResume();
         ui.hideStartOverlay();
         startPuzzleTimer();
@@ -256,8 +264,22 @@ export function createGame({ mount }) {
         persist();
       }
 
+      function onPuzzleGo() {
+        if (!isPlaying() || !state.awaitingStart || state.showTutorial) return;
+        state.awaitingStart = false;
+        state.feedback = {
+          kind: "neutral",
+          text: "Target revealed. Build your equation!",
+          detail: retriesDetail(),
+        };
+        beginTimerTicks();
+        audio.playBlip(720, { duration: 0.06, volume: 0.1 });
+        vibrate(14);
+        render();
+      }
+
       function onAppend(fragment) {
-        if (!isPlaying()) return;
+        if (!isPlaying() || state.awaitingStart) return;
         state.expression = (
           needsSpaceBefore(state.expression, fragment)
             ? `${state.expression} ${fragment}`
@@ -276,7 +298,7 @@ export function createGame({ mount }) {
       }
 
       function onBackspace() {
-        if (!isPlaying()) return;
+        if (!isPlaying() || state.awaitingStart) return;
         state.expression = state.expression.trimEnd().slice(0, -1).trimEnd();
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
         state.feedback = {
@@ -289,7 +311,7 @@ export function createGame({ mount }) {
       }
 
       function onClear() {
-        if (!isPlaying()) return;
+        if (!isPlaying() || state.awaitingStart) return;
         state.expression = "";
         state.usedCounts = new Map();
         state.feedback = {
@@ -302,7 +324,7 @@ export function createGame({ mount }) {
       }
 
       function onSubmit() {
-        if (!isPlaying()) return;
+        if (!isPlaying() || state.awaitingStart) return;
         state.attempts += 1;
         if (state.showTutorial && state.tutorialStep === 3) {
           // allow submit during tutorial
@@ -393,18 +415,30 @@ export function createGame({ mount }) {
       function startPuzzleTimer() {
         stopPuzzleTimer();
         state.timerExpired = false;
+        state.awaitingStart = true;
         state.timerLimit = TIMER_LIMITS[state.difficultyId] ?? TIMER_LIMITS.easy;
         state.timeLeft = state.timerLimit;
-        if (state.phase === "playing" && !state.showTutorial) {
-          beginTimerTicks();
-        }
       }
 
       function beginTimerTicks() {
         stopPuzzleTimer();
-        if (disposed || state.phase !== "playing" || state.showTutorial) return;
+        if (
+          disposed ||
+          state.phase !== "playing" ||
+          state.showTutorial ||
+          state.awaitingStart
+        ) {
+          return;
+        }
         timerIntervalId = window.setInterval(() => {
-          if (disposed || state.phase !== "playing" || state.showTutorial) return;
+          if (
+            disposed ||
+            state.phase !== "playing" ||
+            state.showTutorial ||
+            state.awaitingStart
+          ) {
+            return;
+          }
           state.timeLeft = Math.max(0, state.timeLeft - 1);
           if (state.timeLeft <= 0) {
             onTimerExpire();
@@ -436,7 +470,7 @@ export function createGame({ mount }) {
           advanceTask();
           return;
         }
-        if (!isPlaying()) return;
+        if (!isPlaying() || state.awaitingStart) return;
 
         if (state.hintStage === 0) {
           state.hintStage = 1;
@@ -507,7 +541,7 @@ export function createGame({ mount }) {
         resetTaskFlags();
         state.feedback = {
           kind: "neutral",
-          text: "Next puzzle. Spot the path!",
+          text: "Tap Start to reveal the target.",
           detail: "",
         };
         state.correction = null;
@@ -590,7 +624,6 @@ export function createGame({ mount }) {
           state.tutorialSeen = true;
           state.tutorialStep = 0;
           persist();
-          if (isPlaying()) beginTimerTicks();
         }
         render();
       }
@@ -600,7 +633,6 @@ export function createGame({ mount }) {
         state.tutorialSeen = true;
         state.tutorialStep = 0;
         persist();
-        if (isPlaying()) beginTimerTicks();
         render();
       }
 
@@ -743,6 +775,7 @@ export function createGame({ mount }) {
         state.taskStarsEarned = 0;
         state.shake = false;
         state.timerExpired = false;
+        state.awaitingStart = true;
       }
 
       function retriesDetail() {

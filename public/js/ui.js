@@ -164,7 +164,7 @@ export function createUI({ mount, handlers }) {
       }
 
       renderCorrection(els.correction, state.correction);
-      renderCards(els.numbers, state, handlers.onAppend);
+      renderCards(els.numbers, state, handlers.onAppend, handlers.onPuzzleGo);
       updateControls(els, state);
       updateStartOverlay(els, state);
       updateResults(els, state);
@@ -369,10 +369,11 @@ function updateTimerChip(els, state) {
   els.timerChip.hidden = !playing;
   const seconds = Math.max(0, Number(state.timeLeft) || 0);
   els.timerValue.textContent = formatClock(seconds);
-  els.timerValue.setAttribute("aria-live", seconds <= 5 && playing ? "assertive" : "polite");
-  els.timerChip.classList.toggle("is-warn", playing && seconds <= 10 && seconds > 5);
-  els.timerChip.classList.toggle("is-urgent", playing && seconds <= 5);
-  els.timerChip.classList.toggle("is-paused", playing && Boolean(state.showTutorial));
+  const active = playing && !state.awaitingStart && !state.showTutorial;
+  els.timerValue.setAttribute("aria-live", seconds <= 5 && active ? "assertive" : "polite");
+  els.timerChip.classList.toggle("is-warn", active && seconds <= 10 && seconds > 5);
+  els.timerChip.classList.toggle("is-urgent", active && seconds <= 5);
+  els.timerChip.classList.toggle("is-paused", playing && (Boolean(state.awaitingStart) || Boolean(state.showTutorial)));
 }
 
 function formatClock(totalSeconds) {
@@ -420,9 +421,10 @@ function buildOperatorPad(container, onAppend, onBackspace) {
   container.append(backspace);
 }
 
-function renderCards(container, state, onAppend) {
+function renderCards(container, state, onAppend, onPuzzleGo) {
   container.replaceChildren();
   const availability = countByKey(state.round.cards);
+  const locked = state.phase !== "playing" || state.awaitingStart;
 
   for (let i = 0; i < state.round.cards.length; i += 1) {
     const card = state.round.cards[i];
@@ -432,7 +434,7 @@ function renderCards(container, state, onAppend) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `number-card number-card--${theme.position} number-card--${theme.tone}`;
-    button.disabled = state.phase !== "playing" || used >= max;
+    button.disabled = locked || used >= max;
     button.setAttribute("aria-label", `Use number card ${card.label}`);
     button.innerHTML = `
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
@@ -454,6 +456,21 @@ function renderCards(container, state, onAppend) {
     button.append(renderCardValue(card));
     button.addEventListener("click", () => onAppend(card.input));
     container.append(button);
+  }
+
+  if (state.phase === "playing" && state.awaitingStart) {
+    const startBtn = document.createElement("button");
+    startBtn.type = "button";
+    startBtn.className = "target-badge target-badge--start";
+    startBtn.setAttribute("aria-label", "Start puzzle and reveal target");
+    startBtn.disabled = Boolean(state.showTutorial);
+    startBtn.innerHTML = `
+      <span class="target-badge__label">Ready</span>
+      <strong class="target-badge__value target-badge__value--start">Start</strong>
+    `;
+    startBtn.addEventListener("click", () => onPuzzleGo?.());
+    container.append(startBtn);
+    return;
   }
 
   const target = document.createElement("div");
@@ -484,16 +501,16 @@ function cardIcon(kind) {
 }
 
 function updateControls(els, state) {
-  const playing = state.phase === "playing";
+  const playing = state.phase === "playing" && !state.awaitingStart;
   const review = state.phase === "review";
   els.clearButton.disabled = !playing;
   els.submitButton.disabled = !playing;
-  els.hintButton.disabled = !playing && !review;
+  els.hintButton.disabled = (!playing && !review) || (state.phase === "playing" && state.awaitingStart);
   els.hintLabel.textContent = state.hintLabel || (review ? "Next" : "Hint");
 
   const hintsLeft = review ? 0 : Math.max(0, 2 - (state.hintStage || 0));
   els.hintBadge.textContent = String(hintsLeft);
-  els.hintBadge.hidden = review || hintsLeft <= 0;
+  els.hintBadge.hidden = review || hintsLeft <= 0 || state.awaitingStart;
 
   for (const button of els.operatorPad.querySelectorAll("button")) {
     button.disabled = !playing;

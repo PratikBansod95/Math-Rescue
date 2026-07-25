@@ -415,6 +415,46 @@ button:disabled { cursor: not-allowed }
 
 .target-badge--pulse { animation: target-pulse .55s ease }
 
+.target-badge--start {
+  cursor: pointer;
+  border: 0;
+  font: inherit;
+  background:
+    radial-gradient(circle at 36% 28%, #3f6adf 0%, #0b1a36 70%);
+  box-shadow:
+    0 0 0 3px #7dd3fc,
+    0 0 26px rgba(125, 211, 252, .55),
+    0 14px 30px rgba(10, 25, 49, .32),
+    inset 0 1px 0 rgba(255, 255, 255, .22);
+  transition: transform .15s ease, box-shadow .15s ease
+}
+
+.target-badge--start:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow:
+    0 0 0 3px #a5e4ff,
+    0 0 30px rgba(125, 211, 252, .7),
+    0 16px 32px rgba(10, 25, 49, .34),
+    inset 0 1px 0 rgba(255, 255, 255, .25)
+}
+
+.target-badge--start:active:not(:disabled) {
+  transform: scale(.98)
+}
+
+.target-badge--start:disabled {
+  opacity: .55;
+  cursor: not-allowed
+}
+
+.target-badge__value--start {
+  font-size: clamp(1.35rem, 6cqw, 1.75rem);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(125, 211, 252, .85)
+}
+
 .target-badge__label {
   text-transform: uppercase;
   letter-spacing: .16em;
