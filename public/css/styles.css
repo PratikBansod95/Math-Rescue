@@ -7,7 +7,7 @@ html,body {
   height: 100%;
   min-height: 0;
   margin: 0;
-  font-family: "Plus Jakarta Sans", ui-sans-serif, sans-serif;
+  font-family: Quicksand, ui-sans-serif, sans-serif;
   overflow: hidden
 }
 
@@ -98,12 +98,14 @@ button:disabled { cursor: not-allowed }
   opacity: .7
 }
 
-.play-sketch {
+.play-doodles {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: .9
+  object-fit: cover;
+  opacity: .9;
+  pointer-events: none
 }
 
 .top-bar,
@@ -160,7 +162,7 @@ button:disabled { cursor: not-allowed }
 }
 
 .stat-chip strong {
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  font-family: "Space Grotesk", Quicksand, sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
@@ -211,7 +213,7 @@ button:disabled { cursor: not-allowed }
 .level-pill strong {
   display: block;
   color: var(--blue);
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  font-family: "Space Grotesk", Quicksand, sans-serif;
   font-size: clamp(1rem, 3.6cqw, 1.2rem);
   font-weight: 700;
   letter-spacing: .06em
@@ -312,28 +314,30 @@ button:disabled { cursor: not-allowed }
   grid-area: 2 / 2;
   position: relative;
   z-index: 2;
-  width: clamp(6.2rem, 23cqw, 7.8rem);
-  min-height: clamp(6.2rem, 23cqw, 7.8rem);
+  width: clamp(6.4rem, 24cqw, 8rem);
+  min-height: clamp(6.4rem, 24cqw, 8rem);
   border-radius: 50%;
   display: grid;
   place-content: center;
-  gap: .12rem;
+  gap: .1rem;
   color: #fff;
   background:
-    radial-gradient(circle at 38% 28%, #3554c7 0%, #152a6e 58%, #0d1b4d 100%);
+    radial-gradient(circle at 36% 30%, #3b5ccc 0%, #1a2f7a 55%, #101c4d 100%);
   box-shadow:
-    0 0 0 4px rgba(96, 165, 250, .55),
-    0 0 0 10px rgba(96, 165, 250, .18),
-    0 14px 34px rgba(15, 30, 80, .35),
-    inset 0 1px 0 rgba(255, 255, 255, .25)
+    0 0 0 5px #7dd3fc,
+    0 0 0 12px rgba(125, 211, 252, .28),
+    0 0 28px rgba(96, 165, 250, .55),
+    0 16px 36px rgba(15, 30, 80, .32),
+    inset 0 2px 8px rgba(255, 255, 255, .18)
 }
 
-.target-badge__ring {
+.target-badge__glow {
   position: absolute;
-  inset: -7px;
+  inset: -14px;
   border-radius: 50%;
-  border: 2px solid rgba(125, 211, 252, .35);
-  pointer-events: none
+  background: radial-gradient(circle, rgba(125, 211, 252, .35), transparent 68%);
+  pointer-events: none;
+  z-index: -1
 }
 
 .target-badge--pulse { animation: target-pulse .55s ease }
@@ -341,41 +345,40 @@ button:disabled { cursor: not-allowed }
 .target-badge__label {
   position: relative;
   text-transform: uppercase;
-  letter-spacing: .16em;
-  font-size: .62rem;
+  letter-spacing: .18em;
+  font-size: .64rem;
   font-weight: 800;
-  color: #c7d7ff;
+  color: #dbe7ff;
   text-align: center
 }
 
 .target-badge__value {
   position: relative;
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
-  font-size: clamp(2.25rem, 9.5cqw, 3.05rem);
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: clamp(2.35rem, 10cqw, 3.2rem);
   font-weight: 700;
   line-height: .9;
   letter-spacing: -.05em;
   text-align: center;
-  color: #7dd3fc;
-  text-shadow: 0 0 18px rgba(125, 211, 252, .75)
+  color: #e8f7ff;
+  text-shadow: 0 0 16px rgba(125, 211, 252, .95), 0 0 30px rgba(59, 130, 246, .6)
 }
 
 .number-card {
   --accent: var(--blue);
   position: relative;
-  width: clamp(4.7rem, 19cqw, 6.2rem);
-  min-height: clamp(4.7rem, 19cqw, 6.2rem);
+  width: clamp(5rem, 20cqw, 6.5rem);
+  min-height: clamp(5rem, 20cqw, 6.5rem);
   display: grid;
   place-items: center;
   cursor: pointer;
   color: var(--accent);
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, .96), rgba(248, 251, 255, .9));
-  border: 1.5px solid color-mix(in srgb, var(--accent) 35%, #fff);
-  clip-path: polygon(14% 0, 86% 0, 100% 14%, 100% 86%, 86% 100%, 14% 100%, 0 86%, 0 14%);
+  background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
+  border: 2px solid #e8eef8;
+  border-radius: 1.35rem;
   box-shadow:
-    0 12px 28px rgba(26, 43, 74, .1),
-    inset 0 1px 0 rgba(255, 255, 255, .9);
+    0 14px 30px rgba(26, 43, 74, .1),
+    0 2px 0 rgba(255, 255, 255, .9) inset;
   transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease;
   overflow: hidden
 }
@@ -383,56 +386,78 @@ button:disabled { cursor: not-allowed }
 .number-card__sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .55), transparent 42%);
+  background: linear-gradient(140deg, rgba(255, 255, 255, .7), transparent 45%);
   pointer-events: none
 }
 
 .number-card__circuit {
   position: absolute;
-  inset: 12% 10% 10%;
-  opacity: .22;
-  background:
-    linear-gradient(var(--accent) 1px, transparent 1px) 0 30% / 100% 18px,
-    linear-gradient(90deg, var(--accent) 1px, transparent 1px) 40% 0 / 18px 100%,
-    radial-gradient(circle at 70% 70%, var(--accent) 1.5px, transparent 2px);
+  right: .15rem;
+  bottom: .5rem;
+  width: 62%;
+  height: 62%;
+  opacity: .28;
+  background-color: var(--accent);
+  -webkit-mask: url("./assets/card-circuit.svg") center / contain no-repeat;
+  mask: url("./assets/card-circuit.svg") center / contain no-repeat;
   pointer-events: none
 }
 
-.number-card--top { grid-area: 1 / 2; --accent: var(--blue) }
-.number-card--left { grid-area: 2 / 1; justify-self: end; --accent: var(--purple) }
-.number-card--right { grid-area: 2 / 3; justify-self: start; --accent: var(--pink) }
-.number-card--bottom { grid-area: 3 / 2; --accent: var(--green) }
+.number-card__deco {
+  position: absolute;
+  width: 1.7rem;
+  height: 1.7rem;
+  opacity: .55;
+  pointer-events: none;
+  z-index: 1
+}
 
-.number-card--blue { border-color: #93c5fd }
-.number-card--purple { border-color: #c4b5fd }
-.number-card--pink { border-color: #f9a8d4 }
-.number-card--green { border-color: #86efac }
+.number-card__deco--br { right: .35rem; bottom: .55rem }
+.number-card__deco--bl { left: .3rem; bottom: .55rem }
+
+.number-card__accent {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: .42rem;
+  height: .28rem;
+  border-radius: 99px;
+  background: var(--accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
+  z-index: 2
+}
+
+.number-card--top { grid-area: 1 / 2; --accent: var(--blue); border-color: #b9d4ff }
+.number-card--left { grid-area: 2 / 1; justify-self: end; --accent: var(--purple); border-color: #d5c8ff }
+.number-card--right { grid-area: 2 / 3; justify-self: start; --accent: var(--pink); border-color: #fbcfe8 }
+.number-card--bottom { grid-area: 3 / 2; --accent: var(--green); border-color: #bbf7d0 }
 
 .number-card__badge {
   position: absolute;
-  top: .42rem;
-  left: .42rem;
-  width: 1.4rem;
-  height: 1.4rem;
+  top: .48rem;
+  left: .48rem;
+  width: 1.45rem;
+  height: 1.45rem;
   display: grid;
   place-items: center;
   color: #fff;
   background: var(--accent);
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 45%, transparent);
-  z-index: 2
+  box-shadow: 0 5px 12px rgba(26, 43, 74, .18);
+  z-index: 3
 }
 
-.number-card__badge svg { width: .78rem; height: .78rem }
+.number-card__badge svg { width: .8rem; height: .8rem }
 
 .card-value {
   position: relative;
   z-index: 2;
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
-  font-size: clamp(2rem, 8.5cqw, 2.75rem);
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: clamp(2.15rem, 9cqw, 2.9rem);
   font-weight: 700;
   color: var(--ink);
-  line-height: 1
+  line-height: 1;
+  margin-bottom: .15rem
 }
 
 .card-value--fraction {
@@ -451,8 +476,8 @@ button:disabled { cursor: not-allowed }
 }
 
 .number-card:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 32px rgba(26, 43, 74, .14)
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 18px 36px rgba(26, 43, 74, .14)
 }
 
 .number-card:active:not(:disabled) { transform: translateY(1px) scale(.98) }
@@ -486,24 +511,26 @@ button:disabled { cursor: not-allowed }
 .equation-panel__title {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
+  gap: .5rem;
   text-transform: uppercase;
   letter-spacing: .1em;
-  font-size: .72rem;
+  font-size: .78rem;
   font-weight: 800;
   color: var(--blue)
 }
 
-.equation-panel__title i {
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: .45rem;
-  background: #eaf1ff;
-  color: var(--blue);
+.equation-panel__title .sigma-badge {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: .5rem;
+  background: var(--blue);
+  color: #fff;
   font-style: normal;
-  font-size: .95rem;
+  font-size: 1rem;
+  font-weight: 800;
   display: grid;
-  place-items: center
+  place-items: center;
+  box-shadow: 0 6px 14px rgba(47, 107, 255, .35)
 }
 
 .player-chip {
@@ -522,28 +549,28 @@ button:disabled { cursor: not-allowed }
 .equation-field { position: relative }
 
 .equation-input {
-  min-height: 3.25rem;
-  border-radius: 1rem;
+  min-height: 3.35rem;
+  border-radius: 1.05rem;
   border: 1.5px solid #d7e4f7;
-  background: #f5f8fd;
-  padding: .75rem 2.6rem .75rem .95rem;
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
-  font-size: clamp(1.1rem, 4.2cqw, 1.4rem);
+  background: #f3f7fd;
+  padding: .8rem 2.7rem .8rem 1rem;
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: clamp(1.12rem, 4.2cqw, 1.42rem);
   font-weight: 650;
   color: var(--ink);
   display: flex;
   align-items: center;
   overflow-x: auto;
   white-space: nowrap;
-  box-shadow: inset 0 1px 2px rgba(26, 43, 74, .04)
+  box-shadow: inset 0 1px 3px rgba(26, 43, 74, .05)
 }
 
 .equation-input[data-empty="true"]::before {
   content: "Type your equation here...";
   color: #9aadc8;
   font-weight: 600;
-  font-size: .95rem;
-  font-family: "Plus Jakarta Sans", sans-serif
+  font-size: .98rem;
+  font-family: Quicksand, sans-serif
 }
 
 .equation-pencil {
@@ -654,14 +681,15 @@ button:disabled { cursor: not-allowed }
 }
 
 .operator-button {
-  min-height: 3rem;
-  border-radius: 1rem;
-  background: var(--surface);
+  min-height: 3.05rem;
+  border-radius: 1.05rem;
+  background: #fff;
   color: var(--blue);
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
-  font-size: 1.4rem;
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: 1.45rem;
   font-weight: 700;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 8px 18px rgba(26, 43, 74, .07);
+  border: 1px solid #edf2fa;
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease
 }
@@ -723,9 +751,19 @@ button:disabled { cursor: not-allowed }
 
 .btn-hint {
   color: #92400e;
-  background: #fff8e8;
-  border: 2px solid #fbbf24;
-  box-shadow: 0 6px 16px rgba(245, 158, 11, .14)
+  background: linear-gradient(180deg, #ffe8a3, #fbbf24);
+  border: 0;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, .28);
+  min-width: 3.4rem;
+  padding-inline: .7rem
+}
+
+.btn-hint .btn-hint__label {
+  display: none
+}
+
+.math-game[data-phase=review] .btn-hint .btn-hint__label {
+  display: inline
 }
 
 .hint-badge {
@@ -941,7 +979,7 @@ button:disabled { cursor: not-allowed }
   border-radius: 1rem;
   min-height: 3rem;
   padding: .7rem .9rem;
-  font: 700 1rem/1.2 "Plus Jakarta Sans", sans-serif;
+  font: 700 1rem/1.2 "Quicksand", sans-serif;
   color: var(--ink);
   background: #fff;
   outline: none

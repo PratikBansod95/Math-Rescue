@@ -185,21 +185,7 @@ function template() {
   return `
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
-      <svg class="play-sketch" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
-        <g fill="none" stroke="#9db4d4" stroke-width="1.4" opacity=".35">
-          <path d="M42 150l28-40 28 40Z"/><path d="M48 150h44"/>
-          <path d="M320 120h40v40h-40z"/><path d="M320 120l20-14 20 14"/><path d="M340 106v14"/>
-          <path d="M48 430a22 22 0 1 0 .1 0M48 430v-22M38 418h20"/>
-          <path d="M330 470c18 0 28 14 28 28s-16 22-28 14c-8-5-10-14-4-20"/>
-        </g>
-        <g fill="#9db4d4" opacity=".28" font-family="Plus Jakarta Sans, sans-serif" font-size="14" font-weight="700">
-          <text x="28" y="210" transform="rotate(-12 28 210)">2x+3=7</text>
-          <text x="290" y="230" transform="rotate(8 290 230)">a²+b²=c²</text>
-          <text x="40" y="520" transform="rotate(6 40 520)">√x</text>
-          <text x="320" y="390" font-size="22">π</text>
-          <text x="300" y="560" transform="rotate(-7 300 560)">(a+b)²</text>
-        </g>
-      </svg>
+      <img class="play-doodles" src="./assets/math-doodles.svg" alt="" />
     </div>
 
     <header class="top-bar" aria-label="Game status">
@@ -246,7 +232,10 @@ function template() {
 
       <section class="equation-panel" aria-label="Equation builder">
         <div class="equation-panel__head">
-          <span class="equation-panel__title"><i aria-hidden="true">Σ</i> Equation</span>
+          <span class="equation-panel__title">
+            <i class="sigma-badge" aria-hidden="true">Σ</i>
+            <span>Equation</span>
+          </span>
           <button class="player-chip" data-player type="button" hidden>Player</button>
         </div>
         <div class="equation-field">
@@ -276,9 +265,9 @@ function template() {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4l-4.8 16.5-3.2-6.2L4 11.5Z" fill="currentColor"/></svg>
           Submit
         </button>
-        <button class="btn-hint" data-hint type="button">
+        <button class="btn-hint" data-hint type="button" aria-label="Hint">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5c-1.8-1.2-3-3.2-3-5.4A6.5 6.5 0 0 1 18.5 9c0 2.2-1.2 4.2-3 5.4L15 17H9l-.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span data-hint-label>Hint</span>
+          <span class="btn-hint__label" data-hint-label>Hint</span>
           <span class="hint-badge" data-hint-badge>2</span>
         </button>
       </div>
@@ -286,17 +275,7 @@ function template() {
 
     <aside class="play-footer" aria-label="Player status">
       <div class="mascot" aria-hidden="true">
-        <svg viewBox="0 0 80 80" width="64" height="64">
-          <ellipse cx="40" cy="72" rx="18" ry="4" fill="#c5d4ea" opacity=".7"/>
-          <rect x="18" y="24" width="44" height="38" rx="16" fill="#f8fbff" stroke="#3b82f6" stroke-width="2.2"/>
-          <circle cx="32" cy="40" r="4.2" fill="#1e3a5f"/>
-          <path d="M44 38c3 0 6 2.4 6 5" fill="none" stroke="#1e3a5f" stroke-width="2.4" stroke-linecap="round"/>
-          <path d="M32 52c3.5 3 12 3 15.5 0" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round"/>
-          <rect x="34" y="10" width="12" height="12" rx="3" fill="#93c5fd"/>
-          <circle cx="40" cy="10" r="3.2" fill="#3b82f6"/>
-          <path d="M58 44l12-10" stroke="#3b82f6" stroke-width="3.2" stroke-linecap="round"/>
-          <circle cx="72" cy="32" r="4.5" fill="#60a5fa"/>
-        </svg>
+        <img src="./assets/mascot.svg" alt="" width="72" height="72" />
       </div>
       <div class="welcome-card">
         <strong data-welcome>Welcome to Math Rescue.</strong>
@@ -417,6 +396,8 @@ function renderCards(container, state, onAppend) {
       <span class="number-card__sheen" aria-hidden="true"></span>
       <span class="number-card__circuit" aria-hidden="true"></span>
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
+      ${cardDeco(theme.position)}
+      <span class="number-card__accent" aria-hidden="true"></span>
     `;
     button.append(renderCardValue(card));
     button.addEventListener("click", () => onAppend(card.input));
@@ -431,11 +412,21 @@ function renderCards(container, state, onAppend) {
     `Target number ${state.round.targetLabel || state.round.target}`
   );
   target.innerHTML = `
-    <span class="target-badge__ring" aria-hidden="true"></span>
+    <span class="target-badge__glow" aria-hidden="true"></span>
     <span class="target-badge__label">Target</span>
     <strong class="target-badge__value">${state.round.targetLabel || state.round.target}</strong>
   `;
   container.append(target);
+}
+
+function cardDeco(position) {
+  if (position === "bottom") {
+    return `<img class="number-card__deco number-card__deco--br" src="./assets/deco-ruler.svg" alt="" aria-hidden="true" />`;
+  }
+  if (position === "left") {
+    return `<img class="number-card__deco number-card__deco--bl" src="./assets/deco-cube.svg" alt="" aria-hidden="true" />`;
+  }
+  return "";
 }
 
 function cardIcon(kind) {

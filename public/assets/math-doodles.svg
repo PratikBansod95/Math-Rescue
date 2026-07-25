@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none">
+  <g opacity=".32" stroke="#8FA8C8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 168l34-48 34 48Z"/><path d="M42 168h52"/>
+    <path d="M300 130h48v42h-48z"/><path d="M300 130l24-18 24 18"/><path d="M324 112v18"/>
+    <path d="M48 520a26 26 0 1 0 .2 0"/><path d="M48 520v-26M36 506h24"/>
+    <path d="M320 560c22 0 34 16 34 32s-20 26-34 16c-10-6-12-16-5-24"/>
+    <path d="M70 640h40M70 650h28M70 660h34"/>
+    <path d="M310 240l18 12-18 12-18-12 18-12Z"/>
+  </g>
+  <g fill="#8FA8C8" opacity=".26" font-family="Segoe UI, sans-serif" font-size="15" font-weight="700">
+    <text transform="translate(28 230) rotate(-12)">2x+3=7</text>
+    <text transform="translate(268 250) rotate(8)">a²+b²=c²</text>
+    <text transform="translate(36 580) rotate(7)">x</text>
+    <text x="318" y="430" font-size="26">À</text>
+    <text transform="translate(275 690) rotate(-8)">(a+b)²</text>
+  </g>
+</svg>
