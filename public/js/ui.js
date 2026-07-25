@@ -191,7 +191,7 @@ function template() {
   return `
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
-      <img class="play-doodles" src="./assets/math-doodles.svg" alt="" />
+      <img class="play-bg-art" src="./assets/play-bg.svg" alt="" />
     </div>
 
     <header class="top-bar" aria-label="Game status">
@@ -232,7 +232,12 @@ function template() {
 
     <main class="math-play" aria-label="Math Rescue puzzle board">
       <section class="board-stage" aria-label="Target and cards">
-        <div class="orbit-ring" aria-hidden="true"></div>
+        <div class="orbit-ring" aria-hidden="true">
+          <i class="orbit-dot orbit-dot--nw"></i>
+          <i class="orbit-dot orbit-dot--ne"></i>
+          <i class="orbit-dot orbit-dot--sw"></i>
+          <i class="orbit-dot orbit-dot--se"></i>
+        </div>
         <div class="card-cross" data-numbers aria-label="Four number cards and center target"></div>
       </section>
 
@@ -250,6 +255,10 @@ function template() {
           </span>
         </div>
         <p class="equation-tip" data-equation-hint></p>
+        <p class="play-status">
+          <strong data-welcome>Welcome to Math Rescue.</strong>
+          <small data-board-meta>Board 1 · Task 1/15</small>
+        </p>
         <section class="correction-panel" data-correction hidden aria-live="polite"></section>
       </section>
 
@@ -282,9 +291,7 @@ function template() {
       <div class="mascot" aria-hidden="true">
         <img src="./assets/mascot.svg" alt="" width="88" height="88" />
       </div>
-      <div class="welcome-card">
-        <strong data-welcome>Welcome to Math Rescue.</strong>
-        <small data-board-meta>Board 1 · Task 1/15</small>
+      <div class="welcome-card welcome-card--footer">
         <button class="player-chip" data-player type="button" hidden>Player</button>
       </div>
       <div class="best-card">
@@ -400,6 +407,8 @@ function renderCards(container, state, onAppend) {
     button.setAttribute("aria-label", `Use number card ${card.label}`);
     button.innerHTML = `
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
+      <span class="number-card__tech number-card__tech--tl" aria-hidden="true"></span>
+      <span class="number-card__tech number-card__tech--br" aria-hidden="true"></span>
       <span class="number-card__shine" aria-hidden="true"></span>
     `;
     button.append(renderCardValue(card));
