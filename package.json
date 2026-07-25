@@ -1,0 +1,11 @@
+{
+  "name": "mathmaster",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MathMaster — card equation puzzle game",
+  "scripts": {
+    "start": "npx --yes serve . -p 5173",
+    "build": "echo Static site — no build step"
+  }
+}
