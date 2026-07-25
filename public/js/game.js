@@ -11,7 +11,6 @@ import {
   getDifficulty,
   getRank,
   needsSpaceBefore,
-  stepOption,
   displayExpression,
   formatNumber,
 } from "./puzzle.js";
@@ -23,7 +22,7 @@ import {
   emptyProfile,
   normalizeUsername,
   defaultSettings,
-  stepBoardLength,
+  DEFAULT_BOARD_LENGTH,
   topProfilesByScore,
 } from "./storage.js";
 
@@ -45,9 +44,7 @@ export function createGame({ mount }) {
         boardIndex: 1,
         unlockedBoard: 1,
         taskIndex: 1,
-        tasksPerBoard: settings.boardLength,
-        divisions: DIVISIONS,
-        difficulties: DIFFICULTIES,
+        tasksPerBoard: DEFAULT_BOARD_LENGTH,
         divisionId: DEFAULT_DIVISION_ID,
         difficultyId: DEFAULT_DIFFICULTY_ID,
         division: getDivision(DEFAULT_DIVISION_ID),
@@ -100,10 +97,6 @@ export function createGame({ mount }) {
           onSubmit,
           onHintOrNext,
           onNewGame,
-          onDivisionChange,
-          onDifficultyChange,
-          onBoardLengthChange,
-          onSetBoardLength,
           onUsernameInput,
           onToggleSound,
           onTutorialNext,
@@ -129,7 +122,7 @@ export function createGame({ mount }) {
         settings = saved.settings;
         state.settings = settings;
         state.soundOn = settings.sound !== false;
-        state.tasksPerBoard = settings.boardLength;
+        state.tasksPerBoard = DEFAULT_BOARD_LENGTH;
         applyUsername(state.usernameKey ? state.username : saved.lastUsername || "");
         state.round = makeRound(state);
         state.phase = "ready";
@@ -450,57 +443,6 @@ export function createGame({ mount }) {
         ui.render(state, options);
       }
 
-      function onDivisionChange(step) {
-        if (state.phase === "loading" || state.phase === "review") return;
-        state.divisionId = stepOption(DIVISIONS, state.divisionId, step);
-        state.division = getDivision(state.divisionId);
-        resetRun("Division changed. Fresh card set ready.");
-      }
-
-      function onDifficultyChange(step) {
-        if (state.phase === "loading" || state.phase === "review") return;
-        state.difficultyId = stepOption(DIFFICULTIES, state.difficultyId, step);
-        state.difficulty = getDifficulty(state.difficultyId);
-        resetRun("Difficulty changed. New challenge ready.");
-      }
-
-      function onBoardLengthChange(step) {
-        if (state.phase === "loading" || state.phase === "review") return;
-        state.tasksPerBoard = stepBoardLength(state.tasksPerBoard, step);
-        settings.boardLength = state.tasksPerBoard;
-        state.settings = settings;
-        persistSettings();
-        if (state.phase === "ready") {
-          state.feedback = {
-            kind: "neutral",
-            text: `${state.tasksPerBoard} puzzles this run.`,
-            detail: "",
-          };
-          render();
-          return;
-        }
-        resetRun(`Board length set to ${state.tasksPerBoard} puzzles.`);
-      }
-
-      function onSetBoardLength(length) {
-        if (state.phase === "loading" || state.phase === "review") return;
-        if (![10, 15, 30].includes(length)) return;
-        state.tasksPerBoard = length;
-        settings.boardLength = length;
-        state.settings = settings;
-        persistSettings();
-        if (state.phase === "ready") {
-          state.feedback = {
-            kind: "neutral",
-            text: `${length} puzzles this run.`,
-            detail: "",
-          };
-          render();
-          return;
-        }
-        resetRun(`Board length set to ${length} puzzles.`);
-      }
-
       function onToggleSound() {
         state.soundOn = !state.soundOn;
         settings.sound = state.soundOn;
@@ -668,8 +610,20 @@ export function createGame({ mount }) {
   };
 }
 
+/** Shared path: Board 1 = Easy, then harder board by board for every player. */
+function applyLevelProgression(state, effectiveBoard) {
+  const board = Math.max(1, effectiveBoard);
+  const difficultyIndex = Math.min(DIFFICULTIES.length - 1, board - 1);
+  const divisionIndex = Math.min(DIVISIONS.length - 1, Math.floor((board - 1) / 2));
+  state.difficultyId = DIFFICULTIES[difficultyIndex].id;
+  state.divisionId = DIVISIONS[divisionIndex].id;
+  state.difficulty = getDifficulty(state.difficultyId);
+  state.division = getDivision(state.divisionId);
+}
+
 /** Wrapper: bump effective boardIndex for late tasks without changing puzzle.js. */
 function makeRound(state) {
+  applyLevelProgression(state, state.boardIndex);
   const ramp = Math.floor((state.taskIndex - 1) / 10);
   return createRound({
     boardIndex: state.boardIndex + ramp,

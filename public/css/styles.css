@@ -112,7 +112,7 @@ button:disabled,input:disabled {
     justify-items: end
 }
 
-.hud-badge span,.hud-best,.result-kicker,.setting-control>span,.equation-box span {
+.hud-badge span,.hud-best,.result-kicker,.equation-box span {
     color: #e8f7ffb8;
     text-transform: uppercase;
     letter-spacing: .08em;
@@ -150,71 +150,6 @@ button:disabled,input:disabled {
     gap: .65rem;
     min-height: 0;
     display: flex
-}
-
-.settings-panel {
-    grid-template-columns: repeat(2,minmax(0,1fr));
-    gap: .55rem;
-    width: min(100%,42rem);
-    margin-inline:auto;display: grid
-}
-
-.setting-control--wide {
-    grid-column: 1 / -1
-}
-
-.setting-control {
-    gap: .25rem;
-    min-width: 0;
-    display: grid
-}
-
-.stepper {
-    grid-template-columns: auto minmax(0,1fr);
-    gap: .25rem;
-    min-width: 0;
-    display: grid
-}
-
-.stepper button {
-    color: #f8fbff;
-    background: #05162694;
-    border-radius: .75rem;
-    min-height: 2.5rem;
-    font-weight: 850;
-    box-shadow: inset 0 0 0 1px #ffffff1f,0 .35rem .9rem #00000021
-}
-
-.stepper>button:first-child {
-    width: 2.45rem;
-    font-size: 1.5rem;
-    line-height: 1
-}
-
-.setting-value {
-    text-align: start;
-    align-content: center;
-    justify-items: start;
-    gap: .02rem;
-    min-width: 0;
-    padding-inline:.65rem;display: grid
-}
-
-.setting-value strong,.setting-value small {
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden
-}
-
-.setting-value strong {
-    font-size: .92rem
-}
-
-.setting-value small {
-    color: #e8f7ff9e;
-    font-size: .65rem;
-    font-weight: 750
 }
 
 .math-card {
@@ -831,14 +766,6 @@ button:disabled,input:disabled {
         font-size: 2.7rem
     }
 
-    .settings-panel {
-        gap: .35rem
-    }
-
-    .stepper button {
-        min-height: 2.2rem
-    }
-
     .card-cross {
         gap: .3rem .4rem;
         min-height: 14.6rem
@@ -871,10 +798,6 @@ button:disabled,input:disabled {
 @container (width<=340px) {
     .operator-grid,.card-cross,.action-row {
         gap: .42rem
-    }
-
-    .settings-panel {
-        grid-template-columns: 1fr
     }
 
     .hud-best {
@@ -1049,9 +972,6 @@ button:disabled,input:disabled {
 }
 
 @media (max-height: 560px) and (orientation: landscape) {
-    .settings-panel {
-        display: none
-    }
     .card-cross {
         min-height: 11rem
     }

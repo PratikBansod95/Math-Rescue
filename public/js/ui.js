@@ -35,13 +35,6 @@ export function createUI({ mount, handlers }) {
     topStars: shell.querySelector("[data-stars]"),
     bestScore: shell.querySelector("[data-best]"),
     muteButton: shell.querySelector("[data-mute]"),
-    divisionLabel: shell.querySelector("[data-division-label]"),
-    divisionGrade: shell.querySelector("[data-division-grade]"),
-    difficultyLabel: shell.querySelector("[data-difficulty-label]"),
-    lengthLabel: shell.querySelector("[data-length-label]"),
-    divisionButtons: shell.querySelectorAll("[data-division-step]"),
-    difficultyButtons: shell.querySelectorAll("[data-difficulty-step]"),
-    lengthButtons: shell.querySelectorAll("[data-length-step]"),
     numbers: shell.querySelector("[data-numbers]"),
     input: shell.querySelector("[data-input]"),
     feedback: shell.querySelector("[data-feedback]"),
@@ -84,16 +77,6 @@ export function createUI({ mount, handlers }) {
     }
   });
 
-  for (const button of els.divisionButtons) {
-    on(button, "click", () => handlers.onDivisionChange(Number(button.dataset.divisionStep)));
-  }
-  for (const button of els.difficultyButtons) {
-    on(button, "click", () => handlers.onDifficultyChange(Number(button.dataset.difficultyStep)));
-  }
-  for (const button of els.lengthButtons) {
-    on(button, "click", () => handlers.onBoardLengthChange(Number(button.dataset.lengthStep)));
-  }
-
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
   on(els.hintButton, "click", handlers.onHintOrNext);
@@ -116,10 +99,6 @@ export function createUI({ mount, handlers }) {
       els.bestScore.textContent = `Unlocked ${state.unlockedBoard}`;
       els.muteButton.textContent = state.soundOn ? "🔊" : "🔇";
       els.muteButton.setAttribute("aria-label", state.soundOn ? "Mute sound" : "Unmute sound");
-      els.divisionLabel.textContent = state.division.shortLabel;
-      els.divisionGrade.textContent = state.division.gradeLabel;
-      els.difficultyLabel.textContent = state.difficulty.label;
-      els.lengthLabel.textContent = `${state.tasksPerBoard} tasks`;
 
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
@@ -186,39 +165,6 @@ function template() {
     </header>
 
     <main class="math-play" aria-label="Math Rescue puzzle board">
-      <section class="settings-panel" aria-label="Division difficulty and length">
-        <div class="setting-control">
-          <span>Division</span>
-          <div class="stepper">
-            <button data-division-step="-1" type="button" aria-label="Previous division">‹</button>
-            <button data-division-step="1" class="setting-value" type="button" aria-label="Change division">
-              <strong data-division-label>Upper Primary</strong>
-              <small data-division-grade>Grade 4 to 6</small>
-            </button>
-          </div>
-        </div>
-        <div class="setting-control">
-          <span>Difficulty</span>
-          <div class="stepper">
-            <button data-difficulty-step="-1" type="button" aria-label="Previous difficulty">‹</button>
-            <button data-difficulty-step="1" class="setting-value" type="button" aria-label="Change difficulty">
-              <strong data-difficulty-label>Normal</strong>
-              <small>Easy → Legendary</small>
-            </button>
-          </div>
-        </div>
-        <div class="setting-control setting-control--wide">
-          <span>Board length</span>
-          <div class="stepper">
-            <button data-length-step="-1" type="button" aria-label="Shorter board">‹</button>
-            <button data-length-step="1" class="setting-value" type="button" aria-label="Change board length">
-              <strong data-length-label>15 tasks</strong>
-              <small>10 · 15 · 30</small>
-            </button>
-          </div>
-        </div>
-      </section>
-
       <section class="math-card" aria-label="Target and equation">
         <div class="card-cross" data-numbers aria-label="Four number cards and center target"></div>
 

@@ -2,7 +2,6 @@ const STORAGE_KEY = "math-rescue-v1";
 const LEGACY_KEYS = ["mathmaster-v2", "mathmaster-v1"];
 const VERSION = 1;
 
-export const BOARD_LENGTHS = [10, 15, 30];
 export const DEFAULT_BOARD_LENGTH = 15;
 
 export function defaultSettings() {
@@ -82,18 +81,12 @@ export function topProfilesByScore(profiles, limit = 5) {
     .slice(0, limit);
 }
 
-export function stepBoardLength(current, step) {
-  const index = Math.max(0, BOARD_LENGTHS.indexOf(current));
-  return BOARD_LENGTHS[(index + step + BOARD_LENGTHS.length) % BOARD_LENGTHS.length];
-}
-
 function normalizeSettings(settings) {
   const base = defaultSettings();
   if (!settings || typeof settings !== "object") return base;
-  const length = Number(settings.boardLength);
   return {
     sound: settings.sound !== false,
-    boardLength: BOARD_LENGTHS.includes(length) ? length : DEFAULT_BOARD_LENGTH,
+    boardLength: DEFAULT_BOARD_LENGTH,
   };
 }
 

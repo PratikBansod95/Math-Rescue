@@ -40,7 +40,7 @@ export const DIFFICULTIES = [
 ];
 
 export const DEFAULT_DIVISION_ID = DIVISIONS[0].id;
-export const DEFAULT_DIFFICULTY_ID = DIFFICULTIES[1].id;
+export const DEFAULT_DIFFICULTY_ID = DIFFICULTIES[0].id;
 
 const EPSILON = 1e-9;
 const MIN_INTEGER = 1;
@@ -65,7 +65,7 @@ export function getDivision(id) {
 }
 
 export function getDifficulty(id) {
-  return DIFFICULTIES.find((d) => d.id === id) || DIFFICULTIES[1];
+  return DIFFICULTIES.find((d) => d.id === id) || DIFFICULTIES[0];
 }
 
 export function getRank(score) {
