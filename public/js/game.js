@@ -32,7 +32,7 @@ const POINTS_REVEAL = 1;
 const MAX_RETRIES = 2;
 
 const TIMER_LIMITS = {
-  easy: 30,
+  easy: 45,
   normal: 60,
   medium: 60,
   advanced: 60,
