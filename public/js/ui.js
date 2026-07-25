@@ -357,7 +357,7 @@ function updateStartOverlay(els, state) {
   els.startOverlay.hidden = false;
   els.startButton.disabled = state.phase !== "ready" || !state.usernameKey;
   els.startText.textContent = state.usernameKey
-    ? `Ready for ${state.tasksPerBoard} puzzles on Board ${state.boardIndex}.`
+    ? "Four cards. One target. Make the equation."
     : "Enter your name to unlock Start.";
 
   if (els.startStatus) {
