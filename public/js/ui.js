@@ -111,10 +111,10 @@ export function createUI({ mount, handlers }) {
       if (state.showTutorial) shell.dataset.tutorialStep = String(state.tutorialStep);
       else delete shell.dataset.tutorialStep;
 
-      const streak = Math.min(3, Math.max(0, state.runStars || 0));
-      els.streakValue.textContent = String(streak);
+      const segsOn = Math.min(4, state.runStars || 0);
+      els.streakValue.textContent = String(state.runStars || 0);
       els.streakSegs.forEach((seg, index) => {
-        seg.classList.toggle("is-on", index < streak);
+        seg.classList.toggle("is-on", index < segsOn);
       });
 
       els.levelLabel.textContent = `LEVEL ${state.boardIndex}`;
@@ -129,8 +129,7 @@ export function createUI({ mount, handlers }) {
 
       els.muteButton.classList.toggle("is-muted", !state.soundOn);
       els.muteButton.setAttribute("aria-label", state.soundOn ? "Mute sound" : "Unmute sound");
-      els.playerButton.textContent = state.usernameKey ? state.username : "Player";
-      els.playerButton.hidden = !state.usernameKey;
+      if (els.playerButton) els.playerButton.hidden = true;
 
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
@@ -147,12 +146,19 @@ export function createUI({ mount, handlers }) {
       els.input.textContent = expression || "";
       els.input.dataset.empty = expression ? "false" : "true";
       const targetLabel = state.round?.targetLabel || state.round?.target || "?";
-      els.equationHint.innerHTML = `<span class="tip-ico" aria-hidden="true">💡</span><span>Use <i class="op op-add">+</i> <i class="op op-sub">−</i> <i class="op op-mul">×</i> <i class="op op-div">÷</i> and <i class="op op-par">( )</i> to make <b class="target-chip">${targetLabel}</b></span>`;
+      els.equationHint.innerHTML = `<span class="tip-ico" aria-hidden="true">💡</span><span>Use <b>+ − × ÷</b> and <b>( )</b> to make <b>${targetLabel}</b></span>`;
 
       els.feedback.textContent = state.feedback.text;
       els.feedback.dataset.kind = state.feedback.kind;
       els.feedbackDetail.textContent = state.feedback.detail || "";
       els.feedbackDetail.hidden = !state.feedback.detail;
+      const feedbackLine = els.feedback.closest(".feedback-line");
+      if (feedbackLine) {
+        feedbackLine.hidden =
+          state.phase === "playing" &&
+          state.feedback.kind === "neutral" &&
+          !state.feedback.detail;
+      }
 
       renderCorrection(els.correction, state.correction);
       renderCards(els.numbers, state, handlers.onAppend);
@@ -201,7 +207,7 @@ function template() {
           <small>Streak</small>
           <strong data-streak>0</strong>
           <div class="streak-segs" aria-hidden="true">
-            <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
+            <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
           </div>
         </div>
       </div>
@@ -236,7 +242,6 @@ function template() {
             <i class="sigma-badge" aria-hidden="true">Σ</i>
             <span>Equation</span>
           </span>
-          <button class="player-chip" data-player type="button" hidden>Player</button>
         </div>
         <div class="equation-field">
           <div data-input class="equation-input" data-empty="true" role="textbox" aria-readonly="true" aria-label="Your equation"></div>
@@ -265,9 +270,9 @@ function template() {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4l-4.8 16.5-3.2-6.2L4 11.5Z" fill="currentColor"/></svg>
           Submit
         </button>
-        <button class="btn-hint" data-hint type="button" aria-label="Hint">
+        <button class="btn-hint" data-hint type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5c-1.8-1.2-3-3.2-3-5.4A6.5 6.5 0 0 1 18.5 9c0 2.2-1.2 4.2-3 5.4L15 17H9l-.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="btn-hint__label" data-hint-label>Hint</span>
+          <span data-hint-label>Hint</span>
           <span class="hint-badge" data-hint-badge>2</span>
         </button>
       </div>
@@ -280,6 +285,7 @@ function template() {
       <div class="welcome-card">
         <strong data-welcome>Welcome to Math Rescue.</strong>
         <small data-board-meta>Board 1 · Task 1/15</small>
+        <button class="player-chip" data-player type="button" hidden>Player</button>
       </div>
       <div class="best-card">
         <span class="trophy-ico" aria-hidden="true">
@@ -393,11 +399,8 @@ function renderCards(container, state, onAppend) {
     button.disabled = state.phase !== "playing" || used >= max;
     button.setAttribute("aria-label", `Use number card ${card.label}`);
     button.innerHTML = `
-      <span class="number-card__sheen" aria-hidden="true"></span>
-      <span class="number-card__circuit" aria-hidden="true"></span>
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
-      ${cardDeco(theme.position)}
-      <span class="number-card__accent" aria-hidden="true"></span>
+      <span class="number-card__shine" aria-hidden="true"></span>
     `;
     button.append(renderCardValue(card));
     button.addEventListener("click", () => onAppend(card.input));
@@ -412,21 +415,10 @@ function renderCards(container, state, onAppend) {
     `Target number ${state.round.targetLabel || state.round.target}`
   );
   target.innerHTML = `
-    <span class="target-badge__glow" aria-hidden="true"></span>
     <span class="target-badge__label">Target</span>
     <strong class="target-badge__value">${state.round.targetLabel || state.round.target}</strong>
   `;
   container.append(target);
-}
-
-function cardDeco(position) {
-  if (position === "bottom") {
-    return `<img class="number-card__deco number-card__deco--br" src="./assets/deco-ruler.svg" alt="" aria-hidden="true" />`;
-  }
-  if (position === "left") {
-    return `<img class="number-card__deco number-card__deco--bl" src="./assets/deco-cube.svg" alt="" aria-hidden="true" />`;
-  }
-  return "";
 }
 
 function cardIcon(kind) {

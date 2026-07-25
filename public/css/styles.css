@@ -1,7 +1,7 @@
 html,body {
   overscroll-behavior: none;
   color: #1a2b4a;
-  background: #eef3fb;
+  background: #ffffff;
   width: 100%;
   min-width: 0;
   height: 100%;
@@ -51,19 +51,19 @@ button, [role=button] {
 button:disabled { cursor: not-allowed }
 
 .math-game {
-  --bg: #eef3fb;
+  --bg: #f7f9fc;
   --surface: #ffffff;
   --ink: #1a2b4a;
   --muted: #7c8eaa;
   --line: #e2eaf6;
-  --blue: #2f6bff;
+  --blue: #2b65ec;
   --blue-soft: #5b8cff;
   --purple: #7c5cfc;
   --pink: #f0439b;
   --green: #22c55e;
   --amber: #f5b942;
-  --shadow: 0 10px 30px rgba(26, 43, 74, .08);
-  --shadow-soft: 0 6px 18px rgba(26, 43, 74, .06);
+  --shadow: 0 10px 28px rgba(26, 43, 74, .08);
+  --shadow-soft: 0 6px 16px rgba(26, 43, 74, .06);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -73,8 +73,8 @@ button:disabled { cursor: not-allowed }
   color: var(--ink);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: .6rem;
-  padding: calc(.7rem + var(--safe-top)) calc(.85rem + var(--safe-right)) calc(.55rem + var(--safe-bottom)) calc(.85rem + var(--safe-left));
+  gap: .55rem;
+  padding: calc(.65rem + var(--safe-top)) calc(.8rem + var(--safe-right)) calc(.5rem + var(--safe-bottom)) calc(.8rem + var(--safe-left));
   position: relative;
   overflow: hidden;
   container-type: size
@@ -91,11 +91,10 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(147, 176, 214, .28) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(147, 176, 214, .28) 1px, transparent 1px);
-  background-size: 24px 24px;
-  mask-image: radial-gradient(ellipse 70% 55% at 50% 38%, #000 20%, transparent 75%);
-  opacity: .7
+    linear-gradient(rgba(160, 176, 200, .22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160, 176, 200, .22) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: .55
 }
 
 .play-doodles {
@@ -184,9 +183,9 @@ button:disabled { cursor: not-allowed }
 .streak-segs {
   margin-top: .28rem;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: .18rem;
-  width: 2.9rem
+  grid-template-columns: repeat(4, 1fr);
+  gap: .16rem;
+  width: 3.4rem
 }
 
 .streak-segs i {
@@ -314,30 +313,18 @@ button:disabled { cursor: not-allowed }
   grid-area: 2 / 2;
   position: relative;
   z-index: 2;
-  width: clamp(6.4rem, 24cqw, 8rem);
-  min-height: clamp(6.4rem, 24cqw, 8rem);
+  width: clamp(6.2rem, 23cqw, 7.6rem);
+  min-height: clamp(6.2rem, 23cqw, 7.6rem);
   border-radius: 50%;
   display: grid;
   place-content: center;
-  gap: .1rem;
+  gap: .08rem;
   color: #fff;
-  background:
-    radial-gradient(circle at 36% 30%, #3b5ccc 0%, #1a2f7a 55%, #101c4d 100%);
+  background: radial-gradient(circle at 40% 32%, #2f4fb8 0%, #152a6e 70%);
   box-shadow:
-    0 0 0 5px #7dd3fc,
-    0 0 0 12px rgba(125, 211, 252, .28),
-    0 0 28px rgba(96, 165, 250, .55),
-    0 16px 36px rgba(15, 30, 80, .32),
-    inset 0 2px 8px rgba(255, 255, 255, .18)
-}
-
-.target-badge__glow {
-  position: absolute;
-  inset: -14px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(125, 211, 252, .35), transparent 68%);
-  pointer-events: none;
-  z-index: -1
+    0 0 0 4px #6ec8ff,
+    0 12px 28px rgba(15, 30, 80, .28),
+    inset 0 1px 0 rgba(255, 255, 255, .2)
 }
 
 .target-badge--pulse { animation: target-pulse .55s ease }
@@ -345,119 +332,83 @@ button:disabled { cursor: not-allowed }
 .target-badge__label {
   position: relative;
   text-transform: uppercase;
-  letter-spacing: .18em;
-  font-size: .64rem;
+  letter-spacing: .16em;
+  font-size: .6rem;
   font-weight: 800;
-  color: #dbe7ff;
+  color: #d7e3ff;
   text-align: center
 }
 
 .target-badge__value {
   position: relative;
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: clamp(2.35rem, 10cqw, 3.2rem);
+  font-size: clamp(2.2rem, 9.5cqw, 3rem);
   font-weight: 700;
   line-height: .9;
-  letter-spacing: -.05em;
+  letter-spacing: -.04em;
   text-align: center;
-  color: #e8f7ff;
-  text-shadow: 0 0 16px rgba(125, 211, 252, .95), 0 0 30px rgba(59, 130, 246, .6)
+  color: #7dd3fc;
+  text-shadow: 0 0 14px rgba(125, 211, 252, .7)
 }
 
 .number-card {
   --accent: var(--blue);
   position: relative;
-  width: clamp(5rem, 20cqw, 6.5rem);
-  min-height: clamp(5rem, 20cqw, 6.5rem);
+  width: clamp(4.9rem, 19.5cqw, 6.3rem);
+  min-height: clamp(4.9rem, 19.5cqw, 6.3rem);
   display: grid;
   place-items: center;
   cursor: pointer;
   color: var(--accent);
-  background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
-  border: 2px solid #e8eef8;
-  border-radius: 1.35rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f7ff 100%);
+  border: 3px solid var(--accent);
+  border-radius: 1.15rem;
+  clip-path: polygon(12% 0, 88% 0, 100% 12%, 100% 88%, 88% 100%, 12% 100%, 0 88%, 0 12%);
   box-shadow:
-    0 14px 30px rgba(26, 43, 74, .1),
-    0 2px 0 rgba(255, 255, 255, .9) inset;
-  transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+    0 10px 24px rgba(26, 43, 74, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 -10px 18px rgba(26, 43, 74, .04);
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
   overflow: hidden
 }
 
-.number-card__sheen {
+.number-card__shine {
   position: absolute;
   inset: 0;
-  background: linear-gradient(140deg, rgba(255, 255, 255, .7), transparent 45%);
+  background: linear-gradient(135deg, rgba(255,255,255,.55), transparent 40%);
   pointer-events: none
 }
 
-.number-card__circuit {
-  position: absolute;
-  right: .15rem;
-  bottom: .5rem;
-  width: 62%;
-  height: 62%;
-  opacity: .28;
-  background-color: var(--accent);
-  -webkit-mask: url("./assets/card-circuit.svg") center / contain no-repeat;
-  mask: url("./assets/card-circuit.svg") center / contain no-repeat;
-  pointer-events: none
-}
-
-.number-card__deco {
-  position: absolute;
-  width: 1.7rem;
-  height: 1.7rem;
-  opacity: .55;
-  pointer-events: none;
-  z-index: 1
-}
-
-.number-card__deco--br { right: .35rem; bottom: .55rem }
-.number-card__deco--bl { left: .3rem; bottom: .55rem }
-
-.number-card__accent {
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  bottom: .42rem;
-  height: .28rem;
-  border-radius: 99px;
-  background: var(--accent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
-  z-index: 2
-}
-
-.number-card--top { grid-area: 1 / 2; --accent: var(--blue); border-color: #b9d4ff }
-.number-card--left { grid-area: 2 / 1; justify-self: end; --accent: var(--purple); border-color: #d5c8ff }
-.number-card--right { grid-area: 2 / 3; justify-self: start; --accent: var(--pink); border-color: #fbcfe8 }
-.number-card--bottom { grid-area: 3 / 2; --accent: var(--green); border-color: #bbf7d0 }
+.number-card--top { grid-area: 1 / 2; --accent: #3b82f6 }
+.number-card--left { grid-area: 2 / 1; justify-self: end; --accent: #8b5cf6 }
+.number-card--right { grid-area: 2 / 3; justify-self: start; --accent: #ec4899 }
+.number-card--bottom { grid-area: 3 / 2; --accent: #22c55e }
 
 .number-card__badge {
   position: absolute;
-  top: .48rem;
-  left: .48rem;
-  width: 1.45rem;
-  height: 1.45rem;
+  top: .45rem;
+  left: .45rem;
+  width: 1.4rem;
+  height: 1.4rem;
   display: grid;
   place-items: center;
   color: #fff;
   background: var(--accent);
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  box-shadow: 0 5px 12px rgba(26, 43, 74, .18);
+  box-shadow: 0 4px 10px rgba(26, 43, 74, .2);
   z-index: 3
 }
 
-.number-card__badge svg { width: .8rem; height: .8rem }
+.number-card__badge svg { width: .78rem; height: .78rem }
 
 .card-value {
   position: relative;
   z-index: 2;
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: clamp(2.15rem, 9cqw, 2.9rem);
+  font-size: clamp(2.1rem, 8.8cqw, 2.85rem);
   font-weight: 700;
   color: var(--ink);
-  line-height: 1;
-  margin-bottom: .15rem
+  line-height: 1
 }
 
 .card-value--fraction {
@@ -476,8 +427,8 @@ button:disabled { cursor: not-allowed }
 }
 
 .number-card:hover:not(:disabled) {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 18px 36px rgba(26, 43, 74, .14)
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(26, 43, 74, .14)
 }
 
 .number-card:active:not(:disabled) { transform: translateY(1px) scale(.98) }
@@ -598,36 +549,19 @@ button:disabled { cursor: not-allowed }
 }
 
 .equation-tip .tip-ico { font-size: .95rem }
-.equation-tip i {
-  font-style: normal;
-  font-weight: 800;
-  padding: 0 .05rem
-}
-
-.op-add { color: #2f6bff }
-.op-sub { color: #f59e0b }
-.op-mul { color: #7c5cfc }
-.op-div { color: #f0439b }
-.op-par { color: #0ea5e9 }
-
-.target-chip {
-  display: inline-block;
-  color: #fff !important;
-  background: var(--blue);
-  border-radius: .45rem;
-  padding: .08rem .38rem;
-  font-weight: 800
-}
+.equation-tip b { color: var(--blue); font-weight: 800 }
 
 .feedback-line {
   width: min(100%, 28rem);
   margin-inline: auto;
   text-align: center;
-  min-height: 2rem;
+  min-height: 0;
   display: grid;
   gap: .12rem;
   align-content: center
 }
+
+.feedback-line[hidden] { display: none !important }
 
 .feedback-line strong {
   font-size: .92rem;
@@ -754,16 +688,8 @@ button:disabled { cursor: not-allowed }
   background: linear-gradient(180deg, #ffe8a3, #fbbf24);
   border: 0;
   box-shadow: 0 8px 18px rgba(245, 158, 11, .28);
-  min-width: 3.4rem;
-  padding-inline: .7rem
-}
-
-.btn-hint .btn-hint__label {
-  display: none
-}
-
-.math-game[data-phase=review] .btn-hint .btn-hint__label {
-  display: inline
+  padding-inline: .85rem;
+  gap: .35rem
 }
 
 .hint-badge {
@@ -805,20 +731,23 @@ button:disabled { cursor: not-allowed }
 
 .welcome-card,
 .best-card {
-  background: var(--surface);
-  border-radius: 1.1rem;
-  box-shadow: var(--shadow-soft);
-  padding: .6rem .75rem
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: .15rem .2rem
 }
 
 .welcome-card {
   display: grid;
-  gap: .12rem;
-  min-width: 0
+  gap: .1rem;
+  min-width: 0;
+  text-align: center
 }
 
+.welcome-card .player-chip { display: none }
+
 .welcome-card strong {
-  font-size: .92rem;
+  font-size: .9rem;
   font-weight: 800;
   white-space: nowrap;
   overflow: hidden;
@@ -835,7 +764,11 @@ button:disabled { cursor: not-allowed }
   display: flex;
   align-items: center;
   gap: .4rem;
-  white-space: nowrap
+  white-space: nowrap;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-soft);
+  padding: .5rem .65rem
 }
 
 .best-card .trophy-ico { width: 1.35rem; height: 1.35rem }
@@ -1098,9 +1031,9 @@ button:disabled { cursor: not-allowed }
 }
 
 @container (height <= 720px) {
-  .board-stage { min-height: 14rem }
-  .play-footer { display: none }
+  .board-stage { min-height: 13.5rem }
   .equation-panel { padding: .65rem .75rem }
+  .mascot img { width: 56px; height: 56px }
 }
 
 @container (height <= 560px) and (orientation: landscape) {
