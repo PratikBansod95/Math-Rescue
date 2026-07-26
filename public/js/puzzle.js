@@ -83,7 +83,7 @@ export function createRound({
 
   const division = getDivision(divisionId);
   const difficulty = getDifficulty(difficultyId);
-  const special = specialTypeForTask(taskIndex, division);
+  const special = specialTypeForTask(taskIndex, division, boardIndex);
 
   if (special === "matching-target-cards") {
     return createMatchingTargetRound(boardIndex, taskIndex, division, difficulty);
@@ -93,13 +93,13 @@ export function createRound({
   }
 
   for (let attempt = 0; attempt < 180; attempt += 1) {
-    const cards = generateCards(division, difficulty, boardIndex);
+    const cards = generateCards(division, difficulty, boardIndex, difficultyId);
     if (cards.every((card) => card.key === cards[0].key)) continue;
 
-    const solutions = findIntegerTargets(cards, boardIndex, difficulty);
+    const solutions = findIntegerTargets(cards, boardIndex, difficulty, difficultyId);
     const pool = preferFriendlyTargets(solutions, boardIndex, difficultyId);
     if (pool.length > 0) {
-      const picked = pool[randomInt(0, pool.length - 1)];
+      const picked = pickGentleSolution(pool);
       return {
         cards,
         target: picked.value,
@@ -167,7 +167,9 @@ export function findAlternateSolutions(round, attempted = "", limit = 3) {
   return results;
 }
 
-function specialTypeForTask(taskIndex, division) {
+function specialTypeForTask(taskIndex, division, boardIndex = 1) {
+  // Keep boards 1–5 on the normal friendly generator (no nested special templates).
+  if (boardIndex <= 5) return null;
   if ([5, 15, 25].includes(taskIndex)) return "matching-target-cards";
   if ([10, 20, 30].includes(taskIndex)) {
     return division.allowFractions ? "all-target-with-fraction" : "matching-target-cards";
@@ -235,9 +237,17 @@ function pickOtherCard(target, boardIndex, difficulty) {
   return value;
 }
 
-function generateCards(division, difficulty, boardIndex) {
-  const maxInt = division.integerBaseMax + difficulty.integerBonus + Math.max(0, boardIndex - 1) * 2;
-  const fractionCount = division.allowFractions ? Math.min(2, difficulty.fractionCards) : 0;
+function generateCards(division, difficulty, boardIndex, difficultyId = DEFAULT_DIFFICULTY_ID) {
+  let maxInt = division.integerBaseMax + difficulty.integerBonus + Math.max(0, boardIndex - 1) * 2;
+  if (isFriendlyBoard(boardIndex, difficultyId)) {
+    // Smaller digits on early / easy boards so solutions stay simple.
+    maxInt = Math.min(maxInt, 5 + boardIndex);
+  }
+  const fractionCount = isFriendlyBoard(boardIndex, difficultyId)
+    ? 0
+    : division.allowFractions
+      ? Math.min(2, difficulty.fractionCards)
+      : 0;
   const raw = [];
 
   for (let i = 0; i < fractionCount; i += 1) {
@@ -275,30 +285,70 @@ function randomFraction(denominatorMax) {
   return reduceFraction(randomInt(1, denom - 1), denom);
 }
 
-function findIntegerTargets(cards, boardIndex, difficulty) {
-  const map = new Map();
-  const maxAbs = 80 + boardIndex * 30 + difficulty.integerBonus * 10;
-  const nodes = cards.map((c) => ({ value: c.value, expression: c.input }));
+function isFriendlyBoard(boardIndex, difficultyId) {
+  return boardIndex <= 5 || difficultyId === "easy";
+}
 
-  for (const result of combineAll(nodes)) {
+function findIntegerTargets(cards, boardIndex, difficulty, difficultyId = DEFAULT_DIFFICULTY_ID) {
+  const map = new Map();
+  const friendly = isFriendlyBoard(boardIndex, difficultyId);
+  const maxAbs = friendly
+    ? 20 + boardIndex * 6
+    : 80 + boardIndex * 30 + difficulty.integerBonus * 10;
+  const nodes = cards.map((c) => ({ value: c.value, expression: c.input, depth: 0 }));
+
+  for (const result of combineAll(nodes, { friendly })) {
     const rounded = Math.round(result.value);
-    if (Math.abs(result.value - rounded) <= EPSILON && Math.abs(rounded) <= maxAbs) {
-      map.set(rounded, { value: rounded, expression: result.expression });
+    if (Math.abs(result.value - rounded) > EPSILON || Math.abs(rounded) > maxAbs) continue;
+    if (friendly && rounded <= 0) continue;
+
+    const candidate = {
+      value: rounded,
+      expression: result.expression,
+      cost: expressionCost(result.expression),
+    };
+    const existing = map.get(rounded);
+    if (!existing || candidate.cost < existing.cost) {
+      map.set(rounded, candidate);
     }
   }
   return Array.from(map.values());
 }
 
-/** Keep early boards friendly: prefer small positive targets. */
+/** Keep early boards friendly: prefer small positive targets and simpler expressions. */
 function preferFriendlyTargets(solutions, boardIndex, difficultyId) {
   if (!solutions.length) return solutions;
-  if (boardIndex > 5 && difficultyId !== "easy") return solutions;
+  if (!isFriendlyBoard(boardIndex, difficultyId)) return solutions;
 
   const positive = solutions.filter((s) => s.value > 0);
-  const gentle = positive.filter((s) => s.value <= 24 + boardIndex * 4);
-  if (gentle.length) return gentle;
-  if (positive.length) return positive;
-  return solutions;
+  const gentleCap = 18 + boardIndex * 3;
+  const gentle = positive.filter((s) => s.value <= gentleCap);
+  const pool = gentle.length ? gentle : positive;
+  if (!pool.length) return solutions;
+
+  const sorted = [...pool].sort((a, b) => (a.cost || 0) - (b.cost || 0) || a.value - b.value);
+  // Prefer the simplest third so random pick still has variety without nasty nests.
+  const cut = Math.max(1, Math.ceil(sorted.length / 3));
+  return sorted.slice(0, cut);
+}
+
+function pickGentleSolution(pool) {
+  if (pool.length === 1) return pool[0];
+  const sorted = [...pool].sort((a, b) => (a.cost || 0) - (b.cost || 0));
+  const top = sorted.slice(0, Math.min(4, sorted.length));
+  return top[randomInt(0, top.length - 1)];
+}
+
+function expressionCost(expression) {
+  const text = String(expression || "");
+  const parens = (text.match(/\(/g) || []).length;
+  const minus = (text.match(/ - /g) || []).length;
+  let cost = parens * 12 + minus * 3 + text.length;
+  // Prefer real combining over cancel-to-1 / cancel-to-0 tricks.
+  if (/\((\d+(?:\/\d+)?) \/ \1\)/.test(text)) cost += 28;
+  if (/\((\d+(?:\/\d+)?) - \1\)/.test(text)) cost += 32;
+  if (/\((\d+(?:\/\d+)?) \* 1\)/.test(text) || /\(1 \* (\d+(?:\/\d+)?)\)/.test(text)) cost += 10;
+  return cost;
 }
 
 function enumerateSolutions(round) {
@@ -312,19 +362,21 @@ function enumerateSolutions(round) {
     }
     if (subset.length < 2) continue;
 
-    const nodes = subset.map((c) => ({ value: c.value, expression: c.input }));
-    for (const result of combineAll(nodes)) {
+    const nodes = subset.map((c) => ({ value: c.value, expression: c.input, depth: 0 }));
+    for (const result of combineAll(nodes, { friendly: true })) {
       if (Math.abs(result.value - round.target) <= EPSILON) {
         solutions.push(result.expression);
       }
     }
   }
-  return solutions;
+  return solutions.sort((a, b) => expressionCost(a) - expressionCost(b));
 }
 
-function combineAll(nodes) {
+function combineAll(nodes, opts = {}) {
   if (nodes.length === 1) return nodes;
   const results = [];
+  const friendly = Boolean(opts.friendly);
+  const maxDepth = friendly ? 2 : 8;
 
   for (let i = 0; i < nodes.length; i += 1) {
     for (let j = 0; j < nodes.length; j += 1) {
@@ -336,8 +388,16 @@ function combineAll(nodes) {
       for (const op of OPERATORS) {
         const value = op.apply(left.value, right.value);
         if (value === null || !Number.isFinite(value) || Math.abs(value) > 1e4) continue;
+        if (friendly && value < -EPSILON) continue;
+        if (friendly && Math.abs(value - Math.round(value)) > EPSILON) continue;
+
+        const depth = 1 + Math.max(left.depth || 0, right.depth || 0);
+        if (depth > maxDepth) continue;
+
         const expression = `(${left.expression} ${op.symbol} ${right.expression})`;
-        results.push(...combineAll([...rest, { value, expression }]));
+        results.push(
+          ...combineAll([...rest, { value, expression, depth }], opts)
+        );
       }
     }
   }
