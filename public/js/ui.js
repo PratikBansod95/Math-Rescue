@@ -47,6 +47,8 @@ export function createUI({ mount, handlers }) {
     chasePanel: shell.querySelector("[data-chase]"),
     chaseTimer: shell.querySelector("[data-chase-timer]"),
     chaseBar: shell.querySelector("[data-chase-bar]"),
+    chaseRailFill: shell.querySelector("[data-chase-rail-fill]"),
+    chaseRailGlow: shell.querySelector("[data-chase-rail-glow]"),
     chaseCat: shell.querySelector("[data-chase-cat]"),
     bestScore: shell.querySelector("[data-best-score]"),
     welcome: shell.querySelector("[data-welcome]"),
@@ -264,10 +266,19 @@ function template() {
         </div>
         <div class="chase-stage" aria-hidden="true">
           <img class="chase-shark" src="./assets/chase/shark.png" alt="" width="160" height="160" />
-          <div class="chase-platform">
-            <span class="chase-platform__shine"></span>
-            <span class="chase-gear chase-gear--a"></span>
-            <span class="chase-gear chase-gear--b"></span>
+          <div class="chase-rail" data-chase-rail aria-hidden="true">
+            <div class="chase-rail__shell">
+              <div class="chase-rail__track">
+                <i class="chase-rail__safe"></i>
+                <i class="chase-rail__danger" data-chase-rail-fill></i>
+                <i class="chase-rail__segments"></i>
+                <i class="chase-rail__glow" data-chase-rail-glow></i>
+              </div>
+              <div class="chase-rail__cogs">
+                <span class="chase-rail__cog"></span>
+                <span class="chase-rail__cog"></span>
+              </div>
+            </div>
           </div>
           <div class="chase-cat" data-chase-cat>
             <img src="./assets/chase/cat.png" alt="" width="120" height="120" />
@@ -411,6 +422,14 @@ function updateChase(els, state) {
   if (els.chaseTimer) els.chaseTimer.textContent = formatClock(seconds);
   if (els.chaseBar) els.chaseBar.style.width = `${ratio * 100}%`;
   if (els.chaseCat) els.chaseCat.style.setProperty("--chase-progress", String(progress));
+  if (els.chasePanel) els.chasePanel.style.setProperty("--chase-progress", String(progress));
+  if (els.chaseRailFill) {
+    els.chaseRailFill.style.width = `${progress * 100}%`;
+  }
+  if (els.chaseRailGlow) {
+    els.chaseRailGlow.style.left = `calc(${progress * 100}% - 0.55rem)`;
+    els.chaseRailGlow.style.opacity = idle ? "0" : progress > 0.02 ? "1" : "0";
+  }
 
   const pose = state.chasePose || "idle";
   els.chasePanel.classList.toggle("is-idle", idle || pose === "idle");
