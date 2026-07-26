@@ -28,7 +28,6 @@ import {
 
 const POINTS_CORRECT = 10;
 const POINTS_WRONG = 2;
-const POINTS_REVEAL = 1;
 const MAX_RETRIES = 2;
 
 const TIMER_LIMITS = {
@@ -73,9 +72,7 @@ export function createGame({ mount }) {
         tutorialStep: 0,
         showTutorial: false,
         retriesLeft: MAX_RETRIES,
-        hintStage: 0,
-        usedTip: false,
-        usedReveal: false,
+        usedNudge: false,
         attempts: 0,
         firstTry: true,
         shake: false,
@@ -360,8 +357,7 @@ export function createGame({ mount }) {
         stopPuzzleTimer();
         const stars = calcTaskStars({
           firstTry: state.firstTry && state.attempts <= 1,
-          usedTip: state.usedTip,
-          usedReveal: false,
+          usedNudge: state.usedNudge,
           retriesUsed: MAX_RETRIES - state.retriesLeft,
         });
         state.taskStarsEarned = stars;
@@ -472,59 +468,25 @@ export function createGame({ mount }) {
         }
         if (!isPlaying() || state.awaitingStart) return;
 
-        if (state.hintStage === 0) {
-          state.hintStage = 1;
-          state.usedTip = true;
-          state.firstTry = false;
+        if (state.usedNudge) {
           state.feedback = {
             kind: "skip",
-            text: "Tip: use at least two cards. Parentheses help control order.",
-            detail: "Hint again for a stronger nudge",
+            text: buildPuzzleNudge(state.round).text,
+            detail: "Nudge already used on this puzzle.",
           };
-          audio.play("skip");
           render();
           return;
         }
 
-        if (state.hintStage === 1) {
-          state.hintStage = 2;
-          state.usedTip = true;
-          state.firstTry = false;
-          state.feedback = {
-            kind: "skip",
-            text: operatorNudge(state.round.exampleSolution),
-            detail: "Hint again to reveal a full solution (−1)",
-          };
-          audio.play("skip");
-          render();
-          return;
-        }
-
-        // Reveal
-        stopPuzzleTimer();
-        state.usedReveal = true;
+        state.usedNudge = true;
         state.firstTry = false;
-        state.score = Math.max(0, state.score - POINTS_REVEAL);
-        state.phase = "review";
-        state.expression = displayExpression(state.round.exampleSolution);
-        state.usedCounts = countUsedCards(state.expression, state.round.cards);
-        state.taskStarsEarned = 1;
-        state.runStars += 1;
-        recordTaskStars(1);
+        const nudge = buildPuzzleNudge(state.round);
         state.feedback = {
           kind: "skip",
-          text: "Solution revealed. Review it, then tap Next.",
-          detail: `−${POINTS_REVEAL} point · ★1`,
-        };
-        state.correction = {
-          title: "One possible solve",
-          attempted: "Revealed",
-          result: "",
-          solution: displayExpression(state.round.exampleSolution),
-          target: state.round.targetLabel || state.round.target,
+          text: nudge.text,
+          detail: nudge.detail,
         };
         audio.play("skip");
-        vibrate(16);
         render();
       }
 
@@ -592,14 +554,7 @@ export function createGame({ mount }) {
 
       function render(options = {}) {
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
-        state.hintLabel =
-          state.phase === "review"
-            ? "Next"
-            : state.hintStage === 0
-              ? "Hint"
-              : state.hintStage === 1
-                ? "Nudge"
-                : "Reveal";
+        state.hintLabel = state.phase === "review" ? "Next" : "Nudge";
         ui.render(state, options);
       }
 
@@ -767,9 +722,7 @@ export function createGame({ mount }) {
 
       function resetTaskFlags() {
         state.retriesLeft = MAX_RETRIES;
-        state.hintStage = 0;
-        state.usedTip = false;
-        state.usedReveal = false;
+        state.usedNudge = false;
         state.attempts = 0;
         state.firstTry = true;
         state.taskStarsEarned = 0;
@@ -828,9 +781,8 @@ function makeRound(state) {
   });
 }
 
-function calcTaskStars({ firstTry, usedTip, usedReveal, retriesUsed }) {
-  if (usedReveal) return 1;
-  if (firstTry && !usedTip && retriesUsed === 0) return 3;
+function calcTaskStars({ firstTry, usedNudge, retriesUsed }) {
+  if (firstTry && !usedNudge && retriesUsed === 0) return 3;
   return 2;
 }
 
@@ -841,11 +793,27 @@ function softNudge(reason) {
   return "Not quite — try regrouping with parentheses.";
 }
 
-function operatorNudge(exampleSolution) {
-  const match = String(exampleSolution).match(/[+\-*/]/);
-  const map = { "+": "addition (+)", "-": "subtraction (−)", "*": "multiplication (×)", "/": "division (÷)" };
-  if (!match) return "Nudge: try combining two cards first, then use the rest.";
-  return `Nudge: a strong path starts with ${map[match[0]] || match[0]}.`;
+function buildPuzzleNudge(round) {
+  const target = round.targetLabel || round.target;
+  const cards = (round.cards || []).map((card) => card.label).join(", ");
+  const sol = String(round.exampleSolution || "").replace(/\s+/g, "");
+  const match = sol.match(/(\d+(?:\/\d+)?)([+\-*/])(\d+(?:\/\d+)?)/);
+  const opMap = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+
+  if (match) {
+    const op = opMap[match[2]] || match[2];
+    return {
+      text: `Nudge: try ${match[1]} ${op} ${match[3]} first.`,
+      detail: cards
+        ? `Cards on board: ${cards} · Target ${target}`
+        : `Aim for ${target}`,
+    };
+  }
+
+  return {
+    text: `Nudge: combine cards toward ${target}.`,
+    detail: cards ? `Cards on board: ${cards}` : "Try a different grouping with ( ).",
+  };
 }
 
 function buildWrongCorrection(expression, result, round) {

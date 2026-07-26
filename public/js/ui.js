@@ -58,7 +58,6 @@ export function createUI({ mount, handlers }) {
     submitButton: shell.querySelector("[data-submit]"),
     hintButton: shell.querySelector("[data-hint]"),
     hintLabel: shell.querySelector("[data-hint-label]"),
-    hintBadge: shell.querySelector("[data-hint-badge]"),
     menuButton: shell.querySelector("[data-menu]"),
     muteButton: shell.querySelector("[data-mute]"),
     playerButton: shell.querySelector("[data-player]"),
@@ -290,8 +289,7 @@ function template() {
         </button>
         <button class="btn-hint" data-hint type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5c-1.8-1.2-3-3.2-3-5.4A6.5 6.5 0 0 1 18.5 9c0 2.2-1.2 4.2-3 5.4L15 17H9l-.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span data-hint-label>Hint</span>
-          <span class="hint-badge" data-hint-badge>2</span>
+          <span data-hint-label>Nudge</span>
         </button>
       </div>
     </footer>
@@ -505,12 +503,11 @@ function updateControls(els, state) {
   const review = state.phase === "review";
   els.clearButton.disabled = !playing;
   els.submitButton.disabled = !playing;
-  els.hintButton.disabled = (!playing && !review) || (state.phase === "playing" && state.awaitingStart);
-  els.hintLabel.textContent = state.hintLabel || (review ? "Next" : "Hint");
-
-  const hintsLeft = review ? 0 : Math.max(0, 2 - (state.hintStage || 0));
-  els.hintBadge.textContent = String(hintsLeft);
-  els.hintBadge.hidden = review || hintsLeft <= 0 || state.awaitingStart;
+  els.hintButton.disabled =
+    review
+      ? false
+      : !playing || Boolean(state.usedNudge);
+  els.hintLabel.textContent = state.hintLabel || (review ? "Next" : "Nudge");
 
   for (const button of els.operatorPad.querySelectorAll("button")) {
     button.disabled = !playing;
