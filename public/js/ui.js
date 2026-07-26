@@ -44,6 +44,10 @@ export function createUI({ mount, handlers }) {
     coins: shell.querySelector("[data-coins]"),
     timerChip: shell.querySelector("[data-timer-chip]"),
     timerValue: shell.querySelector("[data-timer]"),
+    chasePanel: shell.querySelector("[data-chase]"),
+    chaseTimer: shell.querySelector("[data-chase-timer]"),
+    chaseBar: shell.querySelector("[data-chase-bar]"),
+    chaseCat: shell.querySelector("[data-chase-cat]"),
     bestScore: shell.querySelector("[data-best-score]"),
     welcome: shell.querySelector("[data-welcome]"),
     boardMeta: shell.querySelector("[data-board-meta]"),
@@ -123,6 +127,7 @@ export function createUI({ mount, handlers }) {
 
       els.coins.textContent = String(state.score);
       updateTimerChip(els, state);
+      updateChase(els, state);
       els.bestScore.textContent = String(state.bestScore);
       els.welcome.textContent = state.usernameKey
         ? `Welcome back, ${state.username}.`
@@ -242,7 +247,37 @@ function template() {
       </button>
     </header>
 
-    <div class="play-reserve" data-play-reserve aria-hidden="true"></div>
+    <div class="play-reserve" data-play-reserve>
+      <section class="chase-panel" data-chase aria-label="Timer chase: don't let the cat reach the shark">
+        <div class="chase-panel__hud">
+          <div class="chase-time">
+            <small>Time left</small>
+            <strong data-chase-timer>0:45</strong>
+            <span class="chase-time__track" aria-hidden="true">
+              <i class="chase-time__bar" data-chase-bar></i>
+            </span>
+          </div>
+          <p class="chase-panel__tagline">Don’t let the cat reach the shark!</p>
+          <span class="chase-panel__arrow" aria-hidden="true"></span>
+        </div>
+        <div class="chase-stage">
+          <div class="chase-water" aria-hidden="true">
+            <img class="chase-shark" src="./assets/chase/shark.svg" alt="" width="120" height="90" />
+          </div>
+          <div class="chase-belt" aria-hidden="true">
+            <div class="chase-belt__track">
+              <img src="./assets/chase/conveyor.svg" alt="" />
+              <img src="./assets/chase/conveyor.svg" alt="" />
+            </div>
+            <span class="chase-gear chase-gear--a"></span>
+            <span class="chase-gear chase-gear--b"></span>
+            <div class="chase-cat" data-chase-cat>
+              <img src="./assets/chase/cat.svg" alt="" width="88" height="82" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
 
     <div class="play-dock">
     <main class="math-play" aria-label="Math Rescue puzzle board">
@@ -363,6 +398,29 @@ function template() {
       </div>
     </div>
   `;
+}
+
+function updateChase(els, state) {
+  if (!els.chasePanel) return;
+
+  const limit = Math.max(1, Number(state.timerLimit) || 45);
+  const seconds = Math.max(0, Number(state.timeLeft) || 0);
+  const idle = Boolean(state.awaitingStart) || Boolean(state.showTutorial) || state.phase === "ready";
+  const running =
+    state.phase === "playing" && !state.awaitingStart && !state.showTutorial;
+  const ratio = Math.min(1, Math.max(0, seconds / limit));
+  const progress = idle ? 0 : 1 - ratio;
+
+  if (els.chaseTimer) els.chaseTimer.textContent = formatClock(seconds);
+  if (els.chaseBar) els.chaseBar.style.width = `${ratio * 100}%`;
+  if (els.chaseCat) els.chaseCat.style.setProperty("--chase-progress", String(progress));
+
+  const pose = state.chasePose || "idle";
+  els.chasePanel.classList.toggle("is-idle", idle || pose === "idle");
+  els.chasePanel.classList.toggle("is-running", running && pose === "running");
+  els.chasePanel.classList.toggle("is-urgent", running && seconds <= 5);
+  els.chasePanel.classList.toggle("is-caught", pose === "caught" || (state.timerExpired && state.phase === "review"));
+  els.chasePanel.classList.toggle("is-safe", pose === "safe");
 }
 
 function updateTimerChip(els, state) {

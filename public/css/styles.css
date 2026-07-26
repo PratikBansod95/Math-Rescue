@@ -123,11 +123,13 @@ button:disabled { cursor: not-allowed }
   z-index: 1
 }
 
-/* Empty top zone reserved for future content (ads, coach, story, etc.) */
+/* Empty top zone — now hosts the chase panel */
 .play-reserve {
   min-height: 0;
   width: 100%;
-  pointer-events: none
+  display: flex;
+  align-items: stretch;
+  justify-content: center
 }
 
 /* Board + equation + keypad docked for thumb reach */
@@ -138,6 +140,276 @@ button:disabled { cursor: not-allowed }
   margin-inline: auto;
   align-self: end;
   padding-bottom: .05rem
+}
+
+/* ── Cat–Shark chase ── */
+.chase-panel {
+  --chase-progress: 0;
+  width: min(100%, 28rem);
+  margin-inline: auto;
+  min-height: clamp(7.5rem, 22cqh, 11rem);
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(ellipse 70% 80% at 12% 70%, rgba(56, 189, 248, .18), transparent 55%),
+    radial-gradient(ellipse 50% 60% at 88% 30%, rgba(147, 197, 253, .2), transparent 50%),
+    linear-gradient(180deg, #f0f7ff 0%, #e8f2fc 100%);
+  border: 1px solid #d7e6f7;
+  box-shadow: var(--shadow-soft);
+  padding: .55rem .7rem .5rem;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: .35rem;
+  overflow: hidden;
+  position: relative
+}
+
+.chase-panel__hud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .45rem;
+  position: relative;
+  z-index: 2
+}
+
+.chase-time {
+  background: #fff;
+  border-radius: .75rem;
+  padding: .28rem .55rem .32rem;
+  box-shadow: 0 4px 12px rgba(26, 43, 74, .08);
+  min-width: 4.6rem
+}
+
+.chase-time small {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: .52rem;
+  font-weight: 800;
+  color: #b45309
+}
+
+.chase-time strong {
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.1
+}
+
+.chase-time__track {
+  display: block;
+  margin-top: .22rem;
+  height: .28rem;
+  border-radius: 99px;
+  background: #fee2e2;
+  overflow: hidden
+}
+
+.chase-time__bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  transition: width .35s linear
+}
+
+.chase-panel__tagline {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(.72rem, 2.8cqw, .88rem);
+  font-weight: 800;
+  color: var(--blue);
+  line-height: 1.2
+}
+
+.chase-panel__arrow {
+  width: 2.2rem;
+  height: .55rem;
+  border-radius: 99px;
+  background: repeating-linear-gradient(
+    90deg,
+    #60a5fa 0 6px,
+    transparent 6px 10px
+  );
+  position: relative
+}
+
+.chase-panel__arrow::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: #60a5fa
+}
+
+.chase-stage {
+  position: relative;
+  min-height: 4.6rem;
+  display: grid;
+  align-items: end
+}
+
+.chase-water {
+  position: absolute;
+  left: -.2rem;
+  bottom: .15rem;
+  width: 38%;
+  max-width: 8.5rem;
+  z-index: 1;
+  pointer-events: none
+}
+
+.chase-shark {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform-origin: 60% 70%;
+  animation: shark-bob 2.4s ease-in-out infinite
+}
+
+.chase-belt {
+  position: relative;
+  z-index: 2;
+  margin-left: 22%;
+  height: 3.6rem;
+  border-radius: .7rem;
+  overflow: hidden;
+  background: #64748b;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .25), 0 6px 14px rgba(26, 43, 74, .12)
+}
+
+.chase-belt__track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 200%;
+  animation: belt-scroll 1.1s linear infinite;
+  animation-play-state: paused
+}
+
+.chase-belt__track img {
+  width: 50%;
+  height: 100%;
+  object-fit: cover;
+  flex: 0 0 50%
+}
+
+.chase-gear {
+  position: absolute;
+  bottom: .35rem;
+  width: .85rem;
+  height: .85rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #cbd5e1 28%, transparent 30%),
+    conic-gradient(from 0deg, #94a3b8 0 12%, #64748b 0 25%, #94a3b8 0 37%, #64748b 0 50%, #94a3b8 0 62%, #64748b 0 75%, #94a3b8 0 87%, #64748b 0);
+  box-shadow: inset 0 0 0 1px #475569;
+  z-index: 3
+}
+
+.chase-gear--a { left: .55rem }
+.chase-gear--b { left: 2rem }
+
+.chase-panel.is-running .chase-belt__track,
+.chase-panel.is-urgent .chase-belt__track {
+  animation-play-state: running
+}
+
+.chase-panel.is-running .chase-gear,
+.chase-panel.is-urgent .chase-gear {
+  animation: gear-spin 1.2s linear infinite
+}
+
+.chase-cat {
+  --chase-progress: 0;
+  position: absolute;
+  right: .35rem;
+  bottom: .55rem;
+  width: clamp(3.6rem, 14cqw, 4.8rem);
+  z-index: 4;
+  transform: translateX(calc(var(--chase-progress) * -118%));
+  transition: transform .35s linear;
+  filter: drop-shadow(0 4px 6px rgba(26, 43, 74, .2))
+}
+
+.chase-cat img {
+  width: 100%;
+  height: auto;
+  display: block
+}
+
+.chase-panel.is-urgent .chase-cat {
+  animation: cat-panic .45s ease-in-out infinite
+}
+
+.chase-panel.is-urgent .chase-time strong,
+.chase-panel.is-urgent .chase-time small {
+  color: #dc2626
+}
+
+.chase-panel.is-caught .chase-shark {
+  animation: shark-chomp .55s ease
+}
+
+.chase-panel.is-caught .chase-cat {
+  transform: translateX(-125%) scale(.85);
+  opacity: .55;
+  transition: transform .4s ease, opacity .4s ease
+}
+
+.chase-panel.is-safe .chase-cat {
+  animation: cat-safe .7s ease
+}
+
+.chase-panel.is-idle .chase-cat {
+  transition: none
+}
+
+@keyframes shark-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg) }
+  50% { transform: translateY(-4px) rotate(2deg) }
+}
+
+@keyframes shark-chomp {
+  0%, 100% { transform: scale(1) }
+  40% { transform: scale(1.12) translateX(6px) }
+}
+
+@keyframes belt-scroll {
+  from { transform: translateX(0) }
+  to { transform: translateX(-50%) }
+}
+
+@keyframes gear-spin {
+  to { transform: rotate(360deg) }
+}
+
+@keyframes cat-panic {
+  0%, 100% { transform: translateX(calc(var(--chase-progress) * -118%)) translateY(0) }
+  50% { transform: translateX(calc(var(--chase-progress) * -118%)) translateY(-3px) }
+}
+
+@keyframes cat-safe {
+  0%, 100% { transform: translateX(calc(var(--chase-progress) * -118%)) translateY(0) }
+  40% { transform: translateX(calc(var(--chase-progress) * -118%)) translateY(-8px) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chase-shark,
+  .chase-belt__track,
+  .chase-gear,
+  .chase-panel.is-urgent .chase-cat,
+  .chase-panel.is-safe .chase-cat,
+  .chase-panel.is-caught .chase-shark {
+    animation: none !important
+  }
+  .chase-time__bar,
+  .chase-cat { transition: none }
 }
 
 /* ── Header ── */
@@ -1267,6 +1539,11 @@ button:disabled { cursor: not-allowed }
 }
 
 @container (height <= 720px) {
+  .chase-panel { min-height: 6.4rem; padding: .4rem .55rem .35rem }
+  .chase-stage { min-height: 3.6rem }
+  .chase-belt { height: 2.9rem }
+  .chase-cat { width: 3.2rem; bottom: .35rem }
+  .chase-panel__tagline { font-size: .7rem }
   .board-stage { min-height: 11.5rem }
   .equation-panel { padding: .55rem .7rem }
   .play-dock { gap: .35rem }
@@ -1276,10 +1553,12 @@ button:disabled { cursor: not-allowed }
 
 @container (height <= 560px) and (orientation: landscape) {
   .math-game {
-    grid-template-rows: auto minmax(0, .35fr) auto auto;
+    grid-template-rows: auto minmax(0, .28fr) auto auto;
     gap: .3rem
   }
   .play-reserve { min-height: 0 }
+  .chase-panel { min-height: 4.8rem }
+  .chase-panel__tagline { display: none }
   .play-footer { display: none }
   .board-stage { min-height: 9.5rem }
 }

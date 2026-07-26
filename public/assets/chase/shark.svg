@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none">
+  <defs>
+    <linearGradient id="sharkBody" x1="20" y1="20" x2="140" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5BA3F5"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <!-- water splash -->
+  <ellipse cx="48" cy="98" rx="42" ry="10" fill="#93C5FD" opacity=".55"/>
+  <path d="M18 92c8-10 16-8 22-2 6-12 16-10 24 0 7-8 15-6 20 2" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" fill="none" opacity=".7"/>
+  <!-- body -->
+  <path d="M28 72c8-28 38-42 72-34 18 4 34 16 40 28-8 6-18 10-30 12-22 4-48 4-66-2-8-2-14-4-16-4Z" fill="url(#sharkBody)"/>
+  <!-- dorsal fin -->
+  <path d="M78 40 92 18l10 28Z" fill="#3B82F6"/>
+  <!-- tail -->
+  <path d="M28 70 8 48l8 28-10 18Z" fill="#3B82F6"/>
+  <!-- open mouth -->
+  <path d="M118 58c10 2 22 8 28 16-10 8-24 12-36 10-2-8 0-18 8-26Z" fill="#1E3A8A"/>
+  <path d="M122 64c6 2 14 6 20 11" stroke="#F87171" stroke-width="3" stroke-linecap="round"/>
+  <!-- teeth -->
+  <path d="M126 70l3-6 3 6M134 74l3-6 3 6M142 78l2-5 3 5" fill="#EFF6FF"/>
+  <!-- eye -->
+  <circle cx="108" cy="52" r="7" fill="#fff"/>
+  <circle cx="110" cy="53" r="3.5" fill="#0F172A"/>
+  <circle cx="111.5" cy="51.5" r="1.2" fill="#fff"/>
+  <!-- gill lines -->
+  <path d="M96 62c4 4 4 10 0 14M88 64c4 3 4 8 0 12" stroke="#1D4ED8" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+</svg>

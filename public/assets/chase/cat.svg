@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 130" fill="none">
+  <defs>
+    <linearGradient id="catFur" x1="40" y1="20" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FB923C"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <!-- sweat -->
+  <g fill="#38BDF8" opacity=".9">
+    <ellipse cx="28" cy="48" rx="4" ry="6" transform="rotate(-18 28 48)"/>
+    <ellipse cx="18" cy="62" rx="3.2" ry="5" transform="rotate(-10 18 62)"/>
+    <ellipse cx="36" cy="36" rx="3" ry="4.5" transform="rotate(-25 36 36)"/>
+  </g>
+  <!-- tail -->
+  <path d="M108 88c18 2 26-10 22-22" stroke="#EA580C" stroke-width="10" stroke-linecap="round"/>
+  <path d="M108 88c18 2 26-10 22-22" stroke="#FDBA74" stroke-width="4" stroke-linecap="round"/>
+  <!-- body -->
+  <ellipse cx="72" cy="86" rx="36" ry="28" fill="url(#catFur)"/>
+  <ellipse cx="72" cy="92" rx="22" ry="14" fill="#FFEDD5" opacity=".85"/>
+  <!-- stripes -->
+  <path d="M52 72c6 4 8 12 6 18M66 68c5 6 6 14 4 20M82 70c5 5 6 13 3 19" stroke="#C2410C" stroke-width="3.2" stroke-linecap="round" opacity=".55"/>
+  <!-- head -->
+  <circle cx="64" cy="52" r="28" fill="url(#catFur)"/>
+  <!-- ears -->
+  <path d="M42 36 36 12l22 18Z" fill="#F97316"/>
+  <path d="M42 36 36 12l22 18Z" fill="#FDBA74" opacity=".35"/>
+  <path d="M78 30 92 8l8 28Z" fill="#F97316"/>
+  <path d="M78 30 92 8l8 28Z" fill="#FDBA74" opacity=".35"/>
+  <!-- face -->
+  <ellipse cx="64" cy="56" rx="18" ry="14" fill="#FFEDD5"/>
+  <!-- worried eyes -->
+  <ellipse cx="54" cy="50" rx="5.5" ry="6.5" fill="#0F172A"/>
+  <ellipse cx="72" cy="50" rx="5.5" ry="6.5" fill="#0F172A"/>
+  <circle cx="55.5" cy="48" r="1.8" fill="#fff"/>
+  <circle cx="73.5" cy="48" r="1.8" fill="#fff"/>
+  <!-- brows -->
+  <path d="M46 42c4-3 10-2 14 1M68 41c4-2 9-1 13 2" stroke="#7C2D12" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- nose / mouth -->
+  <path d="M64 56l-3 3h6Z" fill="#FB7185"/>
+  <path d="M58 64c3 4 9 4 12 0" stroke="#7C2D12" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <!-- legs -->
+  <path d="M50 108v14M62 110v12M80 108v14M92 110v12" stroke="#EA580C" stroke-width="7" stroke-linecap="round"/>
+  <path d="M50 122h8M62 122h8M80 122h8M92 122h8" stroke="#C2410C" stroke-width="4" stroke-linecap="round"/>
+</svg>

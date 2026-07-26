@@ -93,6 +93,7 @@ export function createGame({ mount }) {
         timeLeft: TIMER_LIMITS.easy,
         timerExpired: false,
         awaitingStart: true,
+        chasePose: "idle",
       };
 
       let timerIntervalId = null;
@@ -264,6 +265,7 @@ export function createGame({ mount }) {
       function onPuzzleGo() {
         if (!isPlaying() || !state.awaitingStart || state.showTutorial) return;
         state.awaitingStart = false;
+        state.chasePose = "running";
         state.feedback = {
           kind: "neutral",
           text: "Target revealed. Build your equation!",
@@ -355,6 +357,7 @@ export function createGame({ mount }) {
 
         // Correct
         stopPuzzleTimer();
+        state.chasePose = "safe";
         const stars = calcTaskStars({
           firstTry: state.firstTry && state.attempts <= 1,
           usedNudge: state.usedNudge,
@@ -412,6 +415,7 @@ export function createGame({ mount }) {
         stopPuzzleTimer();
         state.timerExpired = false;
         state.awaitingStart = true;
+        state.chasePose = "idle";
         state.timerLimit = TIMER_LIMITS[state.difficultyId] ?? TIMER_LIMITS.easy;
         state.timeLeft = state.timerLimit;
       }
@@ -455,6 +459,7 @@ export function createGame({ mount }) {
         if (!isPlaying() || state.timerExpired) return;
         state.timerExpired = true;
         state.timeLeft = 0;
+        state.chasePose = "caught";
         enterFailReview({
           ok: false,
           reason: "Time’s up. Here’s the solution.",
@@ -729,6 +734,7 @@ export function createGame({ mount }) {
         state.shake = false;
         state.timerExpired = false;
         state.awaitingStart = true;
+        state.chasePose = "idle";
       }
 
       function retriesDetail() {
