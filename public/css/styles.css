@@ -364,9 +364,8 @@ button:disabled { cursor: not-allowed }
 .chase-cat img {
   width: 100%;
   height: auto;
-  display: block;
-  transform: scaleX(-1);
-  /* face toward the shark on the left */
+  display: block
+  /* faces right — running away from the shark on the left */
 }
 
 .chase-panel.is-urgent .chase-cat {
