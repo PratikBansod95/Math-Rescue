@@ -130,7 +130,7 @@ button:disabled { cursor: not-allowed }
   display: flex;
   align-items: stretch;
   justify-content: center;
-  max-height: min(32cqh, 13.5rem)
+  max-height: min(34cqh, 14.5rem)
 }
 
 /* Board + equation + keypad docked for thumb reach */
@@ -143,22 +143,22 @@ button:disabled { cursor: not-allowed }
   padding-bottom: .05rem
 }
 
-/* ── Cat–Shark chase (cinematic plate + live cat) ── */
+/* ── Cat–Shark chase (polished scene) ── */
 .chase-panel {
   --chase-progress: 0;
-  width: min(100%, 36rem);
+  width: min(100%, 34rem);
   margin-inline: auto;
   height: 100%;
-  min-height: clamp(8.5rem, 26cqh, 13rem);
-  border-radius: 1.4rem;
-  border: 1px solid rgba(120, 160, 200, .45);
+  min-height: clamp(8.2rem, 24cqh, 13.5rem);
+  border-radius: 1.35rem;
+  border: 1px solid rgba(148, 180, 220, .55);
   box-shadow:
-    0 16px 36px rgba(15, 23, 42, .18),
-    inset 0 1px 0 rgba(255, 255, 255, .5);
+    0 14px 34px rgba(26, 43, 74, .14),
+    inset 0 1px 0 rgba(255, 255, 255, .65);
   overflow: hidden;
   position: relative;
   isolation: isolate;
-  background: #0b2740
+  background: #dbeafe
 }
 
 .chase-panel__bg {
@@ -167,9 +167,10 @@ button:disabled { cursor: not-allowed }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 18% 42%;
+  object-position: center 58%;
   z-index: 0;
-  transform: scale(1.02)
+  transform: scale(1.04);
+  filter: saturate(1.05) contrast(1.04)
 }
 
 .chase-panel__veil {
@@ -178,36 +179,35 @@ button:disabled { cursor: not-allowed }
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(8, 28, 48, .35) 0%, transparent 42%),
-    linear-gradient(90deg, transparent 55%, rgba(8, 28, 48, .12) 100%),
-    radial-gradient(ellipse 40% 55% at 12% 70%, rgba(56, 189, 248, .12), transparent 70%)
+    linear-gradient(180deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, .08) 38%, transparent 58%),
+    radial-gradient(ellipse 55% 70% at 8% 78%, rgba(14, 116, 220, .22), transparent 60%)
 }
 
 .chase-panel__hud {
   position: relative;
   z-index: 5;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: .65rem;
-  padding: .6rem .7rem .15rem
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .65rem .2rem
 }
 
 .chase-time {
-  background: rgba(255, 255, 255, .94);
-  border-radius: .9rem;
-  padding: .34rem .65rem .38rem;
-  box-shadow: 0 10px 22px rgba(8, 20, 40, .22);
-  border: 1px solid rgba(255, 255, 255, .85);
-  min-width: 5rem;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px)
+  background: rgba(255, 255, 255, .92);
+  border-radius: .85rem;
+  padding: .32rem .6rem .36rem;
+  box-shadow: 0 8px 18px rgba(26, 43, 74, .12);
+  border: 1px solid rgba(255, 255, 255, .8);
+  min-width: 4.8rem;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px)
 }
 
 .chase-time small {
   display: block;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: .07em;
   font-size: .52rem;
   font-weight: 800;
   color: #c2410c
@@ -215,17 +215,17 @@ button:disabled { cursor: not-allowed }
 
 .chase-time strong {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.12rem;
+  font-size: 1.08rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #0f172a;
-  line-height: 1.05
+  color: var(--ink);
+  line-height: 1.1
 }
 
 .chase-time__track {
   display: block;
-  margin-top: .28rem;
-  height: .34rem;
+  margin-top: .25rem;
+  height: .32rem;
   border-radius: 99px;
   background: #fecaca;
   overflow: hidden
@@ -237,54 +237,145 @@ button:disabled { cursor: not-allowed }
   width: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #fb923c, #ef4444);
-  box-shadow: 0 0 10px rgba(239, 68, 68, .5);
+  box-shadow: 0 0 8px rgba(239, 68, 68, .45);
   transition: width .35s linear
 }
 
 .chase-panel__tagline {
-  margin: .15rem 0 0;
-  text-align: left;
-  font-size: clamp(.78rem, 3cqw, .98rem);
+  margin: 0;
+  text-align: center;
+  font-size: clamp(.74rem, 2.9cqw, .92rem);
   font-weight: 800;
-  color: #fff;
-  line-height: 1.25;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, .55), 0 1px 0 rgba(0, 0, 0, .35);
-  max-width: 16rem;
-  justify-self: start
+  color: #1e3a8a;
+  line-height: 1.2;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .75)
+}
+
+.chase-panel__arrow {
+  width: 2.4rem;
+  height: .58rem;
+  border-radius: 99px;
+  background: repeating-linear-gradient(90deg, #3b82f6 0 7px, transparent 7px 11px);
+  position: relative;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .7))
+}
+
+.chase-panel__arrow::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #3b82f6
 }
 
 .chase-stage {
   position: absolute;
-  inset: 0;
+  inset: auto 0 0 0;
+  height: 72%;
   z-index: 3;
   pointer-events: none
+}
+
+.chase-shark {
+  position: absolute;
+  left: -2%;
+  bottom: -4%;
+  width: clamp(5.8rem, 28cqw, 8.2rem);
+  height: auto;
+  display: block;
+  z-index: 2;
+  filter: drop-shadow(0 10px 16px rgba(30, 64, 175, .35));
+  transform-origin: 55% 80%;
+  animation: shark-bob 2.6s ease-in-out infinite
+}
+
+.chase-platform {
+  position: absolute;
+  left: 26%;
+  right: 4%;
+  bottom: 10%;
+  height: 1.15rem;
+  border-radius: .85rem;
+  background:
+    linear-gradient(180deg, #e2e8f0 0%, #94a3b8 38%, #64748b 72%, #475569 100%);
+  box-shadow:
+    0 8px 16px rgba(15, 23, 42, .28),
+    inset 0 2px 0 rgba(255, 255, 255, .55),
+    inset 0 -2px 0 rgba(15, 23, 42, .25);
+  z-index: 1;
+  overflow: hidden
+}
+
+.chase-platform__shine {
+  position: absolute;
+  inset: 0;
+  width: 200%;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 18px,
+    rgba(255, 255, 255, .2) 18px 20px
+  );
+  animation: belt-scroll 1.15s linear infinite;
+  animation-play-state: paused;
+  opacity: .9
+}
+
+.chase-gear {
+  position: absolute;
+  top: 50%;
+  width: .95rem;
+  height: .95rem;
+  margin-top: -.48rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #e2e8f0 26%, transparent 28%),
+    conic-gradient(from 0deg, #cbd5e1 0 12%, #64748b 0 25%, #cbd5e1 0 37%, #64748b 0 50%, #cbd5e1 0 62%, #64748b 0 75%, #cbd5e1 0 87%, #64748b 0);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, .35), inset 0 0 0 1px #334155;
+  z-index: 2
+}
+
+.chase-gear--a { left: .55rem }
+.chase-gear--b { left: 1.85rem }
+
+.chase-panel.is-running .chase-platform__shine,
+.chase-panel.is-urgent .chase-platform__shine {
+  animation-play-state: running
+}
+
+.chase-panel.is-running .chase-gear,
+.chase-panel.is-urgent .chase-gear {
+  animation: gear-spin 1.15s linear infinite
 }
 
 .chase-cat {
   --chase-progress: 0;
   position: absolute;
-  right: 6%;
-  bottom: 7%;
-  width: clamp(4.8rem, 20cqw, 7rem);
+  right: 5%;
+  bottom: 18%;
+  width: clamp(4.4rem, 18cqw, 6.2rem);
   z-index: 4;
-  transform: translateX(calc(var(--chase-progress) * -155%));
+  transform: translateX(calc(var(--chase-progress) * -145%));
   transition: transform .35s linear;
-  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .45))
+  filter: drop-shadow(0 10px 14px rgba(15, 23, 42, .28))
 }
 
 .chase-cat img {
   width: 100%;
   height: auto;
-  display: block
+  display: block;
+  transform: scaleX(-1);
+  /* face toward the shark on the left */
 }
 
 .chase-panel.is-urgent .chase-cat {
-  animation: cat-panic .4s ease-in-out infinite
+  animation: cat-panic .42s ease-in-out infinite
 }
 
 .chase-panel.is-urgent .chase-time {
   border-color: #fecaca;
-  box-shadow: 0 10px 24px rgba(239, 68, 68, .28)
+  box-shadow: 0 8px 18px rgba(239, 68, 68, .18)
 }
 
 .chase-panel.is-urgent .chase-time strong,
@@ -292,41 +383,60 @@ button:disabled { cursor: not-allowed }
   color: #dc2626
 }
 
-.chase-panel.is-urgent .chase-panel__bg {
-  filter: saturate(1.15) contrast(1.06)
+.chase-panel.is-caught .chase-shark {
+  animation: shark-chomp .55s ease
 }
 
 .chase-panel.is-caught .chase-cat {
-  transform: translateX(-165%) scale(.9);
-  opacity: .35;
-  transition: transform .45s ease, opacity .45s ease
-}
-
-.chase-panel.is-caught .chase-panel__bg {
-  filter: brightness(.92) saturate(1.2)
+  transform: translateX(-155%) scale(.88);
+  opacity: .45;
+  transition: transform .4s ease, opacity .4s ease
 }
 
 .chase-panel.is-safe .chase-cat {
-  animation: cat-safe .75s ease
+  animation: cat-safe .7s ease
 }
 
 .chase-panel.is-idle .chase-cat {
   transition: none
 }
 
+@keyframes shark-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg) }
+  50% { transform: translateY(-6px) rotate(2deg) }
+}
+
+@keyframes shark-chomp {
+  0%, 100% { transform: scale(1) }
+  35% { transform: scale(1.1) translateX(10px) }
+}
+
+@keyframes belt-scroll {
+  from { transform: translateX(0) }
+  to { transform: translateX(-50%) }
+}
+
+@keyframes gear-spin {
+  to { transform: rotate(360deg) }
+}
+
 @keyframes cat-panic {
-  0%, 100% { transform: translateX(calc(var(--chase-progress) * -155%)) translateY(0) }
-  50% { transform: translateX(calc(var(--chase-progress) * -155%)) translateY(-5px) }
+  0%, 100% { transform: translateX(calc(var(--chase-progress) * -145%)) translateY(0) }
+  50% { transform: translateX(calc(var(--chase-progress) * -145%)) translateY(-4px) }
 }
 
 @keyframes cat-safe {
-  0%, 100% { transform: translateX(calc(var(--chase-progress) * -155%)) translateY(0) }
-  40% { transform: translateX(calc(var(--chase-progress) * -155%)) translateY(-12px) }
+  0%, 100% { transform: translateX(calc(var(--chase-progress) * -145%)) translateY(0) }
+  40% { transform: translateX(calc(var(--chase-progress) * -145%)) translateY(-10px) }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .chase-shark,
+  .chase-platform__shine,
+  .chase-gear,
   .chase-panel.is-urgent .chase-cat,
-  .chase-panel.is-safe .chase-cat {
+  .chase-panel.is-safe .chase-cat,
+  .chase-panel.is-caught .chase-shark {
     animation: none !important
   }
   .chase-time__bar,
@@ -1461,9 +1571,10 @@ button:disabled { cursor: not-allowed }
 
 @container (height <= 720px) {
   .play-reserve { max-height: min(28cqh, 11rem) }
-  .chase-panel { min-height: 7.2rem }
-  .chase-cat { width: 4.2rem; bottom: 5% }
-  .chase-panel__tagline { font-size: .74rem; max-width: 12rem }
+  .chase-panel { min-height: 7rem }
+  .chase-shark { width: 5.2rem }
+  .chase-cat { width: 3.8rem; bottom: 16% }
+  .chase-panel__tagline { font-size: .7rem }
   .board-stage { min-height: 11.5rem }
   .equation-panel { padding: .55rem .7rem }
   .play-dock { gap: .35rem }
