@@ -248,7 +248,7 @@ function template() {
     </header>
 
     <div class="play-reserve" data-play-reserve>
-      <section class="chase-panel" data-chase aria-label="Timer chase: don't let the cat reach the shark">
+      <section class="chase-panel" data-chase aria-label="Timer chase: don't let the shark catch the cat">
         <img class="chase-panel__bg" src="./assets/chase/scene.png" alt="" />
         <div class="chase-panel__veil" aria-hidden="true"></div>
         <div class="chase-panel__hud">
@@ -259,7 +259,7 @@ function template() {
               <i class="chase-time__bar" data-chase-bar></i>
             </span>
           </div>
-          <p class="chase-panel__tagline">Don’t let the cat reach the shark!</p>
+          <p class="chase-panel__tagline">Don’t let the shark catch the cat!</p>
           <span class="chase-panel__arrow" aria-hidden="true"></span>
         </div>
         <div class="chase-stage" aria-hidden="true">
