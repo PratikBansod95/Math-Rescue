@@ -242,6 +242,9 @@ function template() {
       </button>
     </header>
 
+    <div class="play-reserve" data-play-reserve aria-hidden="true"></div>
+
+    <div class="play-dock">
     <main class="math-play" aria-label="Math Rescue puzzle board">
       <section class="board-stage" aria-label="Target and cards">
         <div class="orbit-ring" aria-hidden="true">
@@ -293,6 +296,7 @@ function template() {
         </button>
       </div>
     </footer>
+    </div>
 
     <aside class="play-footer" aria-label="Player status">
       <div class="mascot" aria-hidden="true">
