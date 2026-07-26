@@ -249,6 +249,8 @@ function template() {
 
     <div class="play-reserve" data-play-reserve>
       <section class="chase-panel" data-chase aria-label="Timer chase: don't let the cat reach the shark">
+        <img class="chase-panel__bg" src="./assets/chase/scene.png" alt="" />
+        <div class="chase-panel__veil" aria-hidden="true"></div>
         <div class="chase-panel__hud">
           <div class="chase-time">
             <small>Time left</small>
@@ -260,20 +262,15 @@ function template() {
           <p class="chase-panel__tagline">Don’t let the cat reach the shark!</p>
           <span class="chase-panel__arrow" aria-hidden="true"></span>
         </div>
-        <div class="chase-stage">
-          <div class="chase-water" aria-hidden="true">
-            <img class="chase-shark" src="./assets/chase/shark.svg" alt="" width="120" height="90" />
-          </div>
-          <div class="chase-belt" aria-hidden="true">
-            <div class="chase-belt__track">
-              <img src="./assets/chase/conveyor.svg" alt="" />
-              <img src="./assets/chase/conveyor.svg" alt="" />
-            </div>
+        <div class="chase-stage" aria-hidden="true">
+          <img class="chase-shark" src="./assets/chase/shark.png" alt="" width="160" height="160" />
+          <div class="chase-platform">
+            <span class="chase-platform__shine"></span>
             <span class="chase-gear chase-gear--a"></span>
             <span class="chase-gear chase-gear--b"></span>
-            <div class="chase-cat" data-chase-cat>
-              <img src="./assets/chase/cat.svg" alt="" width="88" height="82" />
-            </div>
+          </div>
+          <div class="chase-cat" data-chase-cat>
+            <img src="./assets/chase/cat.png" alt="" width="120" height="120" />
           </div>
         </div>
       </section>
