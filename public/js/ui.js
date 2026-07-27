@@ -1,4 +1,5 @@
 import { createCatRunAnimator } from "./chaseCatRun.js";
+import { burstConfetti } from "./confetti.js";
 
 const OPERATORS = [
   { label: "+", value: " + " },
@@ -93,6 +94,7 @@ export function createUI({ mount, handlers }) {
   };
 
   const listeners = [];
+  const celebrate = { lastPose: "", stop: null };
   const catRun = createCatRunAnimator({
     img: els.chaseCatFrame,
     panel: els.chasePanel,
@@ -143,7 +145,7 @@ export function createUI({ mount, handlers }) {
 
       els.coins.textContent = String(state.score);
       updateTimerChip(els, state);
-      updateChase(els, state, catRun);
+      updateChase(els, state, catRun, celebrate);
       els.bestScore.textContent = String(state.bestScore);
       els.welcome.textContent = state.usernameKey
         ? `Welcome back, ${state.username}.`
@@ -196,6 +198,7 @@ export function createUI({ mount, handlers }) {
     },
 
     destroy() {
+      if (typeof celebrate.stop === "function") celebrate.stop();
       catRun.destroy();
       for (const [el, type, fn] of listeners) {
         el.removeEventListener(type, fn);
@@ -289,15 +292,20 @@ function template() {
               decoding="async"
             />
           </div>
-          <img
-            class="chase-shark"
-            data-chase-shark
-            src="./assets/chase/shark.png?v=still1"
-            alt=""
-            width="200"
-            height="160"
-            decoding="async"
-          />
+          <div class="chase-shark-wrap" data-chase-shark-wrap>
+            <img
+              class="chase-shark"
+              data-chase-shark
+              src="./assets/chase/shark.png?v=still1"
+              alt=""
+              width="200"
+              height="160"
+              decoding="async"
+            />
+            <i class="chase-shark__tear chase-shark__tear--a" aria-hidden="true"></i>
+            <i class="chase-shark__tear chase-shark__tear--b" aria-hidden="true"></i>
+            <i class="chase-shark__tear chase-shark__tear--c" aria-hidden="true"></i>
+          </div>
         </div>
         <div class="chase-clock" role="timer" aria-label="Time left">
           <span class="chase-clock__label">Time</span>
@@ -441,7 +449,7 @@ function template() {
   `;
 }
 
-function updateChase(els, state, catRun) {
+function updateChase(els, state, catRun, celebrate) {
   if (!els.chasePanel) return;
 
   const limit = Math.max(1, Number(state.timerLimit) || 45);
@@ -461,6 +469,14 @@ function updateChase(els, state, catRun) {
   els.chasePanel.classList.toggle("is-caught", pose === "caught");
   els.chasePanel.classList.toggle("is-ate", pose === "ate" || (state.timerExpired && state.phase === "review"));
   els.chasePanel.classList.toggle("is-safe", pose === "safe");
+
+  if (celebrate) {
+    if (pose === "safe" && celebrate.lastPose !== "safe") {
+      if (typeof celebrate.stop === "function") celebrate.stop();
+      celebrate.stop = burstConfetti(els.chasePanel, { count: 80, durationMs: 2800 });
+    }
+    celebrate.lastPose = pose;
+  }
 
   if (!catRun) return;
 
