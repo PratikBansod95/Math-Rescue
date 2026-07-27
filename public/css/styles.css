@@ -74,15 +74,15 @@ button:disabled { cursor: not-allowed }
   --chase-h: 4.25rem;
   --card-size: clamp(4.8rem, 36cqw, 6.2rem);
   --target-size: clamp(6.4rem, 48cqw, 8.2rem);
-  --op-h: 2.2rem;
-  --btn-h: 2.35rem;
+  --op-h: 3.3rem;
+  --btn-h: 3.5rem;
   --hud-h: 2rem;
-  --eq-h: 2.2rem;
+  --eq-h: 3.3rem;
   --fs-card: clamp(2.1rem, 13cqw, 2.8rem);
   --fs-target: clamp(2.3rem, 16cqw, 3.4rem);
   --fs-start: clamp(1.4rem, 10cqw, 2rem);
-  --fs-op: 1.15rem;
-  --fs-btn: 0.7rem;
+  --fs-op: 1.7rem;
+  --fs-btn: 1.05rem;
   isolation: isolate;
   background: var(--bg);
   color: var(--ink);
@@ -1210,10 +1210,10 @@ button:disabled { cursor: not-allowed }
   margin-top: auto; /* pin equation + feedback above the keypad */
   flex: 0 0 auto;
   background: var(--surface);
-  border-radius: 0.9rem;
-  padding: 0.28rem 0.5rem;
+  border-radius: 1.1rem;
+  padding: 0.42rem 0.7rem;
   display: grid;
-  gap: 0.15rem;
+  gap: 0.22rem;
   box-shadow: var(--shadow)
 }
 
@@ -1266,12 +1266,12 @@ button:disabled { cursor: not-allowed }
 
 .equation-input {
   min-height: var(--eq-h);
-  border-radius: .85rem;
+  border-radius: 1.05rem;
   border: 1.5px solid #d7e4f7;
   background: #f3f7fd;
-  padding: 0.4rem 2.1rem 0.4rem 0.7rem;
+  padding: 0.55rem 2.8rem 0.55rem 1rem;
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: clamp(1rem, 1.6svh + 0.45rem, 1.28rem);
+  font-size: clamp(1.2rem, 2svh + 0.55rem, 1.55rem);
   font-weight: 650;
   color: var(--ink);
   display: flex;
@@ -1285,18 +1285,18 @@ button:disabled { cursor: not-allowed }
   content: "Type equation...";
   color: #9aadc8;
   font-weight: 600;
-  font-size: .88rem;
+  font-size: 1.15rem;
   font-family: Quicksand, sans-serif
 }
 
 .equation-pencil {
   position: absolute;
-  right: .8rem;
+  right: 1rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--blue);
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.45rem;
+  height: 1.45rem;
   pointer-events: none
 }
 
@@ -1319,7 +1319,7 @@ button:disabled { cursor: not-allowed }
 .feedback-line[hidden] { display: none !important }
 
 .feedback-line strong {
-  font-size: .82rem;
+  font-size: 1.05rem;
   line-height: 1.2;
   color: var(--ink)
 }
@@ -1330,7 +1330,7 @@ button:disabled { cursor: not-allowed }
 
 .feedback-line small {
   color: var(--muted);
-  font-size: .68rem;
+  font-size: .88rem;
   font-weight: 650
 }
 
@@ -1362,27 +1362,27 @@ button:disabled { cursor: not-allowed }
   margin-top: 0;
   flex: 0 0 auto;
   display: grid;
-  gap: 0.28rem;
-  padding-bottom: 0.1rem
+  gap: 0.42rem;
+  padding-bottom: 0.15rem
 }
 
 .operator-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.22rem
+  gap: 0.35rem
 }
 
 .operator-button {
   min-height: var(--op-h);
-  border-radius: .7rem;
+  border-radius: 0.95rem;
   background: linear-gradient(180deg, #ffffff, #f5f8fd);
   color: var(--blue);
   font-family: "Space Grotesk", Quicksand, sans-serif;
   font-size: var(--fs-op);
   font-weight: 700;
-  box-shadow: 0 4px 10px rgba(26, 43, 74, .06);
+  box-shadow: 0 5px 12px rgba(26, 43, 74, .07);
   border: 1px solid #edf2fa;
-  border-bottom: 2px solid #d7e3f5;
+  border-bottom: 3px solid #d7e3f5;
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease
 }
@@ -1393,7 +1393,7 @@ button:disabled { cursor: not-allowed }
   place-items: center
 }
 
-.operator-button--back svg { width: 1.05rem; height: 1.05rem }
+.operator-button--back svg { width: 1.45rem; height: 1.45rem }
 .operator-button:active:not(:disabled) { transform: translateY(1px) }
 .operator-button:disabled { opacity: .7 }
 
@@ -1407,7 +1407,8 @@ button:disabled { cursor: not-allowed }
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1.55fr 1fr;
-  gap: 0.28rem
+  gap: 0.42rem;
+  align-items: stretch
 }
 
 .btn-clear,
@@ -1422,7 +1423,8 @@ button:disabled { cursor: not-allowed }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .22rem;
+  gap: .35rem;
+  padding-inline: 0.55rem;
   cursor: pointer;
   position: relative;
   transition: transform .12s ease, box-shadow .12s ease
@@ -1431,23 +1433,23 @@ button:disabled { cursor: not-allowed }
 .btn-clear svg,
 .btn-submit svg,
 .btn-hint svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.4rem;
+  height: 1.4rem;
   flex: 0 0 auto
 }
 
 .btn-clear {
   color: #ef4444;
   background: linear-gradient(180deg, #ffffff, #fff5f5);
-  border: 2px solid #f87171;
+  border: 2.5px solid #f87171;
   box-shadow:
     0 8px 18px rgba(239, 68, 68, .14),
     inset 0 1px 0 #fff
 }
 
 .btn-clear svg {
-  width: 1.1rem;
-  height: 1.1rem
+  width: 1.45rem;
+  height: 1.45rem
 }
 
 .btn-submit {
@@ -1461,24 +1463,24 @@ button:disabled { cursor: not-allowed }
   background: linear-gradient(180deg, #ffe8a3, #fbbf24);
   border: 0;
   box-shadow: 0 8px 18px rgba(245, 158, 11, .28);
-  padding-inline: .85rem;
-  gap: .35rem
+  padding-inline: 0.75rem;
+  gap: .4rem
 }
 
 .hint-badge {
   position: absolute;
-  top: -.4rem;
-  right: -.1rem;
-  min-width: 1.25rem;
-  height: 1.25rem;
+  top: -.45rem;
+  right: -.15rem;
+  min-width: 1.55rem;
+  height: 1.55rem;
   border-radius: 999px;
   background: var(--blue);
   color: #fff;
-  font-size: .68rem;
+  font-size: .85rem;
   font-weight: 800;
   display: grid;
   place-items: center;
-  padding: 0 .28rem;
+  padding: 0 .35rem;
   box-shadow: 0 3px 8px rgba(47, 107, 255, .4)
 }
 
@@ -1860,12 +1862,12 @@ button:disabled { cursor: not-allowed }
   .math-game {
     --gap: 0.35rem;
     --chase-h: 5.25rem;
-    --op-h: 2.55rem;
-    --btn-h: 2.7rem;
-    --eq-h: 2.55rem;
+    --op-h: 3.8rem;
+    --btn-h: 4rem;
+    --eq-h: 3.8rem;
     --hud-h: 2.3rem;
-    --fs-op: 1.25rem;
-    --fs-btn: 0.78rem
+    --fs-op: 1.85rem;
+    --fs-btn: 1.15rem
   }
   .board-stage {
     width: min(100%, 42rem);
@@ -1896,16 +1898,18 @@ button:disabled { cursor: not-allowed }
 @media (max-height: 680px) {
   .play-dock { justify-content: flex-start }
   .math-game {
-    --chase-h: 3.9rem;
-    --op-h: 2.05rem;
-    --btn-h: 2.2rem;
-    --eq-h: 2.05rem;
+    --chase-h: 3.6rem;
+    --op-h: 2.9rem;
+    --btn-h: 3.1rem;
+    --eq-h: 2.9rem;
     --hud-h: 1.9rem;
+    --fs-op: 1.45rem;
+    --fs-btn: 0.92rem;
     --gap: 0.14rem
   }
   .board-stage {
-    height: min(42svh, 20.5rem);
-    max-height: min(42svh, 20.5rem)
+    height: min(34svh, 16rem);
+    max-height: min(34svh, 16rem)
   }
   .chase-stage { --belt-y: 5%; --safe-x: 82% }
   .correction-panel { max-height: 2.8rem }
@@ -1914,15 +1918,17 @@ button:disabled { cursor: not-allowed }
 
 @media (max-height: 600px) {
   .math-game {
-    --chase-h: 3.5rem;
-    --op-h: 1.95rem;
-    --btn-h: 2.05rem;
-    --eq-h: 1.95rem;
+    --chase-h: 3.3rem;
+    --op-h: 2.7rem;
+    --btn-h: 2.9rem;
+    --eq-h: 2.7rem;
+    --fs-op: 1.35rem;
+    --fs-btn: 0.88rem;
     --gap: 0.1rem
   }
   .board-stage {
-    height: min(38svh, 18rem);
-    max-height: min(38svh, 18rem)
+    height: min(30svh, 14rem);
+    max-height: min(30svh, 14rem)
   }
   .number-card__tech { display: none }
   .number-card__badge { width: 0.85rem; height: 0.85rem; top: .12rem; left: .12rem }
@@ -1943,13 +1949,16 @@ button:disabled { cursor: not-allowed }
   .play-dock { justify-content: flex-start }
   .math-game {
     --chase-h: 3.2rem;
-    --op-h: 1.9rem;
-    --btn-h: 2rem;
+    --op-h: 2.5rem;
+    --btn-h: 2.7rem;
+    --eq-h: 2.5rem;
+    --fs-op: 1.25rem;
+    --fs-btn: 0.82rem;
     --gap: 0.1rem
   }
   .board-stage {
-    height: 16rem;
-    max-height: 16rem
+    height: 12rem;
+    max-height: 12rem
   }
   .play-footer { display: none !important }
   .chase-shark { width: 2.6rem }
@@ -1961,9 +1970,11 @@ button:disabled { cursor: not-allowed }
 @media (min-width: 768px) and (min-height: 840px) {
   .math-game {
     --chase-h: 6rem;
-    --op-h: 2.85rem;
-    --btn-h: 3rem;
-    --eq-h: 2.85rem;
+    --op-h: 4.2rem;
+    --btn-h: 4.5rem;
+    --eq-h: 4.2rem;
+    --fs-op: 2rem;
+    --fs-btn: 1.25rem;
     --gap: 0.45rem
   }
   .board-stage {
