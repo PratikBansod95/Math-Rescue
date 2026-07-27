@@ -1,8 +1,10 @@
 /** Chase motion driver — cat GIF + shark bite / post-eat WebPs. */
 
 export const CAT_RUN_GIF = "./assets/chase/cat-run.webp?v=gif2";
+export const CAT_STILL = "./assets/chase/run/cat-run-01.png?v=still1";
 export const SHARK_BITE = "./assets/chase/shark-bite.webp?v=bite1";
 export const SHARK_ATE = "./assets/chase/shark-ate.webp?v=ate1";
+export const SHARK_STILL = "./assets/chase/shark.png?v=still1";
 
 /**
  * @param {{
@@ -31,31 +33,37 @@ export function createCatRunAnimator(els) {
   let playing = false;
   let limitSec = 45;
   let deadline = 0;
-  let sharkMode = "bite";
+  let sharkMode = "still";
 
-  if (img) {
-    img.src = CAT_RUN_GIF;
-    img.classList.add("is-gif");
+  function setCatSrc(src, animate) {
+    if (!img) return;
+    img.classList.toggle("is-gif", Boolean(animate));
+    img.classList.toggle("is-still", !animate);
+    if (img.getAttribute("src") === src) return;
+    img.src = src;
   }
-  if (shark) {
-    shark.src = SHARK_BITE;
+
+  function setSharkSrc(src, mode) {
+    if (!shark) return;
+    if (sharkMode === mode && shark.getAttribute("src") === src) return;
+    sharkMode = mode;
+    shark.src = src;
   }
+
+  // Idle stills until Start / timer
+  setCatSrc(CAT_STILL, false);
+  setSharkSrc(SHARK_STILL, "still");
   if (cat) {
     cat.querySelectorAll(".chase-cat__frame.is-back").forEach((el) => el.remove());
   }
 
-  // Warm post-eat asset
-  const warm = new Image();
-  warm.src = SHARK_ATE;
-
-  function setSharkSrc(src, mode) {
-    if (!shark) return;
-    if (sharkMode === mode && shark.getAttribute("src")?.includes(src.split("?")[0].split("/").pop())) {
-      return;
-    }
-    sharkMode = mode;
-    shark.src = src;
-  }
+  // Warm animated assets
+  const warmCat = new Image();
+  warmCat.src = CAT_RUN_GIF;
+  const warmBite = new Image();
+  warmBite.src = SHARK_BITE;
+  const warmAte = new Image();
+  warmAte.src = SHARK_ATE;
 
   function formatClock(totalSeconds) {
     const mins = Math.floor(totalSeconds / 60);
@@ -71,22 +79,19 @@ export function createCatRunAnimator(els) {
     if (railFill) railFill.style.width = `${progress * 100}%`;
     if (railGlow) {
       railGlow.style.left = `calc(${catAlong * 100}% - 0.55rem)`;
-      railGlow.style.opacity = "1";
+      railGlow.style.opacity = playing ? "1" : "0";
     }
     if (chaseBar) chaseBar.style.width = `${ratio * 100}%`;
     if (chaseTimer) chaseTimer.textContent = formatClock(secondsCeil);
   }
 
-  function setGifPlaying(on) {
-    if (!img) return;
+  function setAnimatedPlaying(on) {
     if (on) {
-      if (!img.src.includes("cat-run.webp") && !img.src.includes("cat-run.gif")) {
-        img.src = CAT_RUN_GIF;
-      } else if (!playing) {
-        const src = CAT_RUN_GIF;
-        img.src = "";
-        img.src = src;
-      }
+      setCatSrc(CAT_RUN_GIF, true);
+      setSharkSrc(SHARK_BITE, "bite");
+    } else {
+      setCatSrc(CAT_STILL, false);
+      if (sharkMode !== "ate") setSharkSrc(SHARK_STILL, "still");
     }
   }
 
@@ -114,8 +119,7 @@ export function createCatRunAnimator(els) {
 
   function startLoop() {
     if (playing) return;
-    setSharkSrc(SHARK_BITE, "bite");
-    setGifPlaying(true);
+    setAnimatedPlaying(true);
     playing = true;
     lastTs = 0;
     raf = requestAnimationFrame(tick);
@@ -150,6 +154,7 @@ export function createCatRunAnimator(els) {
 
     if (pose === "caught") {
       stopLoop();
+      setCatSrc(CAT_STILL, false);
       setSharkSrc(SHARK_BITE, "bite");
       applyProgress(1, 0, 0);
       if (cat) cat.style.opacity = "";
@@ -158,6 +163,7 @@ export function createCatRunAnimator(els) {
 
     if (pose === "ate") {
       stopLoop();
+      setCatSrc(CAT_STILL, false);
       setSharkSrc(SHARK_ATE, "ate");
       applyProgress(1, 0, 0);
       if (cat) cat.style.opacity = "0";
@@ -166,7 +172,7 @@ export function createCatRunAnimator(els) {
 
     if (pose === "safe" || pose === "idle" || opts.idle) {
       stopLoop();
-      setSharkSrc(SHARK_BITE, "bite");
+      setAnimatedPlaying(false);
       const seconds = Math.max(0, Number(opts.timeLeft) || limitSec);
       applyProgress(0, 1, seconds);
       if (railGlow) railGlow.style.opacity = "0";

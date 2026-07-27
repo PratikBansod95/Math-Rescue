@@ -280,9 +280,9 @@ function template() {
         <div class="chase-stage" aria-hidden="true">
           <div class="chase-cat" data-chase-cat>
             <img
-              class="chase-cat__frame is-gif"
+              class="chase-cat__frame is-still"
               data-chase-cat-frame
-              src="./assets/chase/cat-run.webp?v=gif2"
+              src="./assets/chase/run/cat-run-01.png?v=still1"
               alt=""
               width="160"
               height="160"
@@ -292,7 +292,7 @@ function template() {
           <img
             class="chase-shark"
             data-chase-shark
-            src="./assets/chase/shark-bite.webp?v=bite1"
+            src="./assets/chase/shark.png?v=still1"
             alt=""
             width="200"
             height="160"

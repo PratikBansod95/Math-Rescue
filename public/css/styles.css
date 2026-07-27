@@ -355,7 +355,7 @@ button:disabled { cursor: not-allowed }
   z-index: 4;
   filter: drop-shadow(0 4px 8px rgba(30, 64, 175, .28));
   transform-origin: 55% 55%;
-  animation: shark-bob 2.4s ease-in-out infinite
+  animation: none
 }
 
 /* Danger meter under the belt deck — styles moved above with timer bar */
@@ -590,8 +590,20 @@ button:disabled { cursor: not-allowed }
   animation: cat-safe .7s ease
 }
 
+.chase-panel.is-idle .chase-shark,
 .chase-panel.is-idle .chase-cat {
-  transition: none
+  animation: none !important
+}
+
+.chase-panel.is-idle .chase-rail__cog,
+.chase-panel.is-idle .chase-rail__danger::after {
+  animation: none !important;
+  animation-play-state: paused
+}
+
+.chase-panel.is-idle .chase-cat__frame {
+  /* still pose — JS swaps animated src off while idle */
+  animation: none !important
 }
 
 @keyframes shark-bob {
