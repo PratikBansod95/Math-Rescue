@@ -71,7 +71,7 @@ button:disabled { cursor: not-allowed }
   /* Phone-first height budget — hard caps (no tall-svh growth) */
   --scale: 1;
   --gap: 0.2rem;
-  --chase-h: 5.75rem;
+  --chase-h: 6.5rem;
   --card-size: clamp(4.8rem, 36cqw, 6.2rem);
   --target-size: clamp(6.4rem, 48cqw, 8.2rem);
   --op-h: 3.3rem;
@@ -203,10 +203,10 @@ button:disabled { cursor: not-allowed }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* pin conveyor near the bottom play line */
-  object-position: center 88%;
+  /* show belt top surface + water left; avoid over-cropping shark */
+  object-position: 42% 68%;
   z-index: 0;
-  transform: scale(1.08);
+  transform: scale(1.04);
   filter: saturate(1.06) contrast(1.03)
 }
 
@@ -216,19 +216,19 @@ button:disabled { cursor: not-allowed }
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, .42) 0%, rgba(255, 255, 255, .06) 34%, transparent 52%),
-    radial-gradient(ellipse 48% 62% at 6% 72%, rgba(14, 116, 220, .18), transparent 62%)
+    linear-gradient(180deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, .04) 28%, transparent 48%),
+    radial-gradient(ellipse 42% 58% at 8% 70%, rgba(14, 116, 220, .14), transparent 62%)
 }
 
 .chase-panel__hud {
   position: absolute;
   top: 0.28rem;
-  left: 0.35rem;
-  right: auto;
+  left: auto;
+  right: 0.4rem; /* keep clear of shark on the left */
   bottom: auto;
   z-index: 6;
   width: max-content;
-  max-width: min(46%, 9.5rem);
+  max-width: min(42%, 9rem);
   display: block;
   padding: 0;
   pointer-events: none
@@ -291,11 +291,11 @@ button:disabled { cursor: not-allowed }
 
 .chase-stage {
   /* Shared chase geometry: progress 0 = safe right, 1 = mouth */
-  --mouth-x: 22%;
-  --safe-x: 84%;
+  --mouth-x: 20%;
+  --safe-x: 80%;
   --cat-x: calc(var(--mouth-x) + (1 - var(--chase-progress)) * (var(--safe-x) - var(--mouth-x)));
-  /* feet planted on conveyor surface */
-  --belt-y: 6%;
+  /* feet on the belt TOP deck (above rollers) */
+  --belt-y: 34%;
   position: absolute;
   inset: 0;
   height: auto;
@@ -305,27 +305,27 @@ button:disabled { cursor: not-allowed }
 
 .chase-shark {
   position: absolute;
-  left: -4%;
-  bottom: -4%;
-  width: clamp(2.8rem, 55%, 4.2rem);
+  left: 1%;
+  bottom: 1%;
+  width: clamp(3.8rem, 26%, 5.6rem);
   height: auto;
   display: block;
-  z-index: 5;
+  z-index: 4;
   filter: drop-shadow(0 4px 8px rgba(30, 64, 175, .28));
   transform-origin: 55% 55%;
   animation: shark-bob 2.4s ease-in-out infinite
 }
 
-/* Danger meter on the belt face under the cat */
+/* Danger meter under the belt deck */
 .chase-rail {
   position: absolute;
-  left: 20%;
-  right: 8%;
-  bottom: 2%;
+  left: 24%;
+  right: 10%;
+  bottom: 5%;
   z-index: 2;
-  height: 0.55rem;
+  height: 0.5rem;
   pointer-events: none;
-  opacity: .88
+  opacity: .8
 }
 
 .chase-rail__shell {
@@ -515,11 +515,11 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   left: var(--cat-x);
   bottom: var(--belt-y);
-  width: clamp(2.2rem, 38%, 3.2rem);
-  z-index: 4;
+  width: clamp(3.6rem, 18%, 5rem);
+  z-index: 5;
   transform: translateX(-50%);
   transition: none;
-  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, .32));
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, .35));
   will-change: left, transform
 }
 
@@ -1867,7 +1867,7 @@ button:disabled { cursor: not-allowed }
   .play-footer { display: grid }
   .math-game {
     --gap: 0.35rem;
-    --chase-h: 6.25rem;
+    --chase-h: 7rem;
     --op-h: 3.8rem;
     --btn-h: 4rem;
     --eq-h: 3.8rem;
@@ -1895,16 +1895,16 @@ button:disabled { cursor: not-allowed }
     width: calc(var(--target-size) * 0.72);
     min-height: calc(var(--target-size) * 0.72)
   }
-  .chase-stage { --safe-x: 86%; --belt-y: 8% }
-  .chase-shark { width: clamp(3.8rem, 48%, 5.5rem) }
-  .chase-cat { width: clamp(2.8rem, 34%, 4rem) }
+  .chase-stage { --safe-x: 78%; --belt-y: 36% }
+  .chase-shark { width: clamp(4.4rem, 24%, 6.2rem); left: 1.5% }
+  .chase-cat { width: clamp(4rem, 16%, 5.4rem) }
 }
 
 /* Short phones — tighter budget */
 @media (max-height: 680px) {
   .play-dock { justify-content: flex-start }
   .math-game {
-    --chase-h: 4.6rem;
+    --chase-h: 5.5rem;
     --op-h: 2.9rem;
     --btn-h: 3.1rem;
     --eq-h: 2.9rem;
@@ -1917,7 +1917,7 @@ button:disabled { cursor: not-allowed }
     height: min(34svh, 16rem);
     max-height: min(34svh, 16rem)
   }
-  .chase-stage { --belt-y: 5%; --safe-x: 82% }
+  .chase-stage { --belt-y: 32%; --safe-x: 78% }
   .correction-panel { max-height: 2.8rem }
   .feedback-line small { display: none }
 }
@@ -1967,9 +1967,9 @@ button:disabled { cursor: not-allowed }
     max-height: 12rem
   }
   .play-footer { display: none !important }
-  .chase-shark { width: 2.6rem }
-  .chase-cat { width: 2rem }
-  .chase-stage { --safe-x: 80% }
+  .chase-shark { width: 3.4rem; left: 1% }
+  .chase-cat { width: 3.2rem }
+  .chase-stage { --safe-x: 76%; --belt-y: 30% }
 }
 
 /* Large / desktop canvas */
@@ -1990,10 +1990,10 @@ button:disabled { cursor: not-allowed }
     --card-size: clamp(7.6rem, min(28cqw, 40cqh), 10.8rem);
     --target-size: clamp(9.6rem, min(34cqw, 52cqh), 12.8rem)
   }
-  .chase-stage { --belt-y: 9%; --mouth-x: 22%; --safe-x: 86% }
-  .chase-rail { height: 0.9rem; bottom: 4% }
-  .chase-shark { width: clamp(4.5rem, 46%, 7rem) }
-  .chase-cat { width: clamp(3.2rem, 32%, 4.8rem) }
+  .chase-stage { --belt-y: 38%; --mouth-x: 20%; --safe-x: 78% }
+  .chase-rail { height: 0.65rem; bottom: 6% }
+  .chase-shark { width: clamp(5rem, 22%, 7rem); left: 1% }
+  .chase-cat { width: clamp(4.4rem, 14%, 5.8rem) }
 }
 
 /* svh fallback for older WebViews */
