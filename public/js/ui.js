@@ -282,6 +282,7 @@ function template() {
         </div>
         <div class="chase-stage" aria-hidden="true">
           <div class="chase-cat" data-chase-cat>
+            <span class="chase-cat__bubble" data-chase-bubble aria-hidden="true">Save me!</span>
             <img
               class="chase-cat__frame is-still"
               data-chase-cat-frame
