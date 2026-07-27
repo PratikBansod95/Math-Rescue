@@ -166,7 +166,7 @@ export function createGame({ mount }) {
           state.feedback = {
             kind: "neutral",
             text: "Tap Start to reveal the target.",
-            detail: `Board ${state.boardIndex} · Task ${state.taskIndex}/${state.tasksPerBoard}`,
+            detail: "",
           };
           state.correction = null;
           ui.hideStartOverlay();
