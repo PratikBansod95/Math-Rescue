@@ -1343,6 +1343,8 @@ button:disabled { cursor: not-allowed }
 
 .number-card {
   --accent: var(--blue);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, #ffffff);
+  --accent-line: color-mix(in srgb, var(--accent) 42%, #ffffff);
   position: relative;
   width: var(--card-size);
   min-height: var(--card-size);
@@ -1350,58 +1352,71 @@ button:disabled { cursor: not-allowed }
   place-items: center;
   cursor: pointer;
   color: var(--accent);
-  background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
-  border: 2.5px solid var(--accent);
-  border-radius: calc(var(--card-size) * 0.28);
+  background:
+    linear-gradient(165deg, #ffffff 0%, var(--accent-soft) 100%);
+  border: 1.5px solid var(--accent-line);
+  border-radius: calc(var(--card-size) * 0.22);
   box-shadow:
-    0 8px 16px rgba(26, 43, 74, .1),
-    0 2px 0 rgba(255, 255, 255, .9) inset,
-    0 -6px 12px rgba(26, 43, 74, .04) inset;
-  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
-  overflow: hidden
+    0 1px 0 rgba(255, 255, 255, .95) inset,
+    0 8px 18px rgba(26, 43, 74, .1),
+    0 2px 4px rgba(26, 43, 74, .05);
+  transition:
+    transform .16s cubic-bezier(.2, .8, .2, 1),
+    box-shadow .16s ease,
+    border-color .16s ease,
+    opacity .16s ease,
+    filter .16s ease;
+  overflow: hidden;
+  isolation: isolate
 }
 
-.number-card__shine {
+.number-card::before {
+  content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.72), transparent 44%);
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: .9;
+  z-index: 2;
   pointer-events: none
 }
 
-.number-card__tech {
+.number-card__glow {
   position: absolute;
-  width: calc(var(--card-size) * 0.32);
-  height: calc(var(--card-size) * 0.32);
-  opacity: .28;
+  inset: auto -20% -35% -20%;
+  height: 70%;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 68%);
   pointer-events: none;
-  color: var(--accent);
-  z-index: 1
+  z-index: 0
 }
 
-.number-card__tech--tr { top: .22rem; right: .22rem }
-.number-card__tech--bl { left: .22rem; bottom: .22rem; opacity: .22 }
-
 .number-card--top { grid-area: 1 / 2; --accent: #3b82f6 }
-.number-card--left { grid-area: 2 / 1; justify-self: end; --accent: #9063cd }
-.number-card--right { grid-area: 2 / 3; justify-self: start; --accent: #f06292 }
-.number-card--bottom { grid-area: 3 / 2; --accent: #78c850 }
+.number-card--left { grid-area: 2 / 1; justify-self: end; --accent: #7c5cbf }
+.number-card--right { grid-area: 2 / 3; justify-self: start; --accent: #e85a8a }
+.number-card--bottom { grid-area: 3 / 2; --accent: #5fad45 }
 
 .number-card__badge {
   position: absolute;
-  top: .22rem;
-  left: .22rem;
-  width: calc(var(--card-size) * 0.32);
-  height: calc(var(--card-size) * 0.32);
-  border-radius: .32rem;
+  top: .32rem;
+  left: .32rem;
+  width: calc(var(--card-size) * 0.26);
+  height: calc(var(--card-size) * 0.26);
+  border-radius: 999px;
   display: grid;
   place-items: center;
   color: #fff;
-  background: var(--accent);
-  box-shadow: 0 3px 8px rgba(26, 43, 74, .16);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 78%, #fff) 0%, var(--accent) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .35) inset,
+    0 3px 8px color-mix(in srgb, var(--accent) 35%, transparent);
   z-index: 3
 }
 
-.number-card__badge svg { width: 55%; height: 55% }
+.number-card__badge svg { width: 52%; height: 52% }
 
 .card-value {
   position: relative;
@@ -1409,8 +1424,11 @@ button:disabled { cursor: not-allowed }
   font-family: "Space Grotesk", Quicksand, sans-serif;
   font-size: var(--fs-card);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
   color: var(--ink);
-  line-height: 1
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .65)
 }
 
 .card-value--fraction {
@@ -1429,23 +1447,40 @@ button:disabled { cursor: not-allowed }
 }
 
 .number-card:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(26, 43, 74, .14)
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 68%, #ffffff);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .95) inset,
+    0 14px 28px rgba(26, 43, 74, .14),
+    0 4px 10px color-mix(in srgb, var(--accent) 18%, transparent)
 }
 
-.number-card:active:not(:disabled) { transform: translateY(1px) scale(.98) }
+.number-card:active:not(:disabled) {
+  transform: translateY(1px) scale(.985);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .9) inset,
+    0 4px 10px rgba(26, 43, 74, .1)
+}
+
+.number-card:focus-visible {
+  outline: 2.5px solid color-mix(in srgb, var(--accent) 70%, #ffffff);
+  outline-offset: 3px
+}
 
 .number-card:disabled {
-  opacity: .55;
-  filter: grayscale(.15);
+  opacity: .48;
+  filter: grayscale(.2);
   transform: none;
-  box-shadow: 0 4px 10px rgba(26, 43, 74, .06)
+  cursor: not-allowed;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .8) inset,
+    0 3px 8px rgba(26, 43, 74, .05)
 }
 
 /* Idle: cards wait for Start — still readable, not ghosted */
 .math-game[data-phase=ready] .number-card:disabled,
 .math-game[data-phase=idle] .number-card:disabled {
-  opacity: .62;
+  opacity: .72;
   filter: none
 }
 
@@ -2181,8 +2216,7 @@ button:disabled { cursor: not-allowed }
     height: min(30svh, 14rem);
     max-height: min(30svh, 14rem)
   }
-  .number-card__tech { display: none }
-  .number-card__badge { width: 0.85rem; height: 0.85rem; top: .12rem; left: .12rem }
+  .number-card__badge { width: 0.85rem; height: 0.85rem; top: .18rem; left: .18rem }
   .welcome-card small { display: none }
   .chase-clock { min-width: 2.9rem; padding: 0.14rem 0.35rem 0.18rem }
   .chase-clock__value { font-size: 0.9rem }

@@ -579,20 +579,7 @@ function renderCards(container, state, onAppend, onPuzzleGo) {
     button.setAttribute("aria-label", `Use number card ${card.label}`);
     button.innerHTML = `
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
-      <svg class="number-card__tech number-card__tech--tr" viewBox="0 0 40 40" aria-hidden="true">
-        <path d="M8 10h22M30 10v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <path d="M14 22h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="30" cy="10" r="2.4" fill="currentColor"/>
-        <circle cx="14" cy="22" r="2.1" fill="currentColor"/>
-        <path d="M24 30c6-3 9-8 8-14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-      </svg>
-      <svg class="number-card__tech number-card__tech--bl" viewBox="0 0 40 40" aria-hidden="true">
-        <path d="M32 30H10M10 30V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="10" cy="30" r="2.4" fill="currentColor"/>
-        <circle cx="24" cy="18" r="2.1" fill="currentColor"/>
-        <path d="M10 18h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <span class="number-card__shine" aria-hidden="true"></span>
+      <span class="number-card__glow" aria-hidden="true"></span>
     `;
     button.append(renderCardValue(card));
     button.addEventListener("click", () => onAppend(card.input));
