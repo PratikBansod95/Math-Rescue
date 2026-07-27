@@ -2010,7 +2010,7 @@ button:disabled { cursor: not-allowed }
     --target-size: clamp(9.6rem, min(34cqw, 52cqh), 12.8rem)
   }
   .chase-stage { --belt-y: 14%; --mouth-x: 20%; --safe-x: 76% }
-  .chase-rail { height: 0.65rem; bottom: 6% }
+  .chase-rail { height: 0.95rem; bottom: 8% }
   .chase-shark { width: clamp(5rem, 22%, 7rem); left: 1% }
   .chase-cat { width: clamp(4.6rem, 16%, 6rem) }
 }
