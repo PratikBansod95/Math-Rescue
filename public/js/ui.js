@@ -268,16 +268,14 @@ function template() {
       <section class="chase-panel" data-chase aria-label="Timer chase: don't let the shark catch the cat">
         <img class="chase-panel__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
         <div class="chase-panel__veil" aria-hidden="true"></div>
-        <div class="chase-panel__hud">
+        <div class="chase-panel__hud" hidden aria-hidden="true">
           <div class="chase-time">
             <small>Time left</small>
-            <strong data-chase-timer>0:45</strong>
-            <span class="chase-time__track" aria-hidden="true">
+            <strong>0:45</strong>
+            <span class="chase-time__track">
               <i class="chase-time__bar" data-chase-bar></i>
             </span>
           </div>
-          <p class="chase-panel__tagline">Don’t let the shark catch the cat!</p>
-          <span class="chase-panel__arrow" aria-hidden="true"></span>
         </div>
         <div class="chase-stage" aria-hidden="true">
           <div class="chase-cat" data-chase-cat>
@@ -300,20 +298,21 @@ function template() {
             height="160"
             decoding="async"
           />
-          <div class="chase-rail" data-chase-rail aria-hidden="true">
-            <div class="chase-rail__shell">
-              <div class="chase-rail__track">
-                <i class="chase-rail__safe"></i>
-                <i class="chase-rail__danger" data-chase-rail-fill></i>
-                <i class="chase-rail__segments"></i>
-                <i class="chase-rail__glow" data-chase-rail-glow></i>
-              </div>
-              <div class="chase-rail__cogs">
-                <span class="chase-rail__cog"></span>
-                <span class="chase-rail__cog"></span>
-              </div>
+        </div>
+        <div class="chase-rail" data-chase-rail role="timer" aria-label="Time left">
+          <div class="chase-rail__shell">
+            <div class="chase-rail__track">
+              <i class="chase-rail__safe"></i>
+              <i class="chase-rail__danger" data-chase-rail-fill></i>
+              <i class="chase-rail__segments"></i>
+              <i class="chase-rail__glow" data-chase-rail-glow></i>
+            </div>
+            <div class="chase-rail__cogs" aria-hidden="true">
+              <span class="chase-rail__cog"></span>
+              <span class="chase-rail__cog"></span>
             </div>
           </div>
+          <strong class="chase-rail__clock" data-chase-timer>0:45</strong>
         </div>
       </section>
     </div>

@@ -221,17 +221,59 @@ button:disabled { cursor: not-allowed }
 }
 
 .chase-panel__hud {
+  display: none !important
+}
+
+/* Belt timer bar — primary time UI along the dock */
+.chase-rail {
   position: absolute;
-  top: 0.28rem;
-  left: auto;
-  right: 0.4rem; /* keep clear of shark on the left */
-  bottom: auto;
+  left: 18%;
+  right: 4%;
+  bottom: 7%;
   z-index: 6;
-  width: max-content;
-  max-width: min(42%, 9rem);
-  display: block;
-  padding: 0;
+  height: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   pointer-events: none
+}
+
+.chase-rail__shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border-radius: 999px;
+  padding: .14rem;
+  background:
+    linear-gradient(180deg, #f8fafc 0%, #94a3b8 42%, #475569 100%);
+  box-shadow:
+    0 4px 10px rgba(15, 23, 42, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .75),
+    inset 0 -1px 0 rgba(15, 23, 42, .35)
+}
+
+.chase-rail__clock {
+  flex: 0 0 auto;
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #0f172a;
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 0.45rem;
+  padding: 0.22rem 0.4rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .18);
+  min-width: 2.4rem;
+  text-align: center
+}
+
+.chase-panel.is-urgent .chase-rail__clock {
+  color: #dc2626;
+  border-color: #fecaca;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, .22)
 }
 
 .chase-time {
@@ -316,30 +358,7 @@ button:disabled { cursor: not-allowed }
   animation: shark-bob 2.4s ease-in-out infinite
 }
 
-/* Danger meter under the belt deck */
-.chase-rail {
-  position: absolute;
-  left: 24%;
-  right: 10%;
-  bottom: 5%;
-  z-index: 2;
-  height: 0.5rem;
-  pointer-events: none;
-  opacity: .8
-}
-
-.chase-rail__shell {
-  position: relative;
-  height: 100%;
-  border-radius: 999px;
-  padding: .12rem;
-  background:
-    linear-gradient(180deg, #f8fafc 0%, #94a3b8 42%, #475569 100%);
-  box-shadow:
-    0 6px 12px rgba(15, 23, 42, .3),
-    inset 0 1px 0 rgba(255, 255, 255, .75),
-    inset 0 -1px 0 rgba(15, 23, 42, .35)
-}
+/* Danger meter under the belt deck — styles moved above with timer bar */
 
 .chase-rail__track {
   position: relative;
