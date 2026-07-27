@@ -31,7 +31,7 @@ const POINTS_WRONG = 2;
 const MAX_RETRIES = 2;
 
 const TIMER_LIMITS = {
-  easy: 45,
+  easy: 90,
   normal: 60,
   medium: 60,
   advanced: 60,

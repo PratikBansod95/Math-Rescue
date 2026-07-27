@@ -31,7 +31,7 @@ export function createCatRunAnimator(els) {
   let raf = 0;
   let lastTs = 0;
   let playing = false;
-  let limitSec = 45;
+  let limitSec = 90;
   let deadline = 0;
   let sharkMode = "still";
 

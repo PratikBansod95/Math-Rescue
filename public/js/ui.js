@@ -274,7 +274,7 @@ function template() {
         <div class="chase-panel__hud" hidden aria-hidden="true">
           <div class="chase-time">
             <small>Time left</small>
-            <strong>0:45</strong>
+            <strong>1:30</strong>
             <span class="chase-time__track">
               <i class="chase-time__bar" data-chase-bar></i>
             </span>
@@ -310,7 +310,7 @@ function template() {
         </div>
         <div class="chase-clock" role="timer" aria-label="Time left">
           <span class="chase-clock__label">Time</span>
-          <strong class="chase-clock__value" data-chase-timer>0:45</strong>
+          <strong class="chase-clock__value" data-chase-timer>1:30</strong>
         </div>
         <div class="chase-rail" data-chase-rail aria-hidden="true">
           <div class="chase-rail__shell">
@@ -450,7 +450,7 @@ function template() {
 function updateChase(els, state, catRun, celebrate) {
   if (!els.chasePanel) return;
 
-  const limit = Math.max(1, Number(state.timerLimit) || 45);
+  const limit = Math.max(1, Number(state.timerLimit) || 90);
   const seconds = Math.max(0, Number(state.timeLeft) || 0);
   const pose = state.chasePose || "idle";
   const idle = Boolean(state.awaitingStart) || Boolean(state.showTutorial) || state.phase === "ready";
