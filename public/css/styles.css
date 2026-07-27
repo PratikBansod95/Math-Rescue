@@ -1319,7 +1319,7 @@ button:disabled { cursor: not-allowed }
 }
 
 .equation-input[data-empty="true"]::before {
-  content: "Type equation...";
+  content: "e.g. (3/4 + 8) × 2";
   color: #9aadc8;
   font-weight: 600;
   font-size: 1.15rem;
