@@ -91,12 +91,14 @@ export function createGame({ mount }) {
         storageReady: false,
         timerLimit: TIMER_LIMITS.easy,
         timeLeft: TIMER_LIMITS.easy,
+        timerDeadline: 0,
         timerExpired: false,
         awaitingStart: true,
         chasePose: "idle",
       };
 
       let timerIntervalId = null;
+      let catchTimeoutId = null;
       const audio = createAudio(() => state.soundOn);
 
       state.round = makeRound(state);
@@ -126,6 +128,7 @@ export function createGame({ mount }) {
       destroyFn = () => {
         disposed = true;
         stopPuzzleTimer();
+        clearCatchTimeout();
         audio.dispose();
         ui.destroy();
         mount.replaceChildren();
@@ -278,7 +281,7 @@ export function createGame({ mount }) {
       }
 
       function onAppend(fragment) {
-        if (!isPlaying() || state.awaitingStart) return;
+        if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
         state.expression = (
           needsSpaceBefore(state.expression, fragment)
             ? `${state.expression} ${fragment}`
@@ -297,7 +300,7 @@ export function createGame({ mount }) {
       }
 
       function onBackspace() {
-        if (!isPlaying() || state.awaitingStart) return;
+        if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
         state.expression = state.expression.trimEnd().slice(0, -1).trimEnd();
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
         state.feedback = {
@@ -310,7 +313,7 @@ export function createGame({ mount }) {
       }
 
       function onClear() {
-        if (!isPlaying() || state.awaitingStart) return;
+        if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
         state.expression = "";
         state.usedCounts = new Map();
         state.feedback = {
@@ -323,7 +326,7 @@ export function createGame({ mount }) {
       }
 
       function onSubmit() {
-        if (!isPlaying() || state.awaitingStart) return;
+        if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
         state.attempts += 1;
         if (state.showTutorial && state.tutorialStep === 3) {
           // allow submit during tutorial
@@ -389,6 +392,7 @@ export function createGame({ mount }) {
       }
 
       function enterFailReview(result) {
+        clearCatchTimeout();
         stopPuzzleTimer();
         const correction = buildWrongCorrection(state.expression, result, state.round);
         state.phase = "review";
@@ -401,23 +405,27 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "bad",
           text: state.timerExpired
-            ? "Time’s up! Here’s the solution."
+            ? "Time’s up! The shark caught the cat. Here’s the solution."
             : result.reason || "Incorrect. Study the solution.",
           detail: `−${POINTS_WRONG} points · ★1 · Tap Next`,
         };
         state.correction = correction;
-        audio.play("incorrect");
-        vibrate(24);
+        if (!state.timerExpired) {
+          audio.play("incorrect");
+          vibrate(24);
+        }
         render();
       }
 
       function startPuzzleTimer() {
         stopPuzzleTimer();
+        clearCatchTimeout();
         state.timerExpired = false;
         state.awaitingStart = true;
         state.chasePose = "idle";
         state.timerLimit = TIMER_LIMITS[state.difficultyId] ?? TIMER_LIMITS.easy;
         state.timeLeft = state.timerLimit;
+        state.timerDeadline = 0;
       }
 
       function beginTimerTicks() {
@@ -430,6 +438,7 @@ export function createGame({ mount }) {
         ) {
           return;
         }
+        state.timerDeadline = performance.now() + state.timerLimit * 1000;
         timerIntervalId = window.setInterval(() => {
           if (
             disposed ||
@@ -439,13 +448,17 @@ export function createGame({ mount }) {
           ) {
             return;
           }
-          state.timeLeft = Math.max(0, state.timeLeft - 1);
-          if (state.timeLeft <= 0) {
+          const left = Math.max(
+            0,
+            Math.ceil((state.timerDeadline - performance.now()) / 1000)
+          );
+          state.timeLeft = left;
+          if (left <= 0) {
             onTimerExpire();
             return;
           }
           render();
-        }, 1000);
+        }, 250);
       }
 
       function stopPuzzleTimer() {
@@ -455,15 +468,38 @@ export function createGame({ mount }) {
         }
       }
 
+      function clearCatchTimeout() {
+        if (catchTimeoutId != null) {
+          window.clearTimeout(catchTimeoutId);
+          catchTimeoutId = null;
+        }
+      }
+
       function onTimerExpire() {
         if (!isPlaying() || state.timerExpired) return;
         state.timerExpired = true;
         state.timeLeft = 0;
+        state.timerDeadline = performance.now();
         state.chasePose = "caught";
-        enterFailReview({
-          ok: false,
-          reason: "Time’s up. Here’s the solution.",
-        });
+        stopPuzzleTimer();
+        audio.play("incorrect");
+        vibrate(28);
+        render();
+        clearCatchTimeout();
+        /* 1) swallow  2) post-eat celebration  3) fail review */
+        catchTimeoutId = window.setTimeout(() => {
+          if (disposed || state.phase !== "playing" || !state.timerExpired) return;
+          state.chasePose = "ate";
+          render();
+          catchTimeoutId = window.setTimeout(() => {
+            catchTimeoutId = null;
+            if (disposed || state.phase !== "playing" || !state.timerExpired) return;
+            enterFailReview({
+              ok: false,
+              reason: "Time’s up. Here’s the solution.",
+            });
+          }, 1100);
+        }, 780);
       }
 
       function onHintOrNext() {
@@ -471,7 +507,7 @@ export function createGame({ mount }) {
           advanceTask();
           return;
         }
-        if (!isPlaying() || state.awaitingStart) return;
+        if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
 
         if (state.usedNudge) {
           state.feedback = {
@@ -726,6 +762,7 @@ export function createGame({ mount }) {
       }
 
       function resetTaskFlags() {
+        clearCatchTimeout();
         state.retriesLeft = MAX_RETRIES;
         state.usedNudge = false;
         state.attempts = 0;
@@ -733,6 +770,7 @@ export function createGame({ mount }) {
         state.taskStarsEarned = 0;
         state.shake = false;
         state.timerExpired = false;
+        state.timerDeadline = 0;
         state.awaitingStart = true;
         state.chasePose = "idle";
       }

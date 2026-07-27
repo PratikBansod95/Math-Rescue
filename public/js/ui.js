@@ -1,3 +1,5 @@
+import { createCatRunAnimator } from "./chaseCatRun.js";
+
 const OPERATORS = [
   { label: "+", value: " + " },
   { label: "−", value: " - " },
@@ -50,6 +52,8 @@ export function createUI({ mount, handlers }) {
     chaseRailFill: shell.querySelector("[data-chase-rail-fill]"),
     chaseRailGlow: shell.querySelector("[data-chase-rail-glow]"),
     chaseCat: shell.querySelector("[data-chase-cat]"),
+    chaseCatFrame: shell.querySelector("[data-chase-cat-frame]"),
+    chaseShark: shell.querySelector("[data-chase-shark]"),
     bestScore: shell.querySelector("[data-best-score]"),
     welcome: shell.querySelector("[data-welcome]"),
     boardMeta: shell.querySelector("[data-board-meta]"),
@@ -89,6 +93,16 @@ export function createUI({ mount, handlers }) {
   };
 
   const listeners = [];
+  const catRun = createCatRunAnimator({
+    img: els.chaseCatFrame,
+    panel: els.chasePanel,
+    cat: els.chaseCat,
+    shark: els.chaseShark,
+    railFill: els.chaseRailFill,
+    railGlow: els.chaseRailGlow,
+    chaseTimer: els.chaseTimer,
+    chaseBar: els.chaseBar,
+  });
   buildOperatorPad(els.operatorPad, handlers.onAppend, handlers.onBackspace);
 
   on(els.startButton, "click", handlers.onStart);
@@ -129,7 +143,7 @@ export function createUI({ mount, handlers }) {
 
       els.coins.textContent = String(state.score);
       updateTimerChip(els, state);
-      updateChase(els, state);
+      updateChase(els, state, catRun);
       els.bestScore.textContent = String(state.bestScore);
       els.welcome.textContent = state.usernameKey
         ? `Welcome back, ${state.username}.`
@@ -182,6 +196,7 @@ export function createUI({ mount, handlers }) {
     },
 
     destroy() {
+      catRun.destroy();
       for (const [el, type, fn] of listeners) {
         el.removeEventListener(type, fn);
       }
@@ -251,7 +266,7 @@ function template() {
 
     <div class="play-reserve" data-play-reserve>
       <section class="chase-panel" data-chase aria-label="Timer chase: don't let the shark catch the cat">
-        <img class="chase-panel__bg" src="./assets/chase/scene.png" alt="" />
+        <img class="chase-panel__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
         <div class="chase-panel__veil" aria-hidden="true"></div>
         <div class="chase-panel__hud">
           <div class="chase-time">
@@ -265,7 +280,26 @@ function template() {
           <span class="chase-panel__arrow" aria-hidden="true"></span>
         </div>
         <div class="chase-stage" aria-hidden="true">
-          <img class="chase-shark" src="./assets/chase/shark.png" alt="" width="160" height="160" />
+          <div class="chase-cat" data-chase-cat>
+            <img
+              class="chase-cat__frame is-gif"
+              data-chase-cat-frame
+              src="./assets/chase/cat-run.webp?v=gif2"
+              alt=""
+              width="160"
+              height="160"
+              decoding="async"
+            />
+          </div>
+          <img
+            class="chase-shark"
+            data-chase-shark
+            src="./assets/chase/shark-bite.webp?v=bite1"
+            alt=""
+            width="200"
+            height="160"
+            decoding="async"
+          />
           <div class="chase-rail" data-chase-rail aria-hidden="true">
             <div class="chase-rail__shell">
               <div class="chase-rail__track">
@@ -279,9 +313,6 @@ function template() {
                 <span class="chase-rail__cog"></span>
               </div>
             </div>
-          </div>
-          <div class="chase-cat" data-chase-cat>
-            <img src="./assets/chase/cat.png" alt="" width="120" height="120" />
           </div>
         </div>
       </section>
@@ -408,35 +439,53 @@ function template() {
   `;
 }
 
-function updateChase(els, state) {
+function updateChase(els, state, catRun) {
   if (!els.chasePanel) return;
 
   const limit = Math.max(1, Number(state.timerLimit) || 45);
   const seconds = Math.max(0, Number(state.timeLeft) || 0);
-  const idle = Boolean(state.awaitingStart) || Boolean(state.showTutorial) || state.phase === "ready";
-  const running =
-    state.phase === "playing" && !state.awaitingStart && !state.showTutorial;
-  const ratio = Math.min(1, Math.max(0, seconds / limit));
-  const progress = idle ? 0 : 1 - ratio;
-
-  if (els.chaseTimer) els.chaseTimer.textContent = formatClock(seconds);
-  if (els.chaseBar) els.chaseBar.style.width = `${ratio * 100}%`;
-  if (els.chaseCat) els.chaseCat.style.setProperty("--chase-progress", String(progress));
-  if (els.chasePanel) els.chasePanel.style.setProperty("--chase-progress", String(progress));
-  if (els.chaseRailFill) {
-    els.chaseRailFill.style.width = `${progress * 100}%`;
-  }
-  if (els.chaseRailGlow) {
-    els.chaseRailGlow.style.left = `calc(${progress * 100}% - 0.55rem)`;
-    els.chaseRailGlow.style.opacity = idle ? "0" : progress > 0.02 ? "1" : "0";
-  }
-
   const pose = state.chasePose || "idle";
+  const idle = Boolean(state.awaitingStart) || Boolean(state.showTutorial) || state.phase === "ready";
+  const catching = pose === "caught" || pose === "ate" || Boolean(state.timerExpired);
+  const running =
+    state.phase === "playing" && !state.awaitingStart && !state.showTutorial && !catching;
+
   els.chasePanel.classList.toggle("is-idle", idle || pose === "idle");
   els.chasePanel.classList.toggle("is-running", running && pose === "running");
-  els.chasePanel.classList.toggle("is-urgent", running && seconds <= 5);
-  els.chasePanel.classList.toggle("is-caught", pose === "caught" || (state.timerExpired && state.phase === "review"));
+  els.chasePanel.classList.toggle(
+    "is-urgent",
+    running && (seconds <= 8 || (limit > 0 && 1 - seconds / limit >= 0.75))
+  );
+  els.chasePanel.classList.toggle("is-caught", pose === "caught");
+  els.chasePanel.classList.toggle("is-ate", pose === "ate" || (state.timerExpired && state.phase === "review"));
   els.chasePanel.classList.toggle("is-safe", pose === "safe");
+
+  if (!catRun) return;
+
+  if (pose === "ate" || (state.timerExpired && state.phase === "review")) {
+    catRun.sync({ pose: "ate", limit, timeLeft: 0, deadline: state.timerDeadline });
+    return;
+  }
+  if (pose === "caught" || catching) {
+    catRun.sync({ pose: "caught", limit, timeLeft: 0, deadline: state.timerDeadline });
+    return;
+  }
+  if (pose === "safe") {
+    catRun.sync({ pose: "safe", limit, timeLeft: seconds, idle: false });
+    return;
+  }
+  if (idle || pose === "idle") {
+    catRun.sync({ pose: "idle", limit, timeLeft: seconds, idle: true });
+    return;
+  }
+  if (running) {
+    catRun.sync({
+      pose: seconds <= 8 ? "urgent" : "running",
+      limit,
+      timeLeft: seconds,
+      deadline: state.timerDeadline,
+    });
+  }
 }
 
 function updateTimerChip(els, state) {
