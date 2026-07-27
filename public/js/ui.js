@@ -282,7 +282,7 @@ function template() {
             <img
               class="chase-cat__frame is-still"
               data-chase-cat-frame
-              src="./assets/chase/run/cat-run-01.png?v=still1"
+              src="./assets/chase/cat-run-still.png?v=match1"
               alt=""
               width="160"
               height="160"

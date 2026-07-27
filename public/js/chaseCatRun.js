@@ -1,7 +1,7 @@
 /** Chase motion driver — cat GIF + shark bite / post-eat WebPs. */
 
 export const CAT_RUN_GIF = "./assets/chase/cat-run.webp?v=gif2";
-export const CAT_STILL = "./assets/chase/run/cat-run-01.png?v=still1";
+export const CAT_STILL = "./assets/chase/cat-run-still.png?v=match1";
 export const SHARK_BITE = "./assets/chase/shark-bite.webp?v=bite1";
 export const SHARK_ATE = "./assets/chase/shark-ate.webp?v=ate1";
 export const SHARK_STILL = "./assets/chase/shark.png?v=still1";
