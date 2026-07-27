@@ -158,7 +158,7 @@ button:disabled { cursor: not-allowed }
   isolation: isolate
 }
 
-/* Board + keypad as one packed group (no margin-top:auto dead band) */
+/* Board above; equation + keypad pinned to bottom of dock */
 .play-dock {
   display: flex;
   flex-direction: column;
@@ -895,7 +895,7 @@ button:disabled { cursor: not-allowed }
 /* ── Board ── */
 .math-play {
   min-height: 0;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1207,6 +1207,7 @@ button:disabled { cursor: not-allowed }
 .equation-panel {
   width: 100%;
   margin-inline: auto;
+  margin-top: auto; /* pin equation + feedback above the keypad */
   flex: 0 0 auto;
   background: var(--surface);
   border-radius: 0.9rem;
@@ -1833,10 +1834,10 @@ button:disabled { cursor: not-allowed }
   .streak-segs { display: grid }
 }
 
-/* Tall canvases: keep board+keypad as one cluster, centered (kills middle void) */
+/* Tall canvases: board can use more height; controls stay bottom-pinned */
 @media (min-height: 780px) {
   .play-dock {
-    justify-content: center;
+    justify-content: flex-start;
     gap: clamp(0.35rem, 1.2svh, 0.75rem)
   }
   .board-stage {
