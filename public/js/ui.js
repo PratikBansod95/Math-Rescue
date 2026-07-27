@@ -349,9 +349,6 @@ function template() {
         </div>
         <div class="equation-field">
           <div data-input class="equation-input" data-empty="true" role="textbox" aria-readonly="true" aria-label="Your equation"></div>
-          <span class="equation-pencil" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="m5 16.5 9.8-9.8 2.5 2.5L7.5 19H5v-2.5Zm11.2-8.7 1.5-1.5a1.2 1.2 0 0 1 1.7 0l1.1 1.1a1.2 1.2 0 0 1 0 1.7l-1.5 1.5-2.8-2.8Z" fill="currentColor"/></svg>
-          </span>
         </div>
         <p class="equation-tip" data-equation-hint></p>
         <section class="correction-panel" data-correction hidden aria-live="polite"></section>
