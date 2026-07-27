@@ -68,14 +68,29 @@ button:disabled { cursor: not-allowed }
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  /* Adaptive scale — tuned for ~360×640 … 430×932 phones, grows on tablets */
+  --scale: clamp(0.84, 100svh / 760, 1.12);
+  --gap: clamp(0.18rem, 0.7svh, 0.42rem);
+  --chase-h: clamp(4.6rem, 11svh, 6.4rem);
+  --card-size: clamp(2.7rem, 4.2svh + 1.4rem, 4.4rem);
+  --target-size: clamp(3.6rem, 5.4svh + 1.6rem, 5.6rem);
+  --op-h: clamp(2.35rem, 5.6svh, 2.95rem);
+  --btn-h: clamp(2.45rem, 6svh, 3.1rem);
+  --hud-h: clamp(2.05rem, 4.8svh, 2.65rem);
+  --eq-h: clamp(2.35rem, 5.4svh, 3.05rem);
+  --fs-card: clamp(1.2rem, 2.2svh + 0.55rem, 2.05rem);
+  --fs-target: clamp(1.3rem, 2.6svh + 0.55rem, 2.45rem);
+  --fs-start: clamp(0.92rem, 1.5svh + 0.4rem, 1.35rem);
+  --fs-op: clamp(1.1rem, 2svh + 0.45rem, 1.4rem);
+  --fs-btn: clamp(0.68rem, 1.1svh + 0.3rem, 0.86rem);
   isolation: isolate;
   background: var(--bg);
   color: var(--ink);
   display: grid;
-  /* top-bar | chase (capped) | play-dock (flex) | footer */
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: .28rem;
-  padding: calc(.28rem + var(--safe-top)) calc(.4rem + var(--safe-right)) calc(.28rem + var(--safe-bottom)) calc(.4rem + var(--safe-left));
+  /* top-bar | chase | play-dock | footer */
+  grid-template-rows: auto var(--chase-h) minmax(0, 1fr) auto;
+  gap: var(--gap);
+  padding: calc(0.22rem * var(--scale) + var(--safe-top)) calc(0.4rem + var(--safe-right)) calc(0.22rem * var(--scale) + var(--safe-bottom)) calc(0.4rem + var(--safe-left));
   position: relative;
   overflow: hidden;
   container-type: size
@@ -124,33 +139,34 @@ button:disabled { cursor: not-allowed }
   z-index: 1
 }
 
-/* Top zone hosts the chase scene — capped so it never steals keypad space */
+/* Chase strip — height from --chase-h so board/keypad always keep room */
 .play-reserve {
   min-height: 0;
+  height: var(--chase-h);
+  max-height: var(--chase-h);
   width: 100%;
   display: flex;
   align-items: stretch;
   justify-content: center;
-  max-height: 5.25rem;
   overflow: hidden;
   position: relative;
   z-index: 3;
   isolation: isolate
 }
 
-/* Board + equation + keypad — flexible row */
+/* Board cluster + pinned controls — no dead gap between board and equation */
 .play-dock {
-  display: grid;
-  gap: .22rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--gap);
   width: min(100%, 28rem);
   margin-inline: auto;
   min-height: 0;
+  height: 100%;
   align-self: stretch;
-  align-content: start;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  padding-bottom: .05rem;
-  -webkit-overflow-scrolling: touch;
   position: relative;
   z-index: 1;
   isolation: isolate
@@ -163,9 +179,9 @@ button:disabled { cursor: not-allowed }
   margin-inline: auto;
   height: 100%;
   min-height: 0;
-  max-height: inherit;
-  aspect-ratio: 2.8 / 1;
-  border-radius: .85rem;
+  max-height: 100%;
+  aspect-ratio: unset;
+  border-radius: clamp(0.7rem, 1.5svh, 1rem);
   border: 1px solid rgba(148, 180, 220, .55);
   box-shadow:
     0 6px 14px rgba(26, 43, 74, .1),
@@ -205,15 +221,15 @@ button:disabled { cursor: not-allowed }
   display: grid;
   grid-template-columns: auto;
   align-items: center;
-  gap: .25rem;
-  padding: .3rem .4rem .05rem
+  gap: .2rem;
+  padding: clamp(0.2rem, 0.8svh, 0.35rem) clamp(0.3rem, 1.2vw, 0.45rem) 0
 }
 
 .chase-time {
   background: rgba(255, 255, 255, .92);
-  border-radius: .65rem;
-  padding: .2rem .45rem .22rem;
-  box-shadow: 0 4px 12px rgba(26, 43, 74, .1);
+  border-radius: .55rem;
+  padding: .12rem .4rem .14rem;
+  box-shadow: 0 3px 10px rgba(26, 43, 74, .1);
   border: 1px solid rgba(255, 255, 255, .8);
   min-width: 0;
   -webkit-backdrop-filter: blur(8px);
@@ -224,14 +240,14 @@ button:disabled { cursor: not-allowed }
   display: block;
   text-transform: uppercase;
   letter-spacing: .07em;
-  font-size: .52rem;
+  font-size: clamp(0.45rem, 1svh, 0.55rem);
   font-weight: 800;
   color: #c2410c
 }
 
 .chase-time strong {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: .92rem;
+  font-size: clamp(0.82rem, 1.8svh, 1.05rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -240,8 +256,8 @@ button:disabled { cursor: not-allowed }
 
 .chase-time__track {
   display: block;
-  margin-top: .25rem;
-  height: .32rem;
+  margin-top: .18rem;
+  height: .28rem;
   border-radius: 99px;
   background: #fecaca;
   overflow: hidden
@@ -267,20 +283,20 @@ button:disabled { cursor: not-allowed }
   --mouth-x: 24%;
   --safe-x: 90%;
   --cat-x: calc(var(--mouth-x) + (1 - var(--chase-progress)) * (var(--safe-x) - var(--mouth-x)));
-  /* feet on the conveyor top surface */
-  --belt-y: 10%;
+  /* feet planted on conveyor surface */
+  --belt-y: 7%;
   position: absolute;
   inset: auto 0 0 0;
-  height: 78%;
+  height: 82%;
   z-index: 3;
   pointer-events: none
 }
 
 .chase-shark {
   position: absolute;
-  left: -6%;
-  bottom: 0%;
-  width: clamp(3.4rem, 26cqw, 4.6rem);
+  left: -5%;
+  bottom: -2%;
+  width: clamp(3.2rem, 7svh + 0.8rem, 5.2rem);
   height: auto;
   display: block;
   z-index: 5;
@@ -294,9 +310,9 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   left: 22%;
   right: 5%;
-  bottom: 4%;
+  bottom: 3%;
   z-index: 2;
-  height: .65rem;
+  height: clamp(0.5rem, 1.2svh, 0.85rem);
   pointer-events: none;
   opacity: .88
 }
@@ -488,7 +504,7 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   left: var(--cat-x);
   bottom: var(--belt-y);
-  width: clamp(2.6rem, 14cqw, 3.6rem);
+  width: clamp(2.5rem, 5.2svh + 0.5rem, 4rem);
   z-index: 4;
   transform: translateX(-50%);
   transition: none;
@@ -654,15 +670,15 @@ button:disabled { cursor: not-allowed }
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: .28rem;
+  gap: clamp(0.18rem, 1.2vw, 0.4rem);
   min-width: 0;
   overflow: hidden
 }
 
 .icon-btn {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: .85rem;
+  width: var(--hud-h);
+  height: var(--hud-h);
+  border-radius: calc(var(--hud-h) * 0.38);
   background: var(--surface);
   color: var(--blue);
   box-shadow: var(--shadow-soft);
@@ -677,12 +693,12 @@ button:disabled { cursor: not-allowed }
 
 .stat-chip {
   background: var(--surface);
-  border-radius: .95rem;
-  min-height: 2.25rem;
-  padding: .28rem .45rem;
+  border-radius: calc(var(--hud-h) * 0.42);
+  min-height: var(--hud-h);
+  padding: 0.2rem 0.42rem;
   display: flex;
   align-items: center;
-  gap: .35rem;
+  gap: .32rem;
   box-shadow: var(--shadow-soft)
 }
 
@@ -702,7 +718,7 @@ button:disabled { cursor: not-allowed }
 
 .stat-chip strong {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1rem;
+  font-size: clamp(0.92rem, 1.5svh + 0.35rem, 1.15rem);
   font-weight: 700;
   line-height: 1;
   color: var(--ink)
@@ -710,8 +726,8 @@ button:disabled { cursor: not-allowed }
 
 .trophy-ico,
 .coin-ico {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: clamp(1.1rem, 2.4svh, 1.4rem);
+  height: clamp(1.1rem, 2.4svh, 1.4rem);
   display: grid;
   place-items: center;
   flex: 0 0 auto
@@ -743,8 +759,8 @@ button:disabled { cursor: not-allowed }
   background: var(--surface);
   border: 2px solid #9ec0ff;
   border-radius: 999px;
-  min-width: min(100%, 7.5rem);
-  padding: .28rem .7rem .32rem;
+  min-width: min(100%, 7.2rem);
+  padding: 0.22rem 0.65rem 0.26rem;
   text-align: center;
   box-shadow: 0 6px 16px rgba(47, 107, 255, .1)
 }
@@ -874,25 +890,25 @@ button:disabled { cursor: not-allowed }
 /* ── Board ── */
 .math-play {
   min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: .28rem;
-  overflow: hidden; /* never paint into the chase above */
+  justify-content: center;
+  gap: var(--gap);
+  overflow: hidden;
   position: relative;
   z-index: 1
 }
 
 .board-stage {
   position: relative;
-  width: min(100%, 18rem);
+  width: min(100%, calc(var(--card-size) * 3.15 + 1.5rem));
   margin-inline: auto;
-  min-height: 7.5rem;
-  max-height: 100%;
+  min-height: 0;
+  flex: 0 1 auto;
   display: grid;
   place-items: center;
-  overflow: hidden; /* clip orbit ring so it can't cover the chase */
-  flex: 0 0 auto
+  overflow: hidden;
 }
 
 .orbit-ring {
@@ -927,12 +943,11 @@ button:disabled { cursor: not-allowed }
 
 .card-cross {
   width: 100%;
-  min-height: inherit;
   display: grid;
   grid-template-rows: auto auto auto;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   place-items: center;
-  gap: .3rem .4rem;
+  gap: clamp(0.2rem, 0.8svh, 0.45rem) clamp(0.28rem, 1.5vw, 0.55rem);
   position: relative;
   z-index: 1
 }
@@ -941,12 +956,12 @@ button:disabled { cursor: not-allowed }
   grid-area: 2 / 2;
   position: relative;
   z-index: 2;
-  width: 4.1rem;
-  min-height: 4.1rem;
+  width: var(--target-size);
+  min-height: var(--target-size);
   border-radius: 50%;
   display: grid;
   place-content: center;
-  gap: .08rem;
+  gap: .06rem;
   color: #fff;
   background:
     radial-gradient(circle at 36% 28%, #3a5fc8 0%, #0b1a36 70%);
@@ -999,11 +1014,13 @@ button:disabled { cursor: not-allowed }
 }
 
 .target-badge__value--start {
-  font-size: 1.05rem;
-  letter-spacing: .08em;
+  font-size: var(--fs-start);
+  letter-spacing: .06em;
   text-transform: uppercase;
   color: #fff;
-  text-shadow: 0 0 14px rgba(125, 211, 252, .85)
+  text-shadow: 0 0 14px rgba(125, 211, 252, .85);
+  line-height: 1.05;
+  text-align: center
 }
 
 @keyframes start-breathe {
@@ -1032,7 +1049,7 @@ button:disabled { cursor: not-allowed }
 .target-badge__label {
   text-transform: uppercase;
   letter-spacing: .12em;
-  font-size: .48rem;
+  font-size: clamp(0.42rem, 0.9svh, 0.55rem);
   font-weight: 800;
   color: #c9d7ff;
   text-align: center
@@ -1040,7 +1057,7 @@ button:disabled { cursor: not-allowed }
 
 .target-badge__value {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.45rem;
+  font-size: var(--fs-target);
   font-weight: 700;
   line-height: .9;
   letter-spacing: -.04em;
@@ -1052,15 +1069,15 @@ button:disabled { cursor: not-allowed }
 .number-card {
   --accent: var(--blue);
   position: relative;
-  width: 3rem;
-  min-height: 3rem;
+  width: var(--card-size);
+  min-height: var(--card-size);
   display: grid;
   place-items: center;
   cursor: pointer;
   color: var(--accent);
   background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
   border: 2.5px solid var(--accent);
-  border-radius: 1rem;
+  border-radius: calc(var(--card-size) * 0.28);
   box-shadow:
     0 8px 16px rgba(26, 43, 74, .1),
     0 2px 0 rgba(255, 255, 255, .9) inset,
@@ -1078,16 +1095,16 @@ button:disabled { cursor: not-allowed }
 
 .number-card__tech {
   position: absolute;
-  width: 1.05rem;
-  height: 1.05rem;
+  width: calc(var(--card-size) * 0.32);
+  height: calc(var(--card-size) * 0.32);
   opacity: .28;
   pointer-events: none;
   color: var(--accent);
   z-index: 1
 }
 
-.number-card__tech--tr { top: .28rem; right: .28rem }
-.number-card__tech--bl { left: .28rem; bottom: .28rem; opacity: .22 }
+.number-card__tech--tr { top: .22rem; right: .22rem }
+.number-card__tech--bl { left: .22rem; bottom: .22rem; opacity: .22 }
 
 .number-card--top { grid-area: 1 / 2; --accent: #3b82f6 }
 .number-card--left { grid-area: 2 / 1; justify-self: end; --accent: #9063cd }
@@ -1096,11 +1113,11 @@ button:disabled { cursor: not-allowed }
 
 .number-card__badge {
   position: absolute;
-  top: .28rem;
-  left: .28rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  border-radius: .35rem;
+  top: .22rem;
+  left: .22rem;
+  width: calc(var(--card-size) * 0.32);
+  height: calc(var(--card-size) * 0.32);
+  border-radius: .32rem;
   display: grid;
   place-items: center;
   color: #fff;
@@ -1109,13 +1126,13 @@ button:disabled { cursor: not-allowed }
   z-index: 3
 }
 
-.number-card__badge svg { width: .65rem; height: .65rem }
+.number-card__badge svg { width: 55%; height: 55% }
 
 .card-value {
   position: relative;
   z-index: 2;
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.35rem;
+  font-size: var(--fs-card);
   font-weight: 700;
   color: var(--ink);
   line-height: 1
@@ -1144,10 +1161,17 @@ button:disabled { cursor: not-allowed }
 .number-card:active:not(:disabled) { transform: translateY(1px) scale(.98) }
 
 .number-card:disabled {
-  opacity: .34;
-  filter: grayscale(.4);
+  opacity: .55;
+  filter: grayscale(.15);
   transform: none;
-  box-shadow: none
+  box-shadow: 0 4px 10px rgba(26, 43, 74, .06)
+}
+
+/* Idle: cards wait for Start — still readable, not ghosted */
+.math-game[data-phase=ready] .number-card:disabled,
+.math-game[data-phase=idle] .number-card:disabled {
+  opacity: .62;
+  filter: none
 }
 
 .play-status {
@@ -1169,11 +1193,12 @@ button:disabled { cursor: not-allowed }
 .equation-panel {
   width: 100%;
   margin-inline: auto;
+  flex: 0 0 auto;
   background: var(--surface);
-  border-radius: 1.05rem;
-  padding: .4rem .55rem .45rem;
+  border-radius: 1rem;
+  padding: clamp(0.32rem, 0.9svh, 0.55rem) clamp(0.45rem, 1.5vw, 0.7rem);
   display: grid;
-  gap: .28rem;
+  gap: clamp(0.18rem, 0.6svh, 0.35rem);
   box-shadow: var(--shadow)
 }
 
@@ -1225,13 +1250,13 @@ button:disabled { cursor: not-allowed }
 .equation-field { position: relative }
 
 .equation-input {
-  min-height: 2.45rem;
+  min-height: var(--eq-h);
   border-radius: .85rem;
   border: 1.5px solid #d7e4f7;
   background: #f3f7fd;
-  padding: .5rem 2.2rem .5rem .75rem;
+  padding: 0.4rem 2.1rem 0.4rem 0.7rem;
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.05rem;
+  font-size: clamp(1rem, 1.6svh + 0.45rem, 1.28rem);
   font-weight: 650;
   color: var(--ink);
   display: flex;
@@ -1270,8 +1295,9 @@ button:disabled { cursor: not-allowed }
   margin-inline: auto;
   text-align: center;
   min-height: 0;
+  flex: 0 0 auto;
   display: grid;
-  gap: .12rem;
+  gap: .08rem;
   align-content: center
 }
 
@@ -1318,23 +1344,24 @@ button:disabled { cursor: not-allowed }
 .control-deck {
   width: 100%;
   margin-inline: auto;
+  flex: 0 0 auto;
   display: grid;
-  gap: .32rem
+  gap: clamp(0.28rem, 0.9svh, 0.45rem)
 }
 
 .operator-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: .28rem
+  gap: clamp(0.22rem, 1vw, 0.38rem)
 }
 
 .operator-button {
-  min-height: 2.4rem;
-  border-radius: .85rem;
+  min-height: var(--op-h);
+  border-radius: .8rem;
   background: linear-gradient(180deg, #ffffff, #f5f8fd);
   color: var(--blue);
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.15rem;
+  font-size: var(--fs-op);
   font-weight: 700;
   box-shadow: 0 6px 12px rgba(26, 43, 74, .06);
   border: 1px solid #edf2fa;
@@ -1351,27 +1378,34 @@ button:disabled { cursor: not-allowed }
 
 .operator-button--back svg { width: 1.2rem; height: 1.2rem }
 .operator-button:active:not(:disabled) { transform: translateY(1px) }
-.operator-button:disabled { opacity: .4 }
+.operator-button:disabled { opacity: .55 }
+
+.math-game[data-phase=ready] .operator-button:disabled,
+.math-game[data-phase=ready] .btn-clear:disabled,
+.math-game[data-phase=ready] .btn-submit:disabled,
+.math-game[data-phase=ready] .btn-hint:disabled {
+  opacity: .72
+}
 
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1.55fr 1fr;
-  gap: .35rem
+  gap: clamp(0.28rem, 1.2vw, 0.45rem)
 }
 
 .btn-clear,
 .btn-submit,
 .btn-hint {
-  min-height: 2.5rem;
+  min-height: var(--btn-h);
   border-radius: 999px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: .05em;
-  font-size: .72rem;
+  letter-spacing: .04em;
+  font-size: var(--fs-btn);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .3rem;
+  gap: .28rem;
   cursor: pointer;
   position: relative;
   transition: transform .12s ease, box-shadow .12s ease
@@ -1577,8 +1611,8 @@ button:disabled { cursor: not-allowed }
   background: linear-gradient(180deg, #4ade80, #16a34a);
   color: #fff;
   border-color: transparent;
-  min-height: 2.85rem;
-  font-size: .95rem
+  min-height: var(--btn-h);
+  font-size: clamp(0.9rem, 1.4svh + 0.4rem, 1.05rem)
 }
 .math-game[data-phase=review] .hint-badge { display: none }
 .math-game[data-phase=review] .correction-panel { max-height: 5rem }
@@ -1777,106 +1811,109 @@ button:disabled { cursor: not-allowed }
   outline: 3px solid rgba(91, 140, 255, .55)
 }
 
-/* ── Scale UP from mobile-first base ── */
-@media (min-width: 420px) {
-  .math-game { gap: .35rem; padding-inline: .6rem }
+/* ── Adaptive chrome (tokens already scale; this only shows extras) ── */
+@media (min-width: 480px) {
   .stat-chip--streak small { display: block }
   .streak-segs { display: grid }
-  .icon-btn { width: 2.5rem; height: 2.5rem }
-  .stat-chip { min-height: 2.45rem; padding: .32rem .55rem }
-  .stat-chip strong { font-size: 1.08rem }
-  .board-stage { width: min(100%, 20rem); min-height: 8.5rem }
-  .target-badge { width: 4.6rem; min-height: 4.6rem }
-  .target-badge__value { font-size: 1.65rem }
-  .number-card { width: 3.5rem; min-height: 3.5rem }
-  .card-value { font-size: 1.55rem }
-  .operator-button { min-height: 2.65rem; font-size: 1.25rem }
-  .btn-clear,
-  .btn-submit,
-  .btn-hint { min-height: 2.7rem; font-size: .78rem }
 }
 
-@media (min-width: 540px) {
+@media (min-width: 560px) {
   .stat-chip--timer { display: flex }
   .level-track { display: flex }
   .orbit-ring { display: block }
   .equation-panel__head { display: flex }
-  .play-footer { display: grid }
-  .play-reserve { max-height: 6.5rem }
-  .chase-panel { border-radius: 1rem }
-  .chase-shark { width: clamp(4.2rem, 28cqw, 6rem) }
-  .chase-cat { width: clamp(3.2rem, 15cqw, 4.4rem) }
-  .board-stage { width: min(100%, 22rem); min-height: 10rem }
-  .card-cross { gap: .45rem .6rem }
-  .target-badge { width: 5.4rem; min-height: 5.4rem }
-  .target-badge__value { font-size: 2rem }
-  .target-badge__label { font-size: .55rem }
-  .number-card {
-    width: 4.6rem;
-    min-height: 4.6rem;
-    border-width: 3px;
-    border-radius: 1.25rem
-  }
-  .card-value { font-size: 1.9rem }
-  .number-card__badge { width: 1.25rem; height: 1.25rem }
-  .equation-panel { padding: .65rem .75rem; gap: .4rem; border-radius: 1.25rem }
-  .equation-input { min-height: 3rem; font-size: 1.2rem; padding: .7rem 2.5rem .7rem .9rem }
   .equation-tip { display: flex }
-  .operator-button { min-height: 2.9rem; font-size: 1.35rem }
-  .btn-clear,
-  .btn-submit,
-  .btn-hint { min-height: 3rem; font-size: .82rem }
-  .correction-panel { max-height: 6rem }
-  .math-game[data-phase=review] .board-stage { display: grid; min-height: 7rem }
-  .math-game[data-phase=review] .number-card { width: 3.2rem; min-height: 3.2rem }
-  .math-game[data-phase=review] .target-badge { width: 3.8rem; min-height: 3.8rem }
+  .play-footer { display: grid }
+  .math-game {
+    --chase-h: clamp(5.5rem, 12svh, 7.5rem);
+    --card-size: clamp(3.6rem, 5svh + 1.6rem, 5.4rem);
+    --target-size: clamp(4.6rem, 6.2svh + 1.8rem, 6.4rem);
+  }
+  .math-game[data-phase=review] .board-stage { display: grid }
+  .math-game[data-phase=review] .number-card {
+    width: calc(var(--card-size) * 0.72);
+    min-height: calc(var(--card-size) * 0.72)
+  }
+  .math-game[data-phase=review] .target-badge {
+    width: calc(var(--target-size) * 0.72);
+    min-height: calc(var(--target-size) * 0.72)
+  }
 }
 
-@media (min-height: 780px) {
-  .play-reserve { max-height: 6.75rem }
-  .chase-shark { width: clamp(4rem, 28cqw, 5.8rem) }
-  .chase-cat { width: clamp(3rem, 15cqw, 4.2rem) }
-  .board-stage { min-height: 9.5rem }
+/* Short phones — keep keypad reachable */
+@media (max-height: 680px) {
+  .math-game {
+    --chase-h: clamp(4.2rem, 10svh, 5.2rem);
+    --card-size: clamp(2.5rem, 3.6svh + 1.2rem, 3.4rem);
+    --target-size: clamp(3.3rem, 4.6svh + 1.3rem, 4.4rem);
+    --op-h: clamp(2.2rem, 5.2svh, 2.55rem);
+    --btn-h: clamp(2.3rem, 5.5svh, 2.65rem);
+    --eq-h: clamp(2.2rem, 5svh, 2.55rem);
+    --hud-h: clamp(1.95rem, 4.4svh, 2.3rem);
+  }
+  .chase-stage { --belt-y: 6% }
+  .correction-panel { max-height: 3.2rem }
 }
 
-@media (min-width: 540px) and (min-height: 820px) {
-  .play-reserve { max-height: 8rem }
-  .chase-panel { aspect-ratio: 2.5 / 1 }
-  .chase-shark { width: clamp(5.5rem, 32cqw, 8rem); left: -8% }
-  .chase-cat { width: clamp(4rem, 18cqw, 5.8rem) }
-  .chase-stage { --belt-y: 11%; --mouth-x: 22%; --safe-x: 88% }
-  .chase-rail { height: 1rem; bottom: 5% }
-  .board-stage { min-height: clamp(11rem, 28cqh, 14rem) }
-  .target-badge { width: clamp(5.6rem, 18cqw, 7rem); min-height: clamp(5.6rem, 18cqw, 7rem) }
-  .target-badge__value { font-size: clamp(2.1rem, 8cqw, 2.8rem) }
-  .number-card { width: clamp(5rem, 18cqw, 6.2rem); min-height: clamp(5rem, 18cqw, 6.2rem) }
-  .card-value { font-size: clamp(2rem, 7.5cqw, 2.7rem) }
+@media (max-height: 600px) {
+  .math-game {
+    --chase-h: 4rem;
+    --card-size: 2.45rem;
+    --target-size: 3.2rem;
+    --gap: 0.14rem
+  }
+  .feedback-line small { display: none }
+  .number-card__tech { display: none }
+  .number-card__badge { width: 0.9rem; height: 0.9rem; top: .15rem; left: .15rem }
 }
 
-/* Ultra-short phones / landscape — keep chase tiny, never overlap board */
-@media (max-height: 560px) and (orientation: landscape) {
-  .play-reserve,
-  .chase-panel { max-height: 4.2rem }
-  .chase-shark { width: 3rem }
-  .chase-cat { width: 2.3rem }
-  .board-stage { min-height: 6.5rem }
-  .play-footer { display: none !important }
-}
-
+/* Narrow phones */
 @media (max-width: 360px) {
-  .top-bar { gap: .18rem }
-  .icon-btn { width: 2.05rem; height: 2.05rem }
-  .stat-chip { min-height: 2.05rem; padding: .22rem .35rem }
-  .stat-chip strong { font-size: .92rem }
-  .level-pill { padding: .22rem .4rem }
-  .level-pill strong { font-size: .82rem }
-  .board-stage { min-height: 6.8rem }
-  .target-badge { width: 3.7rem; min-height: 3.7rem }
-  .target-badge__value { font-size: 1.3rem }
-  .number-card { width: 2.7rem; min-height: 2.7rem }
-  .card-value { font-size: 1.2rem }
-  .operator-button { min-height: 2.25rem; font-size: 1.05rem }
-  .btn-clear,
-  .btn-submit,
-  .btn-hint { min-height: 2.35rem; font-size: .68rem }
+  .top-bar { gap: .14rem }
+  .level-pill { min-width: 0; padding: 0.18rem 0.4rem }
+  .level-pill strong { font-size: 0.8rem }
+  .stat-chip--coins .coin-plus { display: none }
+}
+
+/* Landscape phones */
+@media (max-height: 560px) and (orientation: landscape) {
+  .math-game {
+    --chase-h: 3.6rem;
+    --card-size: 2.3rem;
+    --target-size: 3rem;
+    --op-h: 2.1rem;
+    --btn-h: 2.2rem;
+    --gap: 0.12rem
+  }
+  .play-footer { display: none !important }
+  .chase-shark { width: 2.8rem }
+  .chase-cat { width: 2.1rem }
+}
+
+/* Large / desktop canvas */
+@media (min-width: 768px) and (min-height: 840px) {
+  .math-game {
+    --chase-h: clamp(6.5rem, 14svh, 8.5rem);
+    --card-size: clamp(4.4rem, 6svh + 1.8rem, 6rem);
+    --target-size: clamp(5.4rem, 7svh + 2rem, 7rem);
+    --op-h: 3rem;
+    --btn-h: 3.15rem
+  }
+  .chase-stage { --belt-y: 9%; --mouth-x: 22%; --safe-x: 88% }
+  .chase-rail { height: 0.95rem; bottom: 4% }
+}
+
+/* svh fallback for older WebViews */
+@supports not (height: 1svh) {
+  .math-game {
+    --scale: clamp(0.84, 100vh / 760, 1.12);
+    --gap: clamp(0.18rem, 0.7vh, 0.42rem);
+    --chase-h: clamp(4.6rem, 11vh, 6.4rem);
+    --card-size: clamp(2.7rem, 4.2vh + 1.4rem, 4.4rem);
+    --target-size: clamp(3.6rem, 5.4vh + 1.6rem, 5.6rem);
+    --op-h: clamp(2.35rem, 5.6vh, 2.95rem);
+    --btn-h: clamp(2.45rem, 6vh, 3.1rem);
+    --hud-h: clamp(2.05rem, 4.8vh, 2.65rem);
+    --eq-h: clamp(2.35rem, 5.4vh, 3.05rem)
+  }
 }
