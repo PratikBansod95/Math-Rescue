@@ -1990,10 +1990,10 @@ button:disabled { cursor: not-allowed }
     --card-size: clamp(7.6rem, min(28cqw, 40cqh), 10.8rem);
     --target-size: clamp(9.6rem, min(34cqw, 52cqh), 12.8rem)
   }
-  .chase-stage { --belt-y: 38%; --mouth-x: 20%; --safe-x: 78% }
+  .chase-stage { --belt-y: 14%; --mouth-x: 20%; --safe-x: 76% }
   .chase-rail { height: 0.65rem; bottom: 6% }
   .chase-shark { width: clamp(5rem, 22%, 7rem); left: 1% }
-  .chase-cat { width: clamp(4.4rem, 14%, 5.8rem) }
+  .chase-cat { width: clamp(4.6rem, 16%, 6rem) }
 }
 
 /* svh fallback for older WebViews */
