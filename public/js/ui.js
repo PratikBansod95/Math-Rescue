@@ -308,10 +308,6 @@ function template() {
             <i class="chase-shark__tear chase-shark__tear--c" aria-hidden="true"></i>
           </div>
         </div>
-        <div class="chase-clock" role="timer" aria-label="Time left">
-          <span class="chase-clock__label">Time</span>
-          <strong class="chase-clock__value" data-chase-timer>0:45</strong>
-        </div>
         <div class="chase-rail" data-chase-rail aria-hidden="true">
           <div class="chase-rail__shell">
             <div class="chase-rail__track">
@@ -327,6 +323,10 @@ function template() {
           </div>
         </div>
       </section>
+      <div class="chase-clock" data-chase-clock role="timer" aria-label="Time left">
+        <span class="chase-clock__label">Time</span>
+        <strong class="chase-clock__value" data-chase-timer>0:45</strong>
+      </div>
     </div>
 
     <div class="play-dock">
