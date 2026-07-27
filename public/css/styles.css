@@ -68,21 +68,21 @@ button:disabled { cursor: not-allowed }
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  /* Adaptive scale — tuned for ~360×640 … 430×932 phones, grows on tablets */
-  --scale: clamp(0.84, 100svh / 760, 1.12);
-  --gap: clamp(0.18rem, 0.7svh, 0.42rem);
-  --chase-h: clamp(4.6rem, 11svh, 6.4rem);
-  --card-size: clamp(2.7rem, 4.2svh + 1.4rem, 4.4rem);
-  --target-size: clamp(3.6rem, 5.4svh + 1.6rem, 5.6rem);
-  --op-h: clamp(2.35rem, 5.6svh, 2.95rem);
-  --btn-h: clamp(2.45rem, 6svh, 3.1rem);
-  --hud-h: clamp(2.05rem, 4.8svh, 2.65rem);
-  --eq-h: clamp(2.35rem, 5.4svh, 3.05rem);
-  --fs-card: clamp(1.2rem, 2.2svh + 0.55rem, 2.05rem);
-  --fs-target: clamp(1.3rem, 2.6svh + 0.55rem, 2.45rem);
-  --fs-start: clamp(0.92rem, 1.5svh + 0.4rem, 1.35rem);
-  --fs-op: clamp(1.1rem, 2svh + 0.45rem, 1.4rem);
-  --fs-btn: clamp(0.68rem, 1.1svh + 0.3rem, 0.86rem);
+  /* Phone-first height budget — hard caps (no tall-svh growth) */
+  --scale: 1;
+  --gap: 0.2rem;
+  --chase-h: 4.25rem;
+  --card-size: clamp(2.4rem, 18cqw, 3.1rem);
+  --target-size: clamp(3.2rem, 24cqw, 4.1rem);
+  --op-h: 2.2rem;
+  --btn-h: 2.35rem;
+  --hud-h: 2rem;
+  --eq-h: 2.2rem;
+  --fs-card: clamp(1.1rem, 7cqw, 1.45rem);
+  --fs-target: clamp(1.2rem, 9cqw, 1.75rem);
+  --fs-start: clamp(0.78rem, 5.5cqw, 1.05rem);
+  --fs-op: 1.15rem;
+  --fs-btn: 0.7rem;
   isolation: isolate;
   background: var(--bg);
   color: var(--ink);
@@ -90,7 +90,11 @@ button:disabled { cursor: not-allowed }
   /* top-bar | chase | play-dock | footer */
   grid-template-rows: auto var(--chase-h) minmax(0, 1fr) auto;
   gap: var(--gap);
-  padding: calc(0.22rem * var(--scale) + var(--safe-top)) calc(0.4rem + var(--safe-right)) calc(0.22rem * var(--scale) + var(--safe-bottom)) calc(0.4rem + var(--safe-left));
+  padding:
+    calc(0.2rem + var(--safe-top))
+    calc(0.4rem + var(--safe-right))
+    max(0.35rem, var(--safe-bottom))
+    calc(0.4rem + var(--safe-left));
   position: relative;
   overflow: hidden;
   container-type: size
@@ -154,11 +158,11 @@ button:disabled { cursor: not-allowed }
   isolation: isolate
 }
 
-/* Board cluster + pinned controls — no dead gap between board and equation */
+/* Board cluster + controls pinned bottom — pack from top, no dead gap */
 .play-dock {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--gap);
   width: min(100%, 28rem);
   margin-inline: auto;
@@ -280,11 +284,11 @@ button:disabled { cursor: not-allowed }
 
 .chase-stage {
   /* Shared chase geometry: progress 0 = safe right, 1 = mouth */
-  --mouth-x: 24%;
-  --safe-x: 90%;
+  --mouth-x: 22%;
+  --safe-x: 84%;
   --cat-x: calc(var(--mouth-x) + (1 - var(--chase-progress)) * (var(--safe-x) - var(--mouth-x)));
   /* feet planted on conveyor surface */
-  --belt-y: 7%;
+  --belt-y: 6%;
   position: absolute;
   inset: auto 0 0 0;
   height: 82%;
@@ -294,13 +298,13 @@ button:disabled { cursor: not-allowed }
 
 .chase-shark {
   position: absolute;
-  left: -5%;
-  bottom: -2%;
-  width: clamp(3.2rem, 7svh + 0.8rem, 5.2rem);
+  left: -4%;
+  bottom: -4%;
+  width: clamp(2.8rem, 55%, 4.2rem);
   height: auto;
   display: block;
   z-index: 5;
-  filter: drop-shadow(0 6px 10px rgba(30, 64, 175, .28));
+  filter: drop-shadow(0 4px 8px rgba(30, 64, 175, .28));
   transform-origin: 55% 55%;
   animation: shark-bob 2.4s ease-in-out infinite
 }
@@ -308,11 +312,11 @@ button:disabled { cursor: not-allowed }
 /* Danger meter on the belt face under the cat */
 .chase-rail {
   position: absolute;
-  left: 22%;
-  right: 5%;
-  bottom: 3%;
+  left: 20%;
+  right: 8%;
+  bottom: 2%;
   z-index: 2;
-  height: clamp(0.5rem, 1.2svh, 0.85rem);
+  height: 0.55rem;
   pointer-events: none;
   opacity: .88
 }
@@ -504,11 +508,11 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   left: var(--cat-x);
   bottom: var(--belt-y);
-  width: clamp(2.5rem, 5.2svh + 0.5rem, 4rem);
+  width: clamp(2.2rem, 38%, 3.2rem);
   z-index: 4;
   transform: translateX(-50%);
   transition: none;
-  filter: drop-shadow(0 6px 10px rgba(15, 23, 42, .32));
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, .32));
   will-change: left, transform
 }
 
@@ -893,7 +897,7 @@ button:disabled { cursor: not-allowed }
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--gap);
   overflow: hidden;
   position: relative;
@@ -901,14 +905,22 @@ button:disabled { cursor: not-allowed }
 }
 
 .board-stage {
+  --card-size: clamp(2.35rem, min(17cqw, 26cqh), 3.05rem);
+  --target-size: clamp(3.1rem, min(22cqw, 34cqh), 4rem);
+  --fs-card: clamp(1.05rem, 6.5cqw, 1.4rem);
+  --fs-target: clamp(1.15rem, 8cqw, 1.7rem);
+  --fs-start: clamp(0.72rem, 5cqw, 1rem);
   position: relative;
-  width: min(100%, calc(var(--card-size) * 3.15 + 1.5rem));
+  width: min(100%, 17.5rem);
+  height: min(36svh, 11.75rem);
+  max-height: min(36svh, 11.75rem);
   margin-inline: auto;
   min-height: 0;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   overflow: hidden;
+  container-type: size
 }
 
 .orbit-ring {
@@ -947,7 +959,7 @@ button:disabled { cursor: not-allowed }
   grid-template-rows: auto auto auto;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   place-items: center;
-  gap: clamp(0.2rem, 0.8svh, 0.45rem) clamp(0.28rem, 1.5vw, 0.55rem);
+  gap: 0.18rem 0.28rem;
   position: relative;
   z-index: 1
 }
@@ -994,11 +1006,11 @@ button:disabled { cursor: not-allowed }
 
 .target-badge--start:hover:not(:disabled) {
   animation-play-state: paused;
-  transform: scale(1.07);
+  transform: scale(1.04);
   box-shadow:
     0 0 0 3px #a5e4ff,
-    0 0 34px rgba(125, 211, 252, .78),
-    0 16px 32px rgba(10, 25, 49, .34),
+    0 0 28px rgba(125, 211, 252, .7),
+    0 12px 26px rgba(10, 25, 49, .32),
     inset 0 1px 0 rgba(255, 255, 255, .25)
 }
 
@@ -1033,11 +1045,11 @@ button:disabled { cursor: not-allowed }
       inset 0 1px 0 rgba(255, 255, 255, .2)
   }
   50% {
-    transform: scale(1.07);
+    transform: scale(1.04);
     box-shadow:
-      0 0 0 4px #9fe0ff,
-      0 0 36px rgba(125, 211, 252, .78),
-      0 16px 34px rgba(10, 25, 49, .34),
+      0 0 0 3px #9fe0ff,
+      0 0 28px rgba(125, 211, 252, .65),
+      0 14px 30px rgba(10, 25, 49, .32),
       inset 0 1px 0 rgba(255, 255, 255, .28)
   }
 }
@@ -1195,10 +1207,10 @@ button:disabled { cursor: not-allowed }
   margin-inline: auto;
   flex: 0 0 auto;
   background: var(--surface);
-  border-radius: 1rem;
-  padding: clamp(0.32rem, 0.9svh, 0.55rem) clamp(0.45rem, 1.5vw, 0.7rem);
+  border-radius: 0.9rem;
+  padding: 0.28rem 0.5rem;
   display: grid;
-  gap: clamp(0.18rem, 0.6svh, 0.35rem);
+  gap: 0.15rem;
   box-shadow: var(--shadow)
 }
 
@@ -1297,15 +1309,15 @@ button:disabled { cursor: not-allowed }
   min-height: 0;
   flex: 0 0 auto;
   display: grid;
-  gap: .08rem;
+  gap: .04rem;
   align-content: center
 }
 
 .feedback-line[hidden] { display: none !important }
 
 .feedback-line strong {
-  font-size: .92rem;
-  line-height: 1.25;
+  font-size: .82rem;
+  line-height: 1.2;
   color: var(--ink)
 }
 
@@ -1315,7 +1327,7 @@ button:disabled { cursor: not-allowed }
 
 .feedback-line small {
   color: var(--muted);
-  font-size: .76rem;
+  font-size: .68rem;
   font-weight: 650
 }
 
@@ -1344,26 +1356,28 @@ button:disabled { cursor: not-allowed }
 .control-deck {
   width: 100%;
   margin-inline: auto;
+  margin-top: auto;
   flex: 0 0 auto;
   display: grid;
-  gap: clamp(0.28rem, 0.9svh, 0.45rem)
+  gap: 0.28rem;
+  padding-bottom: 0.1rem
 }
 
 .operator-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: clamp(0.22rem, 1vw, 0.38rem)
+  gap: 0.22rem
 }
 
 .operator-button {
   min-height: var(--op-h);
-  border-radius: .8rem;
+  border-radius: .7rem;
   background: linear-gradient(180deg, #ffffff, #f5f8fd);
   color: var(--blue);
   font-family: "Space Grotesk", Quicksand, sans-serif;
   font-size: var(--fs-op);
   font-weight: 700;
-  box-shadow: 0 6px 12px rgba(26, 43, 74, .06);
+  box-shadow: 0 4px 10px rgba(26, 43, 74, .06);
   border: 1px solid #edf2fa;
   border-bottom: 2px solid #d7e3f5;
   cursor: pointer;
@@ -1376,21 +1390,21 @@ button:disabled { cursor: not-allowed }
   place-items: center
 }
 
-.operator-button--back svg { width: 1.2rem; height: 1.2rem }
+.operator-button--back svg { width: 1.05rem; height: 1.05rem }
 .operator-button:active:not(:disabled) { transform: translateY(1px) }
-.operator-button:disabled { opacity: .55 }
+.operator-button:disabled { opacity: .7 }
 
 .math-game[data-phase=ready] .operator-button:disabled,
 .math-game[data-phase=ready] .btn-clear:disabled,
 .math-game[data-phase=ready] .btn-submit:disabled,
 .math-game[data-phase=ready] .btn-hint:disabled {
-  opacity: .72
+  opacity: .85
 }
 
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1.55fr 1fr;
-  gap: clamp(0.28rem, 1.2vw, 0.45rem)
+  gap: 0.28rem
 }
 
 .btn-clear,
@@ -1400,12 +1414,12 @@ button:disabled { cursor: not-allowed }
   border-radius: 999px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: .03em;
   font-size: var(--fs-btn);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .28rem;
+  gap: .22rem;
   cursor: pointer;
   position: relative;
   transition: transform .12s ease, box-shadow .12s ease
@@ -1811,7 +1825,7 @@ button:disabled { cursor: not-allowed }
   outline: 3px solid rgba(91, 140, 255, .55)
 }
 
-/* ── Adaptive chrome (tokens already scale; this only shows extras) ── */
+/* ── Adaptive chrome — scale UP only on larger canvases ── */
 @media (min-width: 480px) {
   .stat-chip--streak small { display: block }
   .streak-segs { display: grid }
@@ -1825,10 +1839,28 @@ button:disabled { cursor: not-allowed }
   .equation-tip { display: flex }
   .play-footer { display: grid }
   .math-game {
-    --chase-h: clamp(5.5rem, 12svh, 7.5rem);
-    --card-size: clamp(3.6rem, 5svh + 1.6rem, 5.4rem);
-    --target-size: clamp(4.6rem, 6.2svh + 1.8rem, 6.4rem);
+    --gap: 0.32rem;
+    --chase-h: 5.5rem;
+    --card-size: clamp(3.4rem, 16cqw, 4.8rem);
+    --target-size: clamp(4.4rem, 20cqw, 5.8rem);
+    --op-h: 2.7rem;
+    --btn-h: 2.9rem;
+    --eq-h: 2.75rem;
+    --hud-h: 2.4rem;
+    --fs-card: clamp(1.5rem, 6cqw, 2rem);
+    --fs-target: clamp(1.7rem, 7cqw, 2.3rem);
+    --fs-start: 1.2rem;
+    --fs-op: 1.3rem;
+    --fs-btn: 0.8rem
   }
+  .board-stage {
+    width: min(100%, 22rem);
+    height: min(42svh, 15rem);
+    max-height: min(42svh, 15rem);
+    --card-size: clamp(3.4rem, min(16cqw, 24cqh), 4.8rem);
+    --target-size: clamp(4.4rem, min(20cqw, 30cqh), 5.8rem)
+  }
+  .card-cross { gap: 0.35rem 0.5rem }
   .math-game[data-phase=review] .board-stage { display: grid }
   .math-game[data-phase=review] .number-card {
     width: calc(var(--card-size) * 0.72);
@@ -1838,82 +1870,106 @@ button:disabled { cursor: not-allowed }
     width: calc(var(--target-size) * 0.72);
     min-height: calc(var(--target-size) * 0.72)
   }
+  .chase-stage { --safe-x: 86%; --belt-y: 8% }
+  .chase-shark { width: clamp(4rem, 50%, 6rem) }
+  .chase-cat { width: clamp(3rem, 36%, 4.4rem) }
 }
 
-/* Short phones — keep keypad reachable */
+/* Short phones — tighter budget */
 @media (max-height: 680px) {
   .math-game {
-    --chase-h: clamp(4.2rem, 10svh, 5.2rem);
-    --card-size: clamp(2.5rem, 3.6svh + 1.2rem, 3.4rem);
-    --target-size: clamp(3.3rem, 4.6svh + 1.3rem, 4.4rem);
-    --op-h: clamp(2.2rem, 5.2svh, 2.55rem);
-    --btn-h: clamp(2.3rem, 5.5svh, 2.65rem);
-    --eq-h: clamp(2.2rem, 5svh, 2.55rem);
-    --hud-h: clamp(1.95rem, 4.4svh, 2.3rem);
+    --chase-h: 3.9rem;
+    --op-h: 2.05rem;
+    --btn-h: 2.2rem;
+    --eq-h: 2.05rem;
+    --hud-h: 1.9rem;
+    --gap: 0.14rem
   }
-  .chase-stage { --belt-y: 6% }
-  .correction-panel { max-height: 3.2rem }
+  .board-stage {
+    height: min(32svh, 10.25rem);
+    max-height: min(32svh, 10.25rem)
+  }
+  .chase-stage { --belt-y: 5%; --safe-x: 82% }
+  .correction-panel { max-height: 2.8rem }
+  .feedback-line small { display: none }
 }
 
 @media (max-height: 600px) {
   .math-game {
-    --chase-h: 4rem;
-    --card-size: 2.45rem;
-    --target-size: 3.2rem;
-    --gap: 0.14rem
+    --chase-h: 3.5rem;
+    --op-h: 1.95rem;
+    --btn-h: 2.05rem;
+    --eq-h: 1.95rem;
+    --gap: 0.1rem
   }
-  .feedback-line small { display: none }
+  .board-stage {
+    height: min(28svh, 9rem);
+    max-height: min(28svh, 9rem)
+  }
   .number-card__tech { display: none }
-  .number-card__badge { width: 0.9rem; height: 0.9rem; top: .15rem; left: .15rem }
+  .number-card__badge { width: 0.85rem; height: 0.85rem; top: .12rem; left: .12rem }
+  .welcome-card small { display: none }
 }
 
 /* Narrow phones */
 @media (max-width: 360px) {
-  .top-bar { gap: .14rem }
-  .level-pill { min-width: 0; padding: 0.18rem 0.4rem }
-  .level-pill strong { font-size: 0.8rem }
+  .top-bar { gap: .12rem }
+  .level-pill { min-width: 0; padding: 0.16rem 0.35rem }
+  .level-pill strong { font-size: 0.78rem }
   .stat-chip--coins .coin-plus { display: none }
+  .board-stage { width: min(100%, 16rem) }
 }
 
 /* Landscape phones */
 @media (max-height: 560px) and (orientation: landscape) {
   .math-game {
-    --chase-h: 3.6rem;
-    --card-size: 2.3rem;
-    --target-size: 3rem;
-    --op-h: 2.1rem;
-    --btn-h: 2.2rem;
-    --gap: 0.12rem
+    --chase-h: 3.2rem;
+    --op-h: 1.9rem;
+    --btn-h: 2rem;
+    --gap: 0.1rem
+  }
+  .board-stage {
+    height: 8rem;
+    max-height: 8rem
   }
   .play-footer { display: none !important }
-  .chase-shark { width: 2.8rem }
-  .chase-cat { width: 2.1rem }
+  .chase-shark { width: 2.6rem }
+  .chase-cat { width: 2rem }
+  .chase-stage { --safe-x: 80% }
 }
 
 /* Large / desktop canvas */
 @media (min-width: 768px) and (min-height: 840px) {
   .math-game {
-    --chase-h: clamp(6.5rem, 14svh, 8.5rem);
-    --card-size: clamp(4.4rem, 6svh + 1.8rem, 6rem);
-    --target-size: clamp(5.4rem, 7svh + 2rem, 7rem);
+    --chase-h: 6.75rem;
     --op-h: 3rem;
-    --btn-h: 3.15rem
+    --btn-h: 3.1rem;
+    --eq-h: 3rem;
+    --gap: 0.4rem
   }
-  .chase-stage { --belt-y: 9%; --mouth-x: 22%; --safe-x: 88% }
-  .chase-rail { height: 0.95rem; bottom: 4% }
+  .board-stage {
+    width: min(100%, 24rem);
+    height: min(46svh, 17rem);
+    max-height: min(46svh, 17rem);
+    --card-size: clamp(4.2rem, min(15cqw, 22cqh), 5.8rem);
+    --target-size: clamp(5.2rem, min(18cqw, 28cqh), 6.8rem)
+  }
+  .chase-stage { --belt-y: 9%; --mouth-x: 22%; --safe-x: 86% }
+  .chase-rail { height: 0.9rem; bottom: 4% }
+  .chase-shark { width: clamp(5rem, 48%, 7.5rem) }
+  .chase-cat { width: clamp(3.6rem, 34%, 5.2rem) }
 }
 
 /* svh fallback for older WebViews */
 @supports not (height: 1svh) {
-  .math-game {
-    --scale: clamp(0.84, 100vh / 760, 1.12);
-    --gap: clamp(0.18rem, 0.7vh, 0.42rem);
-    --chase-h: clamp(4.6rem, 11vh, 6.4rem);
-    --card-size: clamp(2.7rem, 4.2vh + 1.4rem, 4.4rem);
-    --target-size: clamp(3.6rem, 5.4vh + 1.6rem, 5.6rem);
-    --op-h: clamp(2.35rem, 5.6vh, 2.95rem);
-    --btn-h: clamp(2.45rem, 6vh, 3.1rem);
-    --hud-h: clamp(2.05rem, 4.8vh, 2.65rem);
-    --eq-h: clamp(2.35rem, 5.4vh, 3.05rem)
+  .board-stage {
+    height: min(36vh, 11.75rem);
+    max-height: min(36vh, 11.75rem)
+  }
+  @media (max-height: 680px) {
+    .board-stage {
+      height: min(32vh, 10.25rem);
+      max-height: min(32vh, 10.25rem)
+    }
   }
 }
