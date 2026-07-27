@@ -203,10 +203,10 @@ button:disabled { cursor: not-allowed }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* show belt top surface + water left; avoid over-cropping shark */
-  object-position: 42% 68%;
+  /* show dock along the bottom play line */
+  object-position: 40% 78%;
   z-index: 0;
-  transform: scale(1.04);
+  transform: scale(1.03);
   filter: saturate(1.06) contrast(1.03)
 }
 
@@ -292,10 +292,10 @@ button:disabled { cursor: not-allowed }
 .chase-stage {
   /* Shared chase geometry: progress 0 = safe right, 1 = mouth */
   --mouth-x: 20%;
-  --safe-x: 80%;
+  --safe-x: 78%;
   --cat-x: calc(var(--mouth-x) + (1 - var(--chase-progress)) * (var(--safe-x) - var(--mouth-x)));
-  /* feet on the belt TOP deck (above rollers) */
-  --belt-y: 34%;
+  /* feet on the dock/ramp top (was 34% — floated in the sky) */
+  --belt-y: 12%;
   position: absolute;
   inset: 0;
   height: auto;
@@ -515,11 +515,11 @@ button:disabled { cursor: not-allowed }
   position: absolute;
   left: var(--cat-x);
   bottom: var(--belt-y);
-  width: clamp(3.6rem, 18%, 5rem);
+  width: clamp(3.8rem, 20%, 5.2rem);
   z-index: 5;
   transform: translateX(-50%);
   transition: none;
-  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, .35));
+  filter: drop-shadow(0 3px 6px rgba(15, 23, 42, .4));
   will-change: left, transform
 }
 
@@ -1895,9 +1895,9 @@ button:disabled { cursor: not-allowed }
     width: calc(var(--target-size) * 0.72);
     min-height: calc(var(--target-size) * 0.72)
   }
-  .chase-stage { --safe-x: 78%; --belt-y: 36% }
+  .chase-stage { --safe-x: 76%; --belt-y: 13% }
   .chase-shark { width: clamp(4.4rem, 24%, 6.2rem); left: 1.5% }
-  .chase-cat { width: clamp(4rem, 16%, 5.4rem) }
+  .chase-cat { width: clamp(4.2rem, 18%, 5.6rem) }
 }
 
 /* Short phones — tighter budget */
@@ -1917,7 +1917,7 @@ button:disabled { cursor: not-allowed }
     height: min(34svh, 16rem);
     max-height: min(34svh, 16rem)
   }
-  .chase-stage { --belt-y: 32%; --safe-x: 78% }
+  .chase-stage { --belt-y: 11%; --safe-x: 76% }
   .correction-panel { max-height: 2.8rem }
   .feedback-line small { display: none }
 }
@@ -1968,8 +1968,8 @@ button:disabled { cursor: not-allowed }
   }
   .play-footer { display: none !important }
   .chase-shark { width: 3.4rem; left: 1% }
-  .chase-cat { width: 3.2rem }
-  .chase-stage { --safe-x: 76%; --belt-y: 30% }
+  .chase-cat { width: 3.4rem }
+  .chase-stage { --safe-x: 74%; --belt-y: 10% }
 }
 
 /* Large / desktop canvas */
