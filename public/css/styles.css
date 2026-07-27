@@ -71,7 +71,7 @@ button:disabled { cursor: not-allowed }
   /* Phone-first height budget — hard caps (no tall-svh growth) */
   --scale: 1;
   --gap: 0.2rem;
-  --chase-h: 4.25rem;
+  --chase-h: 5.75rem;
   --card-size: clamp(4.8rem, 36cqw, 6.2rem);
   --target-size: clamp(6.4rem, 48cqw, 8.2rem);
   --op-h: 3.3rem;
@@ -221,22 +221,28 @@ button:disabled { cursor: not-allowed }
 }
 
 .chase-panel__hud {
-  position: relative;
-  z-index: 5;
-  display: grid;
-  grid-template-columns: auto;
-  align-items: center;
-  gap: .2rem;
-  padding: clamp(0.2rem, 0.8svh, 0.35rem) clamp(0.3rem, 1.2vw, 0.45rem) 0
+  position: absolute;
+  top: 0.28rem;
+  left: 0.35rem;
+  right: auto;
+  bottom: auto;
+  z-index: 6;
+  width: max-content;
+  max-width: min(46%, 9.5rem);
+  display: block;
+  padding: 0;
+  pointer-events: none
 }
 
 .chase-time {
-  background: rgba(255, 255, 255, .92);
-  border-radius: .55rem;
-  padding: .12rem .4rem .14rem;
-  box-shadow: 0 3px 10px rgba(26, 43, 74, .1);
-  border: 1px solid rgba(255, 255, 255, .8);
-  min-width: 0;
+  background: rgba(255, 255, 255, .94);
+  border-radius: .5rem;
+  padding: .1rem .4rem .12rem;
+  box-shadow: 0 3px 10px rgba(26, 43, 74, .12);
+  border: 1px solid rgba(255, 255, 255, .85);
+  width: max-content;
+  max-width: 100%;
+  min-width: 4.5rem;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px)
 }
@@ -245,24 +251,24 @@ button:disabled { cursor: not-allowed }
   display: block;
   text-transform: uppercase;
   letter-spacing: .07em;
-  font-size: clamp(0.45rem, 1svh, 0.55rem);
+  font-size: 0.48rem;
   font-weight: 800;
   color: #c2410c
 }
 
 .chase-time strong {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: clamp(0.82rem, 1.8svh, 1.05rem);
+  font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
-  line-height: 1.1
+  line-height: 1.05
 }
 
 .chase-time__track {
   display: block;
-  margin-top: .18rem;
-  height: .28rem;
+  margin-top: .14rem;
+  height: .22rem;
   border-radius: 99px;
   background: #fecaca;
   overflow: hidden
@@ -291,8 +297,8 @@ button:disabled { cursor: not-allowed }
   /* feet planted on conveyor surface */
   --belt-y: 6%;
   position: absolute;
-  inset: auto 0 0 0;
-  height: 82%;
+  inset: 0;
+  height: auto;
   z-index: 3;
   pointer-events: none
 }
@@ -1861,7 +1867,7 @@ button:disabled { cursor: not-allowed }
   .play-footer { display: grid }
   .math-game {
     --gap: 0.35rem;
-    --chase-h: 5.25rem;
+    --chase-h: 6.25rem;
     --op-h: 3.8rem;
     --btn-h: 4rem;
     --eq-h: 3.8rem;
@@ -1898,7 +1904,7 @@ button:disabled { cursor: not-allowed }
 @media (max-height: 680px) {
   .play-dock { justify-content: flex-start }
   .math-game {
-    --chase-h: 3.6rem;
+    --chase-h: 4.6rem;
     --op-h: 2.9rem;
     --btn-h: 3.1rem;
     --eq-h: 2.9rem;
