@@ -2457,12 +2457,12 @@ button:disabled { cursor: not-allowed }
   max-width: 26.5rem;
   width: 100%;
   margin-inline: auto;
-  zoom: 0.85;
-  transform: scale(0.85);
+  zoom: 0.9;
+  transform: scale(0.9);
   transform-origin: top center
 }
 
-@supports (zoom: 0.85) {
+@supports (zoom: 0.9) {
   .menu-screen__scroll {
     transform: none
   }
