@@ -50,6 +50,9 @@ export function createUI({ mount, handlers }) {
     menuSettings: shell.querySelector("[data-menu-settings]"),
     menuHowTo: shell.querySelector("[data-menu-howto]"),
     menuMute: shell.querySelector("[data-menu-mute]"),
+    menuMuteLabel: shell.querySelector("[data-menu-mute-label]"),
+    menuSettingsPlayer: shell.querySelector("[data-menu-settings-player]"),
+    menuGreeting: shell.querySelector("[data-menu-greeting]"),
     menuToast: shell.querySelector("[data-menu-toast]"),
     streakValue: shell.querySelector("[data-streak]"),
     streakSegs: shell.querySelectorAll("[data-streak-seg]"),
@@ -302,6 +305,7 @@ function template() {
             </span>
           </h1>
           <p class="menu-ribbon"><span>SOLVE • RESCUE • LEVEL UP</span></p>
+          <p class="menu-greeting" data-menu-greeting hidden></p>
           <div class="menu-scene" aria-hidden="true">
             <div class="menu-scene__frame">
               <img class="menu-scene__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
@@ -363,15 +367,38 @@ function template() {
 
       <div class="menu-settings screen-overlay" data-menu-settings hidden>
         <div class="screen-card menu-settings-card">
+          <p class="menu-sheet__kicker">Account</p>
           <h2>Settings</h2>
-          <button class="screen-btn" data-menu-mute type="button">Sound on</button>
-          <button class="screen-btn screen-btn--primary" data-menu-change-name type="button">Change player</button>
+          <p class="menu-settings__player" data-menu-settings-player>Player</p>
+          <div class="menu-settings__rows">
+            <button class="menu-settings__row" data-menu-mute type="button">
+              <span class="menu-settings__row-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm7.5 3.5a5 5 0 0 1 0 7M15 9.5a2.5 2.5 0 0 1 0 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="menu-settings__row-copy">
+                <strong>Sound</strong>
+                <small data-menu-mute-label>On</small>
+              </span>
+            </button>
+            <button class="menu-settings__row" data-menu-change-name type="button">
+              <span class="menu-settings__row-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 9a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              <span class="menu-settings__row-copy">
+                <strong>Change player</strong>
+                <small>Switch saved name</small>
+              </span>
+            </button>
+          </div>
           <button class="screen-btn screen-btn--ghost" data-menu-close-settings type="button">Close</button>
         </div>
       </div>
 
       <div class="menu-howto screen-overlay" data-menu-howto hidden>
         <div class="screen-card menu-howto-card" role="dialog" aria-labelledby="menu-howto-title">
+          <div class="menu-howto__hero" aria-hidden="true">
+            <img src="./assets/chase/cat-run-still.png?v=face-right1" alt="" />
+          </div>
           <p class="menu-howto__kicker">Quick guide</p>
           <h2 id="menu-howto-title">How to play</h2>
           <p class="menu-howto__lead">Rescue the cat by solving equations before the shark reaches it.</p>
@@ -405,7 +432,7 @@ function template() {
               </div>
             </li>
           </ol>
-          <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it</button>
+          <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it — let’s play</button>
         </div>
       </div>
       <p class="menu-toast" data-menu-toast hidden>Coming soon</p>
@@ -600,6 +627,7 @@ function template() {
     <div class="nickname-overlay screen-overlay" data-nickname-overlay>
       <div class="screen-card nickname-card">
         <div class="start-hero">
+          <img class="nickname-mascot" src="./assets/chase/cat-run-still.png?v=face-right1" alt="" width="72" height="72" />
           <p class="brand-mark">Math Rescue</p>
           <h1>Who is playing?</h1>
           <p class="start-lead">Your name keeps progress on this device.</p>
@@ -853,8 +881,23 @@ function updateMenuScreen(els, state) {
   if (els.menuPlayLevel) els.menuPlayLevel.textContent = `LEVEL ${level}`;
 
   if (els.menuMute) {
-    els.menuMute.textContent = state.soundOn ? "Sound on" : "Sound off";
     els.menuMute.classList.toggle("is-muted", !state.soundOn);
+    els.menuMute.setAttribute("aria-label", state.soundOn ? "Turn sound off" : "Turn sound on");
+  }
+  if (els.menuMuteLabel) {
+    els.menuMuteLabel.textContent = state.soundOn ? "On" : "Off";
+  }
+  if (els.menuSettingsPlayer) {
+    els.menuSettingsPlayer.textContent = state.username || "Player";
+  }
+  if (els.menuGreeting) {
+    if (state.username) {
+      els.menuGreeting.hidden = false;
+      els.menuGreeting.textContent = `Hey, ${state.username} — ready to rescue?`;
+    } else {
+      els.menuGreeting.hidden = true;
+      els.menuGreeting.textContent = "";
+    }
   }
   if (els.menuSettings) {
     els.menuSettings.hidden = !state.menuSettingsOpen;
@@ -876,9 +919,13 @@ function renderMenuPlayers(container, list) {
   container.replaceChildren();
   const players = (list || []).filter((entry) => (entry.bestScore || 0) > 0).slice(0, 3);
   if (players.length === 0) {
-    const empty = document.createElement("p");
+    const empty = document.createElement("div");
     empty.className = "menu-players__empty";
-    empty.textContent = "Be the first on this device.";
+    empty.innerHTML = `
+      <img src="./assets/chase/cat-run-still.png?v=face-right1" alt="" width="48" height="48" />
+      <p>Be the first on this device.</p>
+      <small>Finish a board to appear here.</small>
+    `;
     container.append(empty);
     return;
   }

@@ -1972,13 +1972,26 @@ button:disabled { cursor: not-allowed }
 
 .brand-mark {
   margin: 0;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 1.6rem;
+  font-family: Fredoka, "Space Grotesk", sans-serif;
+  font-size: 1.55rem;
   font-weight: 700;
   background: linear-gradient(90deg, #2f6bff, #22c55e);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent
+}
+
+.nickname-mascot {
+  width: 4.4rem;
+  height: 4.4rem;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 12px rgba(37, 99, 235, .2));
+  margin-bottom: 0.15rem
+}
+
+.nickname-card h1 {
+  font-family: Fredoka, "Space Grotesk", Quicksand, sans-serif;
+  font-size: 1.45rem
 }
 
 .screen-card h1,
@@ -2665,6 +2678,14 @@ button:disabled { cursor: not-allowed }
 
 .menu-ribbon span { position: relative; z-index: 1 }
 
+.menu-greeting {
+  margin: 0.05rem 0 0;
+  color: #4b6286;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.01em
+}
+
 .menu-scene {
   width: min(100%, 24rem);
   margin-top: 0.05rem
@@ -2761,7 +2782,20 @@ button:disabled { cursor: not-allowed }
   cursor: pointer;
   text-align: left;
   animation: menu-rise .65s .1s ease both;
-  transition: transform .12s ease, box-shadow .12s ease
+  transition: transform .12s ease, box-shadow .12s ease;
+  position: relative;
+  overflow: hidden
+}
+
+.menu-play::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -40%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .28), transparent);
+  transform: skewX(-18deg);
+  animation: menu-shine 3.6s ease-in-out infinite;
+  pointer-events: none
 }
 
 .menu-play:active {
@@ -2936,10 +2970,34 @@ button:disabled { cursor: not-allowed }
   color: #7c8eaa;
   font-weight: 650;
   font-size: 0.88rem;
-  padding: 0.95rem;
-  background: rgba(255, 255, 255, .85);
+  padding: 1rem 0.95rem;
+  background: rgba(255, 255, 255, .9);
   border-radius: 1rem;
-  border: 1px dashed #c7d7ee
+  border: 1px dashed #c7d7ee;
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem
+}
+
+.menu-players__empty img {
+  width: 2.8rem;
+  height: 2.8rem;
+  object-fit: contain;
+  margin-bottom: 0.15rem;
+  filter: drop-shadow(0 4px 8px rgba(37, 99, 235, .16))
+}
+
+.menu-players__empty p {
+  margin: 0;
+  color: var(--menu-ink);
+  font-weight: 800;
+  font-size: 0.92rem
+}
+
+.menu-players__empty small {
+  color: #7c8eaa;
+  font-size: 0.78rem;
+  font-weight: 650
 }
 
 .menu-player {
@@ -3023,11 +3081,27 @@ button:disabled { cursor: not-allowed }
   margin: auto;
   text-align: left;
   max-height: min(100%, 36rem);
-  overflow: auto
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, .7);
+  box-shadow:
+    0 24px 48px rgba(15, 30, 70, .28),
+    0 0 0 1px rgba(191, 219, 254, .45)
 }
 
 .menu-settings-card {
-  text-align: center
+  text-align: center;
+  gap: 0.85rem
+}
+
+.menu-sheet__kicker,
+.menu-howto__kicker {
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #5b8cff
 }
 
 .menu-settings-card h2,
@@ -3036,6 +3110,85 @@ button:disabled { cursor: not-allowed }
   font-family: Fredoka, "Space Grotesk", Quicksand, sans-serif;
   text-align: center;
   font-size: 1.55rem
+}
+
+.menu-settings__player {
+  margin: -0.25rem 0 0;
+  color: #4b6286;
+  font-size: 0.95rem;
+  font-weight: 700
+}
+
+.menu-settings__rows {
+  display: grid;
+  gap: 0.55rem
+}
+
+.menu-settings__row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  padding: 0.8rem 0.85rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #ffffff, #f3f7ff);
+  border: 1.5px solid #dbe7f8;
+  box-shadow: 0 6px 14px rgba(26, 43, 74, .06);
+  cursor: pointer;
+  color: inherit
+}
+
+.menu-settings__row.is-muted .menu-settings__row-ico {
+  color: #94a3b8
+}
+
+.menu-settings__row-ico {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.85rem;
+  display: grid;
+  place-items: center;
+  background: #e8f0ff;
+  color: #2563eb
+}
+
+.menu-settings__row-ico svg { width: 1.25rem; height: 1.25rem }
+
+.menu-settings__row-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0
+}
+
+.menu-settings__row-copy strong {
+  font-size: 0.95rem;
+  font-weight: 800
+}
+
+.menu-settings__row-copy small {
+  color: #7c8eaa;
+  font-size: 0.78rem;
+  font-weight: 650
+}
+
+.menu-howto__hero {
+  width: 4.2rem;
+  height: 4.2rem;
+  margin: 0 auto -0.15rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #dbeafe, #93c5fd);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, .18);
+  overflow: hidden
+}
+
+.menu-howto__hero img {
+  width: 3.2rem;
+  height: 3.2rem;
+  object-fit: contain
 }
 
 .menu-howto__kicker {
@@ -3161,6 +3314,12 @@ button:disabled { cursor: not-allowed }
   50% { filter: brightness(1.08) }
 }
 
+@keyframes menu-shine {
+  0%, 55%, 100% { left: -40%; opacity: 0 }
+  60% { opacity: 1 }
+  85% { left: 110%; opacity: 0 }
+}
+
 @keyframes menu-toast-in {
   from { opacity: 0; transform: translate(-50%, 8px) }
   to { opacity: 1; transform: translate(-50%, 0) }
@@ -3191,7 +3350,8 @@ button:disabled { cursor: not-allowed }
   .menu-scene__shark,
   .menu-scene__cat,
   .menu-scene__water,
-  .menu-screen__deco { animation: none }
+  .menu-screen__deco,
+  .menu-play::after { animation: none }
   .menu-play:active,
   .menu-journey:active,
   .menu-feature:active,
