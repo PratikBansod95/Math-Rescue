@@ -76,14 +76,6 @@ export function createUI({ mount, handlers }) {
     nicknameContinue: shell.querySelector("[data-nickname-continue]"),
     usernameInput: shell.querySelector("[data-username]"),
     nicknameStatus: shell.querySelector("[data-nickname-status]"),
-    menuOverlay: shell.querySelector("[data-menu-overlay]"),
-    menuHome: shell.querySelector("[data-menu-home]"),
-    menuHowTo: shell.querySelector("[data-menu-howto]"),
-    menuLeaderboard: shell.querySelector("[data-menu-leaderboard]"),
-    menuHello: shell.querySelector("[data-menu-hello]"),
-    menuMeta: shell.querySelector("[data-menu-meta]"),
-    menuSoundLabel: shell.querySelector("[data-menu-sound-label]"),
-    menuLeaderboardList: shell.querySelector("[data-menu-leaderboard-list]"),
     levelsOverlay: shell.querySelector("[data-levels-overlay]"),
     levelsPath: shell.querySelector("[data-levels-path]"),
     resultsOverlay: shell.querySelector("[data-results]"),
@@ -124,22 +116,15 @@ export function createUI({ mount, handlers }) {
     }
   });
 
-  on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
-  on(shell.querySelector("[data-menu-howto-btn]"), "click", handlers.onOpenHowTo);
-  on(shell.querySelector("[data-menu-sound]"), "click", handlers.onToggleSound);
-  on(shell.querySelector("[data-menu-leaderboard-btn]"), "click", handlers.onOpenLeaderboard);
-  on(shell.querySelector("[data-menu-change-name]"), "click", handlers.onChangeName);
-  on(shell.querySelector("[data-howto-back]"), "click", handlers.onCloseMenuPanel);
-  on(shell.querySelector("[data-leaderboard-back]"), "click", handlers.onCloseMenuPanel);
-  on(shell.querySelector("[data-levels-back]"), "click", handlers.onBackToMenu);
+  on(shell.querySelector("[data-levels-back]"), "click", handlers.onChangeName);
 
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
   on(els.hintButton, "click", handlers.onHintOrNext);
   on(els.newGameButton, "click", handlers.onNewGame);
   on(els.muteButton, "click", handlers.onToggleSound);
-  on(els.menuButton, "click", handlers.onOpenMenu);
-  on(els.playerButton, "click", handlers.onOpenMenu);
+  on(els.menuButton, "click", handlers.onOpenLevels);
+  on(els.playerButton, "click", handlers.onOpenLevels);
   on(els.tutorialNext, "click", handlers.onTutorialNext);
   on(els.tutorialSkip, "click", handlers.onTutorialSkip);
 
@@ -199,7 +184,6 @@ export function createUI({ mount, handlers }) {
       renderCards(els.numbers, state, handlers.onAppend, handlers.onPuzzleGo);
       updateControls(els, state);
       updateNicknameOverlay(els, state);
-      updateMenuOverlay(els, state);
       updateLevelsOverlay(els, state, handlers.onSelectLevel);
       updateResults(els, state);
       updateTutorial(els, state);
@@ -230,7 +214,7 @@ function template() {
     </div>
 
     <header class="top-bar" aria-label="Game status">
-      <button class="icon-btn" data-menu type="button" aria-label="Open main menu">
+      <button class="icon-btn" data-menu type="button" aria-label="Open levels">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
 
@@ -425,41 +409,10 @@ function template() {
       </div>
     </div>
 
-    <div class="menu-overlay screen-overlay" data-menu-overlay hidden>
-      <div class="screen-card menu-card" data-menu-home>
-        <div class="start-hero">
-          <p class="brand-mark">Math Rescue</p>
-          <h1 data-menu-hello>Hi there</h1>
-          <p class="start-lead" data-menu-meta>Save the cat. Hit the target.</p>
-        </div>
-        <div class="menu-actions">
-          <button class="screen-btn screen-btn--primary" data-menu-play type="button">Play</button>
-          <button class="screen-btn" data-menu-howto-btn type="button">How to Play</button>
-          <button class="screen-btn" data-menu-sound type="button"><span data-menu-sound-label>Sound: On</span></button>
-          <button class="screen-btn" data-menu-leaderboard-btn type="button">Local Best</button>
-          <button class="screen-btn screen-btn--ghost" data-menu-change-name type="button">Change name</button>
-        </div>
-      </div>
-      <div class="screen-card menu-card" data-menu-howto hidden>
-        <strong class="menu-panel-title">How to Play</strong>
-        <ol class="howto-list">
-          <li>Tap the four number cards around the target.</li>
-          <li>Build an equation with +, −, ×, ÷ and parentheses.</li>
-          <li>Submit before the shark catches the cat.</li>
-        </ol>
-        <button class="screen-btn screen-btn--primary" data-howto-back type="button">Back</button>
-      </div>
-      <div class="screen-card menu-card" data-menu-leaderboard hidden>
-        <strong class="menu-panel-title">Local Best</strong>
-        <div class="local-board" data-menu-leaderboard-list></div>
-        <button class="screen-btn screen-btn--primary" data-leaderboard-back type="button">Back</button>
-      </div>
-    </div>
-
     <div class="levels-overlay screen-overlay" data-levels-overlay hidden>
       <div class="levels-shell">
         <header class="levels-header">
-          <button class="screen-btn screen-btn--ghost levels-back" data-levels-back type="button">Menu</button>
+          <button class="screen-btn screen-btn--ghost levels-back" data-levels-back type="button">Change name</button>
           <div>
             <p class="brand-mark">Levels</p>
             <small>Pick a board to rescue the cat</small>
@@ -507,7 +460,7 @@ function updateChase(els, state, catRun, celebrate) {
   const idle =
     Boolean(state.awaitingStart) ||
     Boolean(state.showTutorial) ||
-    ["nickname", "menu", "levels", "loading"].includes(state.phase);
+    ["nickname", "levels", "loading"].includes(state.phase);
   const catching = pose === "caught" || pose === "ate" || Boolean(state.timerExpired);
   const running =
     state.phase === "playing" && !state.awaitingStart && !state.showTutorial && !catching;
@@ -711,46 +664,6 @@ function updateNicknameOverlay(els, state) {
       els.nicknameStatus.hidden = true;
       els.nicknameStatus.textContent = "";
     }
-  }
-}
-
-function updateMenuOverlay(els, state) {
-  const show = state.phase === "menu";
-  els.menuOverlay.hidden = !show;
-  if (!show) return;
-
-  const view = state.menuView || "home";
-  els.menuHome.hidden = view !== "home";
-  els.menuHowTo.hidden = view !== "howto";
-  els.menuLeaderboard.hidden = view !== "leaderboard";
-
-  if (els.menuHello) {
-    els.menuHello.textContent = state.username ? `Hi, ${state.username}` : "Hi there";
-  }
-  if (els.menuMeta) {
-    els.menuMeta.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
-  }
-  if (els.menuSoundLabel) {
-    els.menuSoundLabel.textContent = state.soundOn ? "Sound: On" : "Sound: Off";
-  }
-
-  if (view === "leaderboard" && els.menuLeaderboardList) {
-    const board = els.menuLeaderboardList;
-    board.replaceChildren();
-    const list = state.leaderboard || [];
-    if (list.length === 0) {
-      const empty = document.createElement("p");
-      empty.textContent = "No scores yet. Play a board to appear here.";
-      board.append(empty);
-      return;
-    }
-    const ol = document.createElement("ol");
-    for (const entry of list) {
-      const li = document.createElement("li");
-      li.textContent = `${entry.name} — ${entry.bestScore}`;
-      ol.append(li);
-    }
-    board.append(ol);
   }
 }
 

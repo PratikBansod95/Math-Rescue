@@ -96,7 +96,6 @@ export function createGame({ mount }) {
         awaitingStart: true,
         chasePose: "idle",
         boardStars: {},
-        menuView: "home",
       };
 
       let timerIntervalId = null;
@@ -109,13 +108,9 @@ export function createGame({ mount }) {
         mount,
         handlers: {
           onConfirmNickname,
-          onPlayFromMenu,
-          onOpenHowTo,
-          onOpenLeaderboard,
-          onCloseMenuPanel,
           onChangeName,
-          onBackToMenu,
           onSelectLevel,
+          onOpenLevels,
           onPuzzleGo,
           onAppend,
           onBackspace,
@@ -127,7 +122,6 @@ export function createGame({ mount }) {
           onToggleSound,
           onTutorialNext,
           onTutorialSkip,
-          onOpenMenu,
         },
       });
 
@@ -157,8 +151,7 @@ export function createGame({ mount }) {
         state.storageReady = true;
 
         if (state.usernameKey) {
-          state.phase = "menu";
-          state.menuView = "home";
+          state.phase = "levels";
           state.round = makeRound(state);
           state.feedback = {
             kind: "neutral",
@@ -173,7 +166,6 @@ export function createGame({ mount }) {
 
         state.round = makeRound(state);
         state.phase = "nickname";
-        state.menuView = "home";
         state.feedback = {
           kind: "neutral",
           text: "Enter a name to save your progress.",
@@ -194,8 +186,7 @@ export function createGame({ mount }) {
           render();
           return;
         }
-        state.phase = "menu";
-        state.menuView = "home";
+        state.phase = "levels";
         state.feedback = {
           kind: "neutral",
           text: `Hi, ${state.username}.`,
@@ -207,43 +198,17 @@ export function createGame({ mount }) {
         vibrate(12);
       }
 
-      function onPlayFromMenu() {
-        if (state.phase !== "menu" || !state.usernameKey) return;
-        state.phase = "levels";
-        state.menuView = "home";
-        render();
-        audio.unlockFromGesture();
-      }
-
-      function onOpenHowTo() {
-        if (state.phase !== "menu") return;
-        state.menuView = "howto";
-        render();
-      }
-
-      function onOpenLeaderboard() {
-        if (state.phase !== "menu") return;
-        state.leaderboard = topProfilesByScore(state.profiles, 8);
-        state.menuView = "leaderboard";
-        render();
-      }
-
-      function onCloseMenuPanel() {
-        if (state.phase !== "menu") return;
-        state.menuView = "home";
-        render();
-      }
-
       function onChangeName() {
         stopPuzzleTimer();
         clearCatchTimeout();
         state.phase = "nickname";
-        state.menuView = "home";
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
         state.correction = null;
         state.showTutorial = false;
+        state.awaitingStart = true;
+        state.chasePose = "idle";
         state.feedback = {
           kind: "neutral",
           text: "Switch player or keep your saved name.",
@@ -252,11 +217,11 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onBackToMenu() {
+      function onOpenLevels() {
+        if (!["playing", "review", "finished"].includes(state.phase)) return;
         stopPuzzleTimer();
         clearCatchTimeout();
-        state.phase = "menu";
-        state.menuView = "home";
+        state.phase = "levels";
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
@@ -265,11 +230,6 @@ export function createGame({ mount }) {
         state.awaitingStart = true;
         state.chasePose = "idle";
         render();
-      }
-
-      function onOpenMenu() {
-        if (!["playing", "review", "finished", "levels"].includes(state.phase)) return;
-        onBackToMenu();
       }
 
       function onSelectLevel(board) {
@@ -300,7 +260,6 @@ export function createGame({ mount }) {
         state.usedCounts = new Map();
         state.result = null;
         state.phase = "playing";
-        state.menuView = "home";
         state.showTutorial = !state.tutorialSeen;
         state.tutorialStep = state.showTutorial ? 1 : 0;
         state.feedback = {
@@ -319,7 +278,6 @@ export function createGame({ mount }) {
 
       function onNewGame() {
         state.phase = "levels";
-        state.menuView = "home";
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
@@ -819,7 +777,7 @@ export function createGame({ mount }) {
       }
 
       function resetRun(message) {
-        state.phase = state.phase === "nickname" || state.phase === "menu" || state.phase === "levels"
+        state.phase = state.phase === "nickname" || state.phase === "levels"
           ? state.phase
           : "playing";
         state.taskIndex = 1;

@@ -1480,7 +1480,6 @@ button:disabled { cursor: not-allowed }
 /* Idle: cards wait for Start — still readable, not ghosted */
 .math-game[data-phase=ready] .number-card:disabled,
 .math-game[data-phase=nickname] .number-card:disabled,
-.math-game[data-phase=menu] .number-card:disabled,
 .math-game[data-phase=levels] .number-card:disabled,
 .math-game[data-phase=idle] .number-card:disabled {
   opacity: .72;
@@ -1685,19 +1684,15 @@ button:disabled { cursor: not-allowed }
 
 .math-game[data-phase=ready] .operator-button:disabled,
 .math-game[data-phase=nickname] .operator-button:disabled,
-.math-game[data-phase=menu] .operator-button:disabled,
 .math-game[data-phase=levels] .operator-button:disabled,
 .math-game[data-phase=ready] .btn-clear:disabled,
 .math-game[data-phase=nickname] .btn-clear:disabled,
-.math-game[data-phase=menu] .btn-clear:disabled,
 .math-game[data-phase=levels] .btn-clear:disabled,
 .math-game[data-phase=ready] .btn-submit:disabled,
 .math-game[data-phase=nickname] .btn-submit:disabled,
-.math-game[data-phase=menu] .btn-submit:disabled,
 .math-game[data-phase=levels] .btn-submit:disabled,
 .math-game[data-phase=ready] .btn-hint:disabled,
 .math-game[data-phase=nickname] .btn-hint:disabled,
-.math-game[data-phase=menu] .btn-hint:disabled,
 .math-game[data-phase=levels] .btn-hint:disabled {
   opacity: .85
 }
@@ -1937,9 +1932,8 @@ button:disabled { cursor: not-allowed }
 .math-game[data-phase=review] .play-footer { display: none }
 
 /* Overlays */
-.screen-overlay,
+.start-overlay,
 .nickname-overlay,
-.menu-overlay,
 .levels-overlay,
 .result-overlay,
 .tutorial-overlay {
@@ -2055,12 +2049,6 @@ button:disabled { cursor: not-allowed }
   font-weight: 800
 }
 
-.menu-actions {
-  width: 100%;
-  display: grid;
-  gap: 0.55rem
-}
-
 .screen-btn,
 .result-card button,
 .tutorial-actions .primary {
@@ -2076,13 +2064,6 @@ button:disabled { cursor: not-allowed }
   border: 0
 }
 
-.screen-btn:not(.screen-btn--primary):not(.screen-btn--ghost) {
-  background: #fff;
-  color: var(--blue);
-  border: 1.5px solid #c7d7f5;
-  box-shadow: 0 4px 12px rgba(26, 43, 74, .08)
-}
-
 .screen-btn--ghost {
   background: transparent;
   color: var(--muted);
@@ -2096,12 +2077,6 @@ button:disabled { cursor: not-allowed }
   opacity: .55;
   box-shadow: none;
   cursor: not-allowed
-}
-
-.menu-panel-title {
-  font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.15rem;
-  font-weight: 700
 }
 
 .howto-list {
