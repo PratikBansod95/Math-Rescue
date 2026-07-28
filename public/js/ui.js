@@ -40,6 +40,16 @@ export function createUI({ mount, handlers }) {
 
   const els = {
     shell,
+    playShell: shell.querySelector("[data-play-shell]"),
+    menuScreen: shell.querySelector("[data-menu-screen]"),
+    menuStreak: shell.querySelector("[data-menu-streak]"),
+    menuLevel: shell.querySelector("[data-menu-level]"),
+    menuCoins: shell.querySelector("[data-menu-coins]"),
+    menuPlayLevel: shell.querySelector("[data-menu-play-level]"),
+    menuPlayers: shell.querySelector("[data-menu-players]"),
+    menuSettings: shell.querySelector("[data-menu-settings]"),
+    menuMute: shell.querySelector("[data-menu-mute]"),
+    menuToast: shell.querySelector("[data-menu-toast]"),
     streakValue: shell.querySelector("[data-streak]"),
     streakSegs: shell.querySelectorAll("[data-streak-seg]"),
     levelLabel: shell.querySelector("[data-level]"),
@@ -119,10 +129,21 @@ export function createUI({ mount, handlers }) {
   on(els.hintButton, "click", handlers.onHintOrNext);
   on(els.newGameButton, "click", handlers.onNewGame);
   on(els.muteButton, "click", handlers.onToggleSound);
-  on(els.menuButton, "click", handlers.onChangeName);
+  on(els.menuButton, "click", handlers.onOpenMenu);
   on(els.playerButton, "click", handlers.onChangeName);
   on(els.tutorialNext, "click", handlers.onTutorialNext);
   on(els.tutorialSkip, "click", handlers.onTutorialSkip);
+
+  for (const btn of shell.querySelectorAll("[data-menu-open-settings]")) {
+    on(btn, "click", handlers.onOpenMenuSettings);
+  }
+  on(shell.querySelector("[data-menu-close-settings]"), "click", handlers.onCloseMenuSettings);
+  on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
+  on(els.menuMute, "click", handlers.onToggleSound);
+  on(shell.querySelector("[data-menu-change-name]"), "click", handlers.onChangeName);
+  for (const btn of shell.querySelectorAll("[data-coming-soon]")) {
+    on(btn, "click", handlers.onComingSoon);
+  }
 
   return {
     render(state, options = {}) {
@@ -131,6 +152,12 @@ export function createUI({ mount, handlers }) {
       shell.classList.toggle("tutorial-on", Boolean(state.showTutorial));
       if (state.showTutorial) shell.dataset.tutorialStep = String(state.tutorialStep);
       else delete shell.dataset.tutorialStep;
+
+      const onMenu = state.phase === "menu";
+      if (els.playShell) els.playShell.hidden = onMenu;
+      updateMenuScreen(els, state);
+      updateNicknameOverlay(els, state);
+      if (onMenu) return;
 
       const segsOn = Math.min(4, state.runStars || 0);
       els.streakValue.textContent = String(state.runStars || 0);
@@ -179,7 +206,6 @@ export function createUI({ mount, handlers }) {
       renderCorrection(els.correction, state.correction);
       renderCards(els.numbers, state, handlers.onAppend, handlers.onPuzzleGo);
       updateControls(els, state);
-      updateNicknameOverlay(els, state);
       updateResults(els, state);
       updateTutorial(els, state);
     },
@@ -203,13 +229,128 @@ export function createUI({ mount, handlers }) {
 
 function template() {
   return `
+    <div class="menu-screen" data-menu-screen hidden>
+      <div class="menu-screen__bg" aria-hidden="true">
+        <div class="menu-screen__grid"></div>
+        <img class="menu-screen__doodles" src="./assets/math-doodles.svg" alt="" />
+      </div>
+      <div class="menu-screen__scroll">
+        <header class="menu-hud" aria-label="Menu status">
+          <button class="menu-icon-btn" data-menu-open-settings type="button" aria-label="Open menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
+          <div class="menu-chip menu-chip--streak">
+            <span class="menu-chip__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+            <span class="menu-chip__label">STREAK</span>
+            <strong data-menu-streak>0</strong>
+          </div>
+          <div class="menu-chip menu-chip--level">
+            <strong data-menu-level>LEVEL 1</strong>
+          </div>
+          <div class="menu-chip menu-chip--coins">
+            <span class="menu-chip__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">$</text></svg>
+            </span>
+            <strong data-menu-coins>0</strong>
+            <button class="menu-chip__plus" data-coming-soon type="button" aria-label="Add coins">+</button>
+          </div>
+          <button class="menu-icon-btn" data-menu-open-settings type="button" aria-label="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 13a7.8 7.8 0 0 0 .1-2l2-1.2-2-3.4-2.3.6a7.6 7.6 0 0 0-1.7-1L15 4h-6l-.5 2a7.6 7.6 0 0 0-1.7 1L4.5 6.4l-2 3.4 2 1.2a7.8 7.8 0 0 0 0 2l-2 1.2 2 3.4 2.3-.6a7.6 7.6 0 0 0 1.7 1l.5 2h6l.5-2a7.6 7.6 0 0 0 1.7-1l2.3.6 2-3.4-2-1.2Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </header>
+
+        <div class="menu-hero">
+          <h1 class="menu-logo" aria-label="Math Rescue">
+            <span class="menu-logo__math">MATH</span>
+            <span class="menu-logo__rescue">RESCUE</span>
+          </h1>
+          <p class="menu-ribbon">SOLVE • RESCUE • LEVEL UP</p>
+          <div class="menu-scene" aria-hidden="true">
+            <img class="menu-scene__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
+            <img class="menu-scene__shark" src="./assets/chase/shark.png?v=still1" alt="" />
+            <img class="menu-scene__cat" src="./assets/chase/cat-run-still.png?v=face-right1" alt="" />
+          </div>
+        </div>
+
+        <button class="menu-play" data-menu-play type="button">
+          <span class="menu-play__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
+          </span>
+          <span class="menu-play__copy">
+            <strong>PLAY</strong>
+            <small data-menu-play-level>LEVEL 1</small>
+          </span>
+        </button>
+
+        <button class="menu-journey" data-coming-soon type="button">
+          <span class="menu-journey__icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#e8f1ff"/><path d="M10 34l8-14 6 8 6-12 8 18H10Z" fill="#93c5fd"/><path d="M30 14v10l6-3-6-7Z" fill="#2563eb"/></svg>
+          </span>
+          <span class="menu-journey__copy">
+            <strong>JOURNEY</strong>
+            <small>Progressive Levels</small>
+          </span>
+          <span class="menu-journey__chev" aria-hidden="true">›</span>
+        </button>
+
+        <div class="menu-features">
+          <button class="menu-feature" data-coming-soon type="button">
+            <span class="menu-feature__icon menu-feature__icon--skins" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#a78bfa"/><path d="M12 3c2.5 3 2.5 6 0 9s-2.5 6 0 9" fill="none" stroke="#fff" stroke-width="1.6"/></svg>
+            </span>
+            <strong>SKINS</strong>
+            <small>Customize Ball</small>
+          </button>
+          <button class="menu-feature" data-coming-soon type="button">
+            <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="#22c55e"/></svg>
+            </span>
+            <strong>DAILY CHALLENGE</strong>
+            <small>Coming soon</small>
+          </button>
+          <button class="menu-feature" data-coming-soon type="button">
+            <span class="menu-feature__icon menu-feature__icon--board" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 18h4v-4H4v4Zm6 0h4V8h-4v10Zm6 0h4V4h-4v14Z" fill="#3b82f6"/></svg>
+            </span>
+            <strong>LEADERBOARD</strong>
+            <small>Top Players</small>
+          </button>
+          <button class="menu-feature" data-coming-soon type="button">
+            <span class="menu-feature__icon menu-feature__icon--shop" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 7h14l-1.5 9H8L6 3H2" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.5" fill="#eab308"/><circle cx="18" cy="20" r="1.5" fill="#eab308"/></svg>
+            </span>
+            <strong>SHOP</strong>
+            <small>Skins &amp; Trails</small>
+          </button>
+        </div>
+
+        <section class="menu-top-players" aria-label="Top players">
+          <h2>TOP PLAYERS</h2>
+          <div class="menu-players" data-menu-players></div>
+        </section>
+      </div>
+
+      <div class="menu-settings screen-overlay" data-menu-settings hidden>
+        <div class="screen-card menu-settings-card">
+          <h2>Settings</h2>
+          <button class="screen-btn" data-menu-mute type="button">Sound on</button>
+          <button class="screen-btn screen-btn--primary" data-menu-change-name type="button">Change player</button>
+          <button class="screen-btn screen-btn--ghost" data-menu-close-settings type="button">Close</button>
+        </div>
+      </div>
+      <p class="menu-toast" data-menu-toast hidden>Coming soon</p>
+    </div>
+
+    <div class="play-shell" data-play-shell>
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
       <img class="play-bg-art" src="./assets/play-bg.svg?v=2" alt="" />
     </div>
 
     <header class="top-bar" aria-label="Game status">
-      <button class="icon-btn" data-menu type="button" aria-label="Change player">
+      <button class="icon-btn" data-menu type="button" aria-label="Back to menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
 
@@ -386,6 +527,7 @@ function template() {
         </div>
       </div>
     </aside>
+    </div>
 
     <div class="nickname-overlay screen-overlay" data-nickname-overlay>
       <div class="screen-card nickname-card">
@@ -413,7 +555,7 @@ function template() {
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
         <div class="local-board" data-result-board></div>
-        <button data-new-game type="button">Start unlocked board</button>
+        <button data-new-game type="button">Back to menu</button>
       </section>
     </div>
 
@@ -439,7 +581,7 @@ function updateChase(els, state, catRun, celebrate) {
   const idle =
     Boolean(state.awaitingStart) ||
     Boolean(state.showTutorial) ||
-    ["nickname", "loading"].includes(state.phase);
+    ["nickname", "loading", "menu"].includes(state.phase);
   const catching = pose === "caught" || pose === "ate" || Boolean(state.timerExpired);
   const running =
     state.phase === "playing" && !state.awaitingStart && !state.showTutorial && !catching;
@@ -628,6 +770,76 @@ function updateControls(els, state) {
   for (const button of els.operatorPad.querySelectorAll("button")) {
     button.disabled = !playing;
   }
+}
+
+function updateMenuScreen(els, state) {
+  const show = state.phase === "menu";
+  if (!els.menuScreen) return;
+  els.menuScreen.hidden = !show;
+  if (!show) return;
+
+  const level = Math.max(1, Number(state.unlockedBoard) || 1);
+  if (els.menuStreak) els.menuStreak.textContent = String(state.bestStars || 0);
+  if (els.menuLevel) els.menuLevel.textContent = `LEVEL ${level}`;
+  if (els.menuCoins) els.menuCoins.textContent = String(state.bestScore || 0);
+  if (els.menuPlayLevel) els.menuPlayLevel.textContent = `LEVEL ${level}`;
+
+  if (els.menuMute) {
+    els.menuMute.textContent = state.soundOn ? "Sound on" : "Sound off";
+    els.menuMute.classList.toggle("is-muted", !state.soundOn);
+  }
+  if (els.menuSettings) {
+    els.menuSettings.hidden = !state.menuSettingsOpen;
+  }
+  if (els.menuToast) {
+    const toast = state.menuToast || "";
+    els.menuToast.hidden = !toast;
+    els.menuToast.textContent = toast || "Coming soon";
+  }
+
+  renderMenuPlayers(els.menuPlayers, state.leaderboard || []);
+}
+
+function renderMenuPlayers(container, list) {
+  if (!container) return;
+  container.replaceChildren();
+  const players = (list || []).filter((entry) => (entry.bestScore || 0) > 0).slice(0, 3);
+  if (players.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "menu-players__empty";
+    empty.textContent = "Be the first on this device.";
+    container.append(empty);
+    return;
+  }
+  players.forEach((entry, index) => {
+    const card = document.createElement("article");
+    card.className = `menu-player menu-player--${index + 1}`;
+    const initials = playerInitials(entry.name);
+    card.innerHTML = `
+      <span class="menu-player__medal" aria-hidden="true">${index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}</span>
+      <span class="menu-player__avatar" aria-hidden="true">${initials}</span>
+      <span class="menu-player__meta">
+        <strong>${escapeHtml(entry.name || "Player")}</strong>
+        <small>${Number(entry.bestScore || 0).toLocaleString()}</small>
+      </span>
+    `;
+    container.append(card);
+  });
+}
+
+function playerInitials(name) {
+  const parts = String(name || "P").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "P";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function updateNicknameOverlay(els, state) {

@@ -96,10 +96,13 @@ export function createGame({ mount }) {
         awaitingStart: true,
         chasePose: "idle",
         boardStars: {},
+        menuSettingsOpen: false,
+        menuToast: "",
       };
 
       let timerIntervalId = null;
       let catchTimeoutId = null;
+      let toastTimerId = null;
       const audio = createAudio(() => state.soundOn);
 
       state.round = makeRound(state);
@@ -116,6 +119,11 @@ export function createGame({ mount }) {
           onSubmit,
           onHintOrNext,
           onNewGame,
+          onPlayFromMenu,
+          onOpenMenu,
+          onOpenMenuSettings,
+          onCloseMenuSettings,
+          onComingSoon,
           onUsernameInput,
           onToggleSound,
           onTutorialNext,
@@ -130,6 +138,7 @@ export function createGame({ mount }) {
         disposed = true;
         stopPuzzleTimer();
         clearCatchTimeout();
+        window.clearTimeout(toastTimerId);
         audio.dispose();
         ui.destroy();
         mount.replaceChildren();
@@ -149,30 +158,14 @@ export function createGame({ mount }) {
         state.storageReady = true;
 
         if (state.usernameKey) {
-          const resume =
-            state.resume && state.resume.usernameKey === state.usernameKey ? state.resume : null;
-          if (resume) {
-            state.boardIndex = resume.boardIndex;
-            state.taskIndex = resume.taskIndex;
-            state.score = resume.score;
-            state.runStars = resume.runStars;
-          } else {
-            state.boardIndex = state.unlockedBoard;
-            state.taskIndex = 1;
-            state.score = 0;
-            state.runStars = 0;
-          }
+          state.boardIndex = state.unlockedBoard;
+          state.taskIndex = 1;
+          state.score = 0;
+          state.runStars = 0;
           state.round = makeRound(state);
-          state.phase = "playing";
-          state.feedback = {
-            kind: "neutral",
-            text: "Tap Start to reveal the target.",
-            detail: "",
-          };
           state.correction = null;
-          startPuzzleTimer();
+          goToMenu();
           persist();
-          render();
           return;
         }
 
@@ -207,19 +200,10 @@ export function createGame({ mount }) {
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
-        state.phase = "playing";
-        state.showTutorial = !state.tutorialSeen;
-        state.tutorialStep = state.showTutorial ? 1 : 0;
-        state.feedback = {
-          kind: "neutral",
-          text: "Tap Start to reveal the target.",
-          detail: "",
-        };
         state.correction = null;
-        state.resume = buildResume();
-        startPuzzleTimer();
+        state.resume = null;
+        goToMenu();
         persist();
-        render();
         audio.unlockFromGesture();
         vibrate(12);
       }
@@ -227,6 +211,7 @@ export function createGame({ mount }) {
       function onChangeName() {
         stopPuzzleTimer();
         clearCatchTimeout();
+        state.menuSettingsOpen = false;
         state.phase = "nickname";
         state.expression = "";
         state.usedCounts = new Map();
@@ -243,7 +228,42 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onNewGame() {
+      function goToMenu() {
+        stopPuzzleTimer();
+        clearCatchTimeout();
+        state.phase = "menu";
+        state.menuSettingsOpen = false;
+        state.menuToast = "";
+        state.showTutorial = false;
+        state.awaitingStart = true;
+        state.chasePose = "idle";
+        state.timerExpired = false;
+        state.result = null;
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.correction = null;
+        state.resume = null;
+        state.boardIndex = state.unlockedBoard;
+        state.leaderboard = topProfilesByScore(state.profiles, 3).filter(
+          (entry) => (entry.bestScore || 0) > 0
+        );
+        state.feedback = {
+          kind: "neutral",
+          text: "Ready when you are.",
+          detail: "",
+        };
+        render();
+      }
+
+      function onOpenMenu() {
+        if (!["playing", "review", "finished"].includes(state.phase)) return;
+        goToMenu();
+        persist();
+      }
+
+      function onPlayFromMenu() {
+        if (state.phase !== "menu") return;
+        state.menuSettingsOpen = false;
         state.phase = "playing";
         state.boardIndex = state.unlockedBoard;
         state.taskIndex = 1;
@@ -253,19 +273,48 @@ export function createGame({ mount }) {
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
-        state.leaderboard = [];
         resetTaskFlags();
+        state.showTutorial = !state.tutorialSeen;
+        state.tutorialStep = state.showTutorial ? 1 : 0;
         state.feedback = {
           kind: "neutral",
           text: "Tap Start to reveal the target.",
           detail: "",
         };
         state.correction = null;
-        state.showTutorial = false;
         state.resume = buildResume();
         startPuzzleTimer();
         render();
         persist();
+        audio.unlockFromGesture();
+        vibrate(12);
+      }
+
+      function onNewGame() {
+        goToMenu();
+        persist();
+      }
+
+      function onOpenMenuSettings() {
+        if (state.phase !== "menu") return;
+        state.menuSettingsOpen = true;
+        render();
+      }
+
+      function onCloseMenuSettings() {
+        state.menuSettingsOpen = false;
+        render();
+      }
+
+      function onComingSoon() {
+        state.menuToast = "Coming soon";
+        render();
+        window.clearTimeout(toastTimerId);
+        toastTimerId = window.setTimeout(() => {
+          if (disposed) return;
+          state.menuToast = "";
+          render();
+        }, 1600);
       }
 
       function onPuzzleGo() {
@@ -756,7 +805,7 @@ export function createGame({ mount }) {
       }
 
       function resetRun(message) {
-        state.phase = state.phase === "nickname" ? "nickname" : "playing";
+        state.phase = ["nickname", "menu"].includes(state.phase) ? state.phase : "playing";
         state.taskIndex = 1;
         state.score = 0;
         state.runStars = 0;
