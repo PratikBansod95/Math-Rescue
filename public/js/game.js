@@ -25,6 +25,13 @@ import {
   DEFAULT_BOARD_LENGTH,
   topProfilesByScore,
 } from "./storage.js";
+import {
+  fetchPlayer,
+  savePlayer,
+  fetchLeaderboard,
+  remoteToLocalProfile,
+  leaderboardToUi,
+} from "./api.js";
 
 const POINTS_CORRECT = 10;
 const POINTS_WRONG = 2;
@@ -161,6 +168,8 @@ export function createGame({ mount }) {
         state.storageReady = true;
 
         if (state.usernameKey) {
+          await syncFromRemote();
+          if (disposed) return;
           state.boardIndex = state.unlockedBoard;
           state.taskIndex = 1;
           state.score = 0;
@@ -177,13 +186,13 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "neutral",
           text: "Enter a name to save your progress.",
-          detail: "Progress stays on this device until cloud save is added.",
+          detail: "Progress syncs to the cloud when online, and stays on this device offline.",
         };
         state.correction = null;
         render();
       }
 
-      function onConfirmNickname() {
+      async function onConfirmNickname() {
         if (state.phase !== "nickname") return;
         if (!state.usernameKey) {
           state.feedback = {
@@ -195,6 +204,8 @@ export function createGame({ mount }) {
           return;
         }
         resetTaskFlags();
+        await syncFromRemote();
+        if (disposed) return;
         state.boardIndex = state.unlockedBoard;
         state.taskIndex = 1;
         state.score = 0;
@@ -258,6 +269,7 @@ export function createGame({ mount }) {
           detail: "",
         };
         render();
+        refreshLeaderboard(3);
       }
 
       function onOpenMenu() {
@@ -665,6 +677,7 @@ export function createGame({ mount }) {
         audio.playBlip(660, { duration: 0.1, volume: 0.12 });
         audio.playBlip(990, { duration: 0.13, volume: 0.12 });
         persist();
+        refreshLeaderboard(5);
       }
 
       function isPlaying() {
@@ -798,6 +811,7 @@ export function createGame({ mount }) {
           settings,
           resume: state.resume,
         });
+        syncToRemote();
       }
 
       function persistSettings() {
@@ -808,6 +822,78 @@ export function createGame({ mount }) {
           settings,
           resume: state.resume,
         });
+      }
+
+      function applyRemotePlayer(player) {
+        const remote = remoteToLocalProfile(player);
+        if (!remote || !state.usernameKey) return;
+        const existing = state.profiles[state.usernameKey] || emptyProfile();
+        const boardStars = { ...(existing.boardStars || {}) };
+        for (const [board, stars] of Object.entries(remote.boardStars || {})) {
+          boardStars[board] = Math.max(Number(boardStars[board]) || 0, Number(stars) || 0);
+        }
+        state.bestScore = Math.max(state.bestScore || 0, remote.bestScore || 0);
+        state.unlockedBoard = Math.max(state.unlockedBoard || 1, remote.unlockedBoard || 1);
+        state.bestStars = Math.max(state.bestStars || 0, remote.bestStars || 0);
+        state.tutorialSeen = Boolean(state.tutorialSeen || remote.tutorialSeen);
+        state.boardStars = boardStars;
+        state.boardIndex = state.unlockedBoard;
+        state.profiles[state.usernameKey] = {
+          name: remote.name || state.username,
+          bestScore: state.bestScore,
+          unlockedBoard: state.unlockedBoard,
+          bestStars: state.bestStars,
+          tutorialSeen: state.tutorialSeen,
+          taskStars: existing.taskStars || {},
+          boardStars,
+        };
+        if (remote.name) state.username = remote.name;
+      }
+
+      async function syncFromRemote() {
+        if (!state.usernameKey) return;
+        try {
+          const player = await fetchPlayer(state.usernameKey);
+          if (player) applyRemotePlayer(player);
+        } catch {
+          // Offline or API unavailable — keep local progress.
+        }
+      }
+
+      function syncToRemote() {
+        if (!state.usernameKey) return;
+        const profile = state.profiles[state.usernameKey];
+        if (!profile) return;
+        savePlayer({
+          usernameKey: state.usernameKey,
+          name: profile.name || state.username,
+          unlockedBoard: profile.unlockedBoard,
+          bestScore: profile.bestScore,
+          bestStars: profile.bestStars,
+          boardStars: profile.boardStars,
+          tutorialSeen: profile.tutorialSeen,
+        }).catch(() => {
+          // Ignore sync failures; localStorage remains source offline.
+        });
+      }
+
+      async function refreshLeaderboard(limit = 10) {
+        try {
+          const players = await fetchLeaderboard(limit);
+          if (disposed) return;
+          if (players.length) {
+            state.leaderboard = leaderboardToUi(players);
+            if (["menu", "finished"].includes(state.phase)) render();
+            return;
+          }
+        } catch {
+          // fall through to local
+        }
+        if (disposed) return;
+        state.leaderboard = topProfilesByScore(state.profiles, limit).filter(
+          (entry) => (entry.bestScore || 0) > 0
+        );
+        if (["menu", "finished"].includes(state.phase)) render();
       }
 
       function recordTaskStars(stars) {

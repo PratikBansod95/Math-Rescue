@@ -5,7 +5,13 @@
   "type": "module",
   "description": "Math Rescue — card equation puzzle game",
   "scripts": {
-    "start": "npx --yes serve public -p 5173",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "db:migrate": "node server/migrate.js",
     "build": "echo Static site — files are in public/"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "dotenv": "^16.6.1"
   }
 }
