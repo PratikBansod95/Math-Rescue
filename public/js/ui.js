@@ -76,8 +76,6 @@ export function createUI({ mount, handlers }) {
     nicknameContinue: shell.querySelector("[data-nickname-continue]"),
     usernameInput: shell.querySelector("[data-username]"),
     nicknameStatus: shell.querySelector("[data-nickname-status]"),
-    levelsOverlay: shell.querySelector("[data-levels-overlay]"),
-    levelsPath: shell.querySelector("[data-levels-path]"),
     resultsOverlay: shell.querySelector("[data-results]"),
     resultScore: shell.querySelector("[data-result-score]"),
     resultStars: shell.querySelector("[data-result-stars]"),
@@ -116,15 +114,13 @@ export function createUI({ mount, handlers }) {
     }
   });
 
-  on(shell.querySelector("[data-levels-back]"), "click", handlers.onChangeName);
-
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
   on(els.hintButton, "click", handlers.onHintOrNext);
   on(els.newGameButton, "click", handlers.onNewGame);
   on(els.muteButton, "click", handlers.onToggleSound);
-  on(els.menuButton, "click", handlers.onOpenLevels);
-  on(els.playerButton, "click", handlers.onOpenLevels);
+  on(els.menuButton, "click", handlers.onChangeName);
+  on(els.playerButton, "click", handlers.onChangeName);
   on(els.tutorialNext, "click", handlers.onTutorialNext);
   on(els.tutorialSkip, "click", handlers.onTutorialSkip);
 
@@ -184,7 +180,6 @@ export function createUI({ mount, handlers }) {
       renderCards(els.numbers, state, handlers.onAppend, handlers.onPuzzleGo);
       updateControls(els, state);
       updateNicknameOverlay(els, state);
-      updateLevelsOverlay(els, state, handlers.onSelectLevel);
       updateResults(els, state);
       updateTutorial(els, state);
     },
@@ -214,7 +209,7 @@ function template() {
     </div>
 
     <header class="top-bar" aria-label="Game status">
-      <button class="icon-btn" data-menu type="button" aria-label="Open levels">
+      <button class="icon-btn" data-menu type="button" aria-label="Change player">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
 
@@ -409,22 +404,6 @@ function template() {
       </div>
     </div>
 
-    <div class="levels-overlay screen-overlay" data-levels-overlay hidden>
-      <div class="levels-shell">
-        <header class="levels-header">
-          <button class="screen-btn screen-btn--ghost levels-back" data-levels-back type="button">Change name</button>
-          <div>
-            <p class="brand-mark">Levels</p>
-            <small>Pick a board to rescue the cat</small>
-          </div>
-          <span class="levels-spacer" aria-hidden="true"></span>
-        </header>
-        <div class="levels-scroll">
-          <div class="levels-path" data-levels-path></div>
-        </div>
-      </div>
-    </div>
-
     <div class="result-overlay screen-overlay" data-results hidden>
       <section class="result-card" aria-label="Final result">
         <span class="result-kicker">Board complete</span>
@@ -434,7 +413,7 @@ function template() {
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
         <div class="local-board" data-result-board></div>
-        <button data-new-game type="button">Back to levels</button>
+        <button data-new-game type="button">Start unlocked board</button>
       </section>
     </div>
 
@@ -460,7 +439,7 @@ function updateChase(els, state, catRun, celebrate) {
   const idle =
     Boolean(state.awaitingStart) ||
     Boolean(state.showTutorial) ||
-    ["nickname", "levels", "loading"].includes(state.phase);
+    ["nickname", "loading"].includes(state.phase);
   const catching = pose === "caught" || pose === "ate" || Boolean(state.timerExpired);
   const running =
     state.phase === "playing" && !state.awaitingStart && !state.showTutorial && !catching;
@@ -664,77 +643,6 @@ function updateNicknameOverlay(els, state) {
       els.nicknameStatus.hidden = true;
       els.nicknameStatus.textContent = "";
     }
-  }
-}
-
-function updateLevelsOverlay(els, state, onSelectLevel) {
-  const show = state.phase === "levels";
-  els.levelsOverlay.hidden = !show;
-  if (!show || !els.levelsPath) return;
-
-  const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
-  const total = Math.max(10, unlocked + 2);
-  const starsMap = state.boardStars || {};
-  els.levelsPath.replaceChildren();
-
-  for (let level = total; level >= 1; level -= 1) {
-    const lane = ((total - level) % 3) - 1;
-    const wrap = document.createElement("div");
-    wrap.className = `level-node-wrap level-node-wrap--lane${lane}`;
-
-    if (level < total) {
-      const connector = document.createElement("i");
-      connector.className = "level-connector";
-      wrap.append(connector);
-    }
-
-    const cleared = level < unlocked;
-    const current = level === unlocked;
-    const locked = level > unlocked;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `level-node${cleared ? " is-cleared" : ""}${current ? " is-current" : ""}${locked ? " is-locked" : ""}`;
-    btn.disabled = locked;
-    btn.setAttribute("aria-label", locked ? `Board ${level} locked` : `Play board ${level}`);
-
-    const num = document.createElement("strong");
-    num.textContent = String(level);
-    btn.append(num);
-
-    if (locked) {
-      const lock = document.createElement("span");
-      lock.className = "level-node__lock";
-      lock.setAttribute("aria-hidden", "true");
-      lock.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 10V8a4 4 0 0 1 8 0v2M7 10h10v10H7V10Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
-      btn.append(lock);
-    } else if (cleared) {
-      const stars = Number(starsMap[level]) || 0;
-      const row = document.createElement("span");
-      row.className = "level-node__stars";
-      row.setAttribute("aria-hidden", "true");
-      row.textContent = stars > 0 ? "★".repeat(stars) + "☆".repeat(3 - stars) : "✓";
-      btn.append(row);
-    } else {
-      const play = document.createElement("span");
-      play.className = "level-node__play";
-      play.textContent = "Play";
-      btn.append(play);
-    }
-
-    if (!locked) {
-      btn.addEventListener("click", () => onSelectLevel?.(level));
-    }
-
-    wrap.append(btn);
-    els.levelsPath.append(wrap);
-  }
-
-  // Keep current level in view
-  const currentEl = els.levelsPath.querySelector(".level-node.is-current");
-  if (currentEl?.scrollIntoView) {
-    requestAnimationFrame(() => {
-      currentEl.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
   }
 }
 

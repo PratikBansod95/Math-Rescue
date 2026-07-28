@@ -109,8 +109,6 @@ export function createGame({ mount }) {
         handlers: {
           onConfirmNickname,
           onChangeName,
-          onSelectLevel,
-          onOpenLevels,
           onPuzzleGo,
           onAppend,
           onBackspace,
@@ -151,14 +149,28 @@ export function createGame({ mount }) {
         state.storageReady = true;
 
         if (state.usernameKey) {
-          state.phase = "levels";
+          const resume =
+            state.resume && state.resume.usernameKey === state.usernameKey ? state.resume : null;
+          if (resume) {
+            state.boardIndex = resume.boardIndex;
+            state.taskIndex = resume.taskIndex;
+            state.score = resume.score;
+            state.runStars = resume.runStars;
+          } else {
+            state.boardIndex = state.unlockedBoard;
+            state.taskIndex = 1;
+            state.score = 0;
+            state.runStars = 0;
+          }
           state.round = makeRound(state);
+          state.phase = "playing";
           state.feedback = {
             kind: "neutral",
-            text: `Hi, ${state.username}.`,
-            detail: `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`,
+            text: "Tap Start to reveal the target.",
+            detail: "",
           };
           state.correction = null;
+          startPuzzleTimer();
           persist();
           render();
           return;
@@ -186,12 +198,26 @@ export function createGame({ mount }) {
           render();
           return;
         }
-        state.phase = "levels";
+        resetTaskFlags();
+        state.boardIndex = state.unlockedBoard;
+        state.taskIndex = 1;
+        state.score = 0;
+        state.runStars = 0;
+        state.round = makeRound(state);
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.phase = "playing";
+        state.showTutorial = !state.tutorialSeen;
+        state.tutorialStep = state.showTutorial ? 1 : 0;
         state.feedback = {
           kind: "neutral",
-          text: `Hi, ${state.username}.`,
-          detail: `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`,
+          text: "Tap Start to reveal the target.",
+          detail: "",
         };
+        state.correction = null;
+        state.resume = buildResume();
+        startPuzzleTimer();
         persist();
         render();
         audio.unlockFromGesture();
@@ -217,74 +243,27 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onOpenLevels() {
-        if (!["playing", "review", "finished"].includes(state.phase)) return;
-        stopPuzzleTimer();
-        clearCatchTimeout();
-        state.phase = "levels";
-        state.expression = "";
-        state.usedCounts = new Map();
-        state.result = null;
-        state.correction = null;
-        state.showTutorial = false;
-        state.awaitingStart = true;
-        state.chasePose = "idle";
-        render();
-      }
-
-      function onSelectLevel(board) {
-        if (state.phase !== "levels" || !state.usernameKey) return;
-        const level = Math.max(1, Math.floor(Number(board) || 0));
-        if (!level || level > state.unlockedBoard) return;
-
-        const resume =
-          state.resume &&
-          state.resume.usernameKey === state.usernameKey &&
-          state.resume.boardIndex === level
-            ? state.resume
-            : null;
-
-        resetTaskFlags();
-        state.boardIndex = level;
-        if (resume) {
-          state.taskIndex = resume.taskIndex;
-          state.score = resume.score;
-          state.runStars = resume.runStars;
-        } else {
-          state.taskIndex = 1;
-          state.score = 0;
-          state.runStars = 0;
-        }
+      function onNewGame() {
+        state.phase = "playing";
+        state.boardIndex = state.unlockedBoard;
+        state.taskIndex = 1;
+        state.score = 0;
+        state.runStars = 0;
         state.round = makeRound(state);
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
-        state.phase = "playing";
-        state.showTutorial = !state.tutorialSeen;
-        state.tutorialStep = state.showTutorial ? 1 : 0;
+        state.leaderboard = [];
+        resetTaskFlags();
         state.feedback = {
           kind: "neutral",
           text: "Tap Start to reveal the target.",
           detail: "",
         };
         state.correction = null;
+        state.showTutorial = false;
         state.resume = buildResume();
         startPuzzleTimer();
-        render();
-        audio.unlockFromGesture();
-        vibrate(12);
-        persist();
-      }
-
-      function onNewGame() {
-        state.phase = "levels";
-        state.expression = "";
-        state.usedCounts = new Map();
-        state.result = null;
-        state.leaderboard = [];
-        state.correction = null;
-        state.showTutorial = false;
-        resetTaskFlags();
         render();
         persist();
       }
@@ -777,9 +756,7 @@ export function createGame({ mount }) {
       }
 
       function resetRun(message) {
-        state.phase = state.phase === "nickname" || state.phase === "levels"
-          ? state.phase
-          : "playing";
+        state.phase = state.phase === "nickname" ? "nickname" : "playing";
         state.taskIndex = 1;
         state.score = 0;
         state.runStars = 0;
