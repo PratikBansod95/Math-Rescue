@@ -2456,7 +2456,16 @@ button:disabled { cursor: not-allowed }
   align-content: start;
   max-width: 26.5rem;
   width: 100%;
-  margin-inline: auto
+  margin-inline: auto;
+  zoom: 0.85;
+  transform: scale(0.85);
+  transform-origin: top center
+}
+
+@supports (zoom: 0.85) {
+  .menu-screen__scroll {
+    transform: none
+  }
 }
 
 .menu-hud {
