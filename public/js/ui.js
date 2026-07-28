@@ -146,7 +146,6 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
   on(els.menuMute, "click", handlers.onToggleSound);
-  on(shell.querySelector("[data-menu-change-name]"), "click", handlers.onChangeName);
   for (const btn of shell.querySelectorAll("[data-coming-soon]")) {
     on(btn, "click", handlers.onComingSoon);
   }
