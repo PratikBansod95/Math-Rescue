@@ -233,7 +233,9 @@ function template() {
       <div class="menu-screen__bg" aria-hidden="true">
         <div class="menu-screen__wash"></div>
         <div class="menu-screen__grid"></div>
-        <img class="menu-screen__doodles" src="./assets/math-doodles.svg" alt="" />
+        <img class="menu-screen__doodles" src="./assets/menu/doodles.svg?v=1" alt="" />
+        <img class="menu-screen__deco menu-screen__deco--cube" src="./assets/deco-cube.svg" alt="" />
+        <img class="menu-screen__deco menu-screen__deco--ruler" src="./assets/deco-ruler.svg" alt="" />
         <i class="menu-screen__blob menu-screen__blob--a"></i>
         <i class="menu-screen__blob menu-screen__blob--b"></i>
       </div>
@@ -268,8 +270,33 @@ function template() {
 
         <div class="menu-hero">
           <h1 class="menu-logo" aria-label="Math Rescue">
-            <span class="menu-logo__math">MATH</span>
-            <span class="menu-logo__rescue">RESCUE</span>
+            <svg class="menu-logo__svg" viewBox="0 0 420 168" role="img" aria-hidden="true">
+              <defs>
+                <linearGradient id="menuLogoMath" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#8eb6ff"/>
+                  <stop offset="45%" stop-color="#4d8aff"/>
+                  <stop offset="100%" stop-color="#2563eb"/>
+                </linearGradient>
+                <linearGradient id="menuLogoRescue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffe08a"/>
+                  <stop offset="45%" stop-color="#ffb020"/>
+                  <stop offset="100%" stop-color="#f59e0b"/>
+                </linearGradient>
+                <filter id="menuLogoDepth" x="-10%" y="-10%" width="120%" height="140%">
+                  <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#1e3a8a" flood-opacity=".22"/>
+                </filter>
+              </defs>
+              <g filter="url(#menuLogoDepth)" font-family="Fredoka, Space Grotesk, Quicksand, sans-serif" font-weight="700" text-anchor="middle">
+                <text class="menu-logo__outline" x="210" y="72" font-size="78">MATH</text>
+                <text class="menu-logo__fill menu-logo__fill--math" x="210" y="72" font-size="78" fill="url(#menuLogoMath)">MATH</text>
+                <text class="menu-logo__outline" x="210" y="148" font-size="78">RESCUE</text>
+                <text class="menu-logo__fill menu-logo__fill--rescue" x="210" y="148" font-size="78" fill="url(#menuLogoRescue)">RESCUE</text>
+              </g>
+            </svg>
+            <span class="menu-logo__fallback">
+              <span class="menu-logo__math">MATH</span>
+              <span class="menu-logo__rescue">RESCUE</span>
+            </span>
           </h1>
           <p class="menu-ribbon"><span>SOLVE • RESCUE • LEVEL UP</span></p>
           <div class="menu-scene" aria-hidden="true">
@@ -311,19 +338,15 @@ function template() {
             <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
-            <span class="menu-feature__copy">
-              <strong>DAILY CHALLENGE</strong>
-              <small>Coming soon</small>
-            </span>
+            <strong>DAILY CHALLENGE</strong>
+            <small>Coming soon</small>
           </button>
           <button class="menu-feature" data-coming-soon type="button">
             <span class="menu-feature__icon menu-feature__icon--board" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M5 18h3.2v-5H5V18Zm5.4 0H14V7h-3.6v11Zm5.4 0H21V4h-5.2v14Z" fill="#2563eb"/></svg>
             </span>
-            <span class="menu-feature__copy">
-              <strong>LEADERBOARD</strong>
-              <small>Top Players</small>
-            </span>
+            <strong>LEADERBOARD</strong>
+            <small>Top Players</small>
           </button>
         </div>
 

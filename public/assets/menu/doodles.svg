@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" fill="none" aria-hidden="true">
+  <g opacity=".28" stroke="#7EA3C9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 150l40-56 40 56Z"/><path d="M46 150h60"/>
+    <path d="M292 118h54v46h-54z"/><path d="M292 118l27-20 27 20"/><path d="M319 98v20"/>
+    <path d="M48 250c18-22 42-22 58 0"/><path d="M52 270h50M62 286h30"/>
+    <path d="M300 250l22 14-22 14-22-14 22-14Z"/>
+    <circle cx="72" cy="360" r="22"/><path d="M72 338v44M50 360h44"/>
+    <path d="M310 360c26 0 40 18 40 36s-24 30-40 18c-12-8-14-20-6-28"/>
+    <path d="M40 470l28-40 28 40"/><path d="M48 470h40"/>
+    <rect x="286" y="450" width="52" height="38" rx="4"/><path d="M286 450l26-18 26 18"/>
+    <path d="M58 560h46M58 574h34M58 588h40"/>
+    <path d="M300 560a24 24 0 1 0 .3 0"/><path d="M300 536v48M276 560h48"/>
+    <path d="M46 680c20-24 48-24 68 0M54 704h52"/>
+    <path d="M286 670l34 22-34 22-34-22 34-22Z"/>
+  </g>
+  <g fill="#7EA3C9" opacity=".22" font-family="Quicksand, Segoe UI, sans-serif" font-size="15" font-weight="700">
+    <text transform="translate(24 210) rotate(-10)">y = mx + c</text>
+    <text transform="translate(250 210) rotate(8)">x² + y² = r²</text>
+    <text transform="translate(28 420) rotate(6)">”ABC</text>
+    <text transform="translate(268 420) rotate(-7)">(a+b)²</text>
+    <text transform="translate(40 640) rotate(-8)">1/2 + 1/3</text>
+    <text transform="translate(255 700) rotate(7)">À H 3.14</text>
+  </g>
+</svg>
