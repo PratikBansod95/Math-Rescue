@@ -2662,10 +2662,8 @@ button:disabled { cursor: not-allowed }
   margin-bottom: 0.1rem
 }
 .menu-feature__icon svg { width: 1.55rem; height: 1.55rem }
-.menu-feature__icon--skins { background: #f3e8ff }
 .menu-feature__icon--daily { background: #dcfce7 }
 .menu-feature__icon--board { background: #dbeafe }
-.menu-feature__icon--shop { background: #fef9c3 }
 
 .menu-feature strong {
   font-size: 0.78rem;

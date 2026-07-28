@@ -297,13 +297,6 @@ function template() {
 
         <div class="menu-features">
           <button class="menu-feature" data-coming-soon type="button">
-            <span class="menu-feature__icon menu-feature__icon--skins" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#a78bfa"/><path d="M12 3c2.5 3 2.5 6 0 9s-2.5 6 0 9" fill="none" stroke="#fff" stroke-width="1.6"/></svg>
-            </span>
-            <strong>SKINS</strong>
-            <small>Customize Ball</small>
-          </button>
-          <button class="menu-feature" data-coming-soon type="button">
             <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="#22c55e"/></svg>
             </span>
@@ -316,13 +309,6 @@ function template() {
             </span>
             <strong>LEADERBOARD</strong>
             <small>Top Players</small>
-          </button>
-          <button class="menu-feature" data-coming-soon type="button">
-            <span class="menu-feature__icon menu-feature__icon--shop" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 7h14l-1.5 9H8L6 3H2" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.5" fill="#eab308"/><circle cx="18" cy="20" r="1.5" fill="#eab308"/></svg>
-            </span>
-            <strong>SHOP</strong>
-            <small>Skins &amp; Trails</small>
           </button>
         </div>
 
