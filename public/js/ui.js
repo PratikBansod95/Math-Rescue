@@ -372,23 +372,37 @@ function template() {
 
       <div class="menu-howto screen-overlay" data-menu-howto hidden>
         <div class="screen-card menu-howto-card" role="dialog" aria-labelledby="menu-howto-title">
+          <p class="menu-howto__kicker">Quick guide</p>
           <h2 id="menu-howto-title">How to play</h2>
+          <p class="menu-howto__lead">Rescue the cat by solving equations before the shark reaches it.</p>
           <ol class="menu-howto__steps">
             <li>
-              <strong>Tap Start</strong>
-              <span>Reveal the target and start the cat chase timer.</span>
+              <span class="menu-howto__num" aria-hidden="true">1</span>
+              <div>
+                <strong>Tap Start</strong>
+                <span>Reveal the target and start the chase timer.</span>
+              </div>
             </li>
             <li>
-              <strong>Build the equation</strong>
-              <span>Use the four number cards with + − × ÷ and ( ).</span>
+              <span class="menu-howto__num" aria-hidden="true">2</span>
+              <div>
+                <strong>Build an equation</strong>
+                <span>Use all four cards with + − × ÷ and parentheses.</span>
+              </div>
             </li>
             <li>
-              <strong>Hit Submit</strong>
-              <span>Match the target before the shark catches the cat.</span>
+              <span class="menu-howto__num" aria-hidden="true">3</span>
+              <div>
+                <strong>Submit your answer</strong>
+                <span>Match the target before time runs out.</span>
+              </div>
             </li>
             <li>
-              <strong>Earn stars</strong>
-              <span>Faster, cleaner solves unlock boards and raise your streak.</span>
+              <span class="menu-howto__num" aria-hidden="true">4</span>
+              <div>
+                <strong>Clear the board</strong>
+                <span>Earn stars, unlock the next board, and keep the cat safe.</span>
+              </div>
             </li>
           </ol>
           <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it</button>
