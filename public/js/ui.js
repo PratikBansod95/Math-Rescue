@@ -231,8 +231,11 @@ function template() {
   return `
     <div class="menu-screen" data-menu-screen hidden>
       <div class="menu-screen__bg" aria-hidden="true">
+        <div class="menu-screen__wash"></div>
         <div class="menu-screen__grid"></div>
         <img class="menu-screen__doodles" src="./assets/math-doodles.svg" alt="" />
+        <i class="menu-screen__blob menu-screen__blob--a"></i>
+        <i class="menu-screen__blob menu-screen__blob--b"></i>
       </div>
       <div class="menu-screen__scroll">
         <header class="menu-hud" aria-label="Menu status">
@@ -243,15 +246,17 @@ function template() {
             <span class="menu-chip__ico" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
             </span>
-            <span class="menu-chip__label">STREAK</span>
-            <strong data-menu-streak>0</strong>
+            <span class="menu-chip__text">
+              <span class="menu-chip__label">STREAK</span>
+              <strong data-menu-streak>0</strong>
+            </span>
           </div>
           <div class="menu-chip menu-chip--level">
             <strong data-menu-level>LEVEL 1</strong>
           </div>
           <div class="menu-chip menu-chip--coins">
             <span class="menu-chip__ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">$</text></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6" fill="none" stroke="#fde68a" stroke-width="1.5"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
             </span>
             <strong data-menu-coins>0</strong>
             <button class="menu-chip__plus" data-coming-soon type="button" aria-label="Add coins">+</button>
@@ -266,17 +271,21 @@ function template() {
             <span class="menu-logo__math">MATH</span>
             <span class="menu-logo__rescue">RESCUE</span>
           </h1>
-          <p class="menu-ribbon">SOLVE • RESCUE • LEVEL UP</p>
+          <p class="menu-ribbon"><span>SOLVE • RESCUE • LEVEL UP</span></p>
           <div class="menu-scene" aria-hidden="true">
-            <img class="menu-scene__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
-            <img class="menu-scene__shark" src="./assets/chase/shark.png?v=still1" alt="" />
-            <img class="menu-scene__cat" src="./assets/chase/cat-run-still.png?v=face-right1" alt="" />
+            <div class="menu-scene__frame">
+              <img class="menu-scene__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
+              <div class="menu-scene__water"></div>
+              <img class="menu-scene__shark" src="./assets/chase/shark.png?v=still1" alt="" />
+              <img class="menu-scene__cat" src="./assets/chase/cat-run-still.png?v=face-right1" alt="" />
+              <div class="menu-scene__glow"></div>
+            </div>
           </div>
         </div>
 
         <button class="menu-play" data-menu-play type="button">
           <span class="menu-play__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M8 5v14l12-7z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M9 6.5v11l9-5.5-9-5.5Z" fill="currentColor"/></svg>
           </span>
           <span class="menu-play__copy">
             <strong>PLAY</strong>
@@ -292,28 +301,36 @@ function template() {
             <strong>JOURNEY</strong>
             <small>Progressive Levels</small>
           </span>
-          <span class="menu-journey__chev" aria-hidden="true">›</span>
+          <span class="menu-journey__chev" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
         </button>
 
         <div class="menu-features">
           <button class="menu-feature" data-coming-soon type="button">
             <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="#22c55e"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
-            <strong>DAILY CHALLENGE</strong>
-            <small>Coming soon</small>
+            <span class="menu-feature__copy">
+              <strong>DAILY CHALLENGE</strong>
+              <small>Coming soon</small>
+            </span>
           </button>
           <button class="menu-feature" data-coming-soon type="button">
             <span class="menu-feature__icon menu-feature__icon--board" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 18h4v-4H4v4Zm6 0h4V8h-4v10Zm6 0h4V4h-4v14Z" fill="#3b82f6"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M5 18h3.2v-5H5V18Zm5.4 0H14V7h-3.6v11Zm5.4 0H21V4h-5.2v14Z" fill="#2563eb"/></svg>
             </span>
-            <strong>LEADERBOARD</strong>
-            <small>Top Players</small>
+            <span class="menu-feature__copy">
+              <strong>LEADERBOARD</strong>
+              <small>Top Players</small>
+            </span>
           </button>
         </div>
 
         <section class="menu-top-players" aria-label="Top players">
-          <h2>TOP PLAYERS</h2>
+          <div class="menu-top-players__head">
+            <h2>TOP PLAYERS</h2>
+          </div>
           <div class="menu-players" data-menu-players></div>
         </section>
       </div>
