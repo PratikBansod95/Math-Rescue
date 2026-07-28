@@ -2386,29 +2386,53 @@ button:disabled { cursor: not-allowed }
 .menu-screen__grid {
   position: absolute;
   inset: 0;
-  opacity: .4;
+  opacity: .5;
   background-image:
-    linear-gradient(rgba(120, 160, 210, .35) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 160, 210, .35) 1px, transparent 1px);
-  background-size: 26px 26px;
-  mask-image: linear-gradient(180deg, #000 0%, #000 48%, transparent 88%)
+    linear-gradient(rgba(110, 155, 210, .38) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(110, 155, 210, .38) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%)
 }
 
 .menu-screen__doodles {
   position: absolute;
-  inset: -2% 0 auto;
+  inset: 0;
   width: 100%;
-  height: 78%;
+  height: 100%;
   object-fit: cover;
-  opacity: .5;
+  opacity: .72;
   mix-blend-mode: multiply
 }
+
+.menu-screen__formulas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none
+}
+
+.menu-formula {
+  position: absolute;
+  font-family: Fredoka, Quicksand, sans-serif;
+  font-weight: 700;
+  color: rgba(70, 115, 170, .28);
+  white-space: nowrap;
+  user-select: none;
+  animation: menu-formula-drift 9s ease-in-out infinite
+}
+
+.menu-formula--a { top: 12%; left: 4%; font-size: 0.95rem; transform: rotate(-12deg); animation-delay: 0s }
+.menu-formula--b { top: 22%; right: 3%; font-size: 0.88rem; transform: rotate(8deg); animation-delay: -1.4s }
+.menu-formula--c { top: 48%; left: 2%; font-size: 0.92rem; transform: rotate(6deg); animation-delay: -2.8s }
+.menu-formula--d { top: 58%; right: 4%; font-size: 1.05rem; transform: rotate(-9deg); animation-delay: -4.2s }
+.menu-formula--e { bottom: 18%; left: 8%; font-size: 0.86rem; transform: rotate(-7deg); animation-delay: -5.6s }
+.menu-formula--f { bottom: 28%; right: 10%; font-size: 1.2rem; transform: rotate(11deg); animation-delay: -7s }
 
 .menu-screen__deco {
   position: absolute;
   width: 3.4rem;
   height: auto;
-  opacity: .55;
+  opacity: .62;
   filter: drop-shadow(0 8px 12px rgba(37, 99, 235, .12));
   animation: menu-float 5.5s ease-in-out infinite
 }
@@ -3309,6 +3333,11 @@ button:disabled { cursor: not-allowed }
   50% { transform: translateY(-8px) rotate(-12deg) }
 }
 
+@keyframes menu-formula-drift {
+  0%, 100% { translate: 0 0 }
+  50% { translate: 0 -6px }
+}
+
 @keyframes menu-ribbon-pulse {
   0%, 100% { filter: brightness(1) }
   50% { filter: brightness(1.08) }
@@ -3351,6 +3380,7 @@ button:disabled { cursor: not-allowed }
   .menu-scene__cat,
   .menu-scene__water,
   .menu-screen__deco,
+  .menu-formula,
   .menu-play::after { animation: none }
   .menu-play:active,
   .menu-journey:active,

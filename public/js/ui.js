@@ -238,7 +238,15 @@ function template() {
       <div class="menu-screen__bg" aria-hidden="true">
         <div class="menu-screen__wash"></div>
         <div class="menu-screen__grid"></div>
-        <img class="menu-screen__doodles" src="./assets/menu/doodles.svg?v=1" alt="" />
+        <img class="menu-screen__doodles" src="./assets/menu/doodles.svg?v=2" alt="" />
+        <div class="menu-screen__formulas" aria-hidden="true">
+          <span class="menu-formula menu-formula--a">y = mx + c</span>
+          <span class="menu-formula menu-formula--b">a² + b² = c²</span>
+          <span class="menu-formula menu-formula--c">π ≈ 3.14</span>
+          <span class="menu-formula menu-formula--d">(a+b)²</span>
+          <span class="menu-formula menu-formula--e">1/2 + 1/3</span>
+          <span class="menu-formula menu-formula--f">√x</span>
+        </div>
         <img class="menu-screen__deco menu-screen__deco--cube" src="./assets/deco-cube.svg" alt="" />
         <img class="menu-screen__deco menu-screen__deco--ruler" src="./assets/deco-ruler.svg" alt="" />
         <i class="menu-screen__blob menu-screen__blob--a"></i>
