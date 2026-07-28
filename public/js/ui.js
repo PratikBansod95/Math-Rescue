@@ -69,7 +69,6 @@ export function createUI({ mount, handlers }) {
     submitButton: shell.querySelector("[data-submit]"),
     hintButton: shell.querySelector("[data-hint]"),
     hintLabel: shell.querySelector("[data-hint-label]"),
-    playShell: shell.querySelector("[data-play-shell]"),
     menuButton: shell.querySelector("[data-menu]"),
     muteButton: shell.querySelector("[data-mute]"),
     playerButton: shell.querySelector("[data-player]"),
@@ -83,7 +82,6 @@ export function createUI({ mount, handlers }) {
     menuLeaderboard: shell.querySelector("[data-menu-leaderboard]"),
     menuHello: shell.querySelector("[data-menu-hello]"),
     menuMeta: shell.querySelector("[data-menu-meta]"),
-    menuBest: shell.querySelector("[data-menu-best]"),
     menuSoundLabel: shell.querySelector("[data-menu-sound-label]"),
     menuLeaderboardList: shell.querySelector("[data-menu-leaderboard-list]"),
     levelsOverlay: shell.querySelector("[data-levels-overlay]"),
@@ -150,16 +148,8 @@ export function createUI({ mount, handlers }) {
       shell.dataset.phase = state.phase;
       shell.classList.toggle("is-shaking", Boolean(state.shake));
       shell.classList.toggle("tutorial-on", Boolean(state.showTutorial));
-      shell.classList.toggle(
-        "is-app-screen",
-        ["loading", "nickname", "menu", "levels"].includes(state.phase)
-      );
       if (state.showTutorial) shell.dataset.tutorialStep = String(state.tutorialStep);
       else delete shell.dataset.tutorialStep;
-
-      if (els.playShell) {
-        els.playShell.hidden = ["loading", "nickname", "menu", "levels"].includes(state.phase);
-      }
 
       const segsOn = Math.min(4, state.runStars || 0);
       els.streakValue.textContent = String(state.runStars || 0);
@@ -234,7 +224,6 @@ export function createUI({ mount, handlers }) {
 
 function template() {
   return `
-    <div class="play-shell" data-play-shell hidden>
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
       <img class="play-bg-art" src="./assets/play-bg.svg?v=2" alt="" />
@@ -244,6 +233,7 @@ function template() {
       <button class="icon-btn" data-menu type="button" aria-label="Open main menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
+
       <div class="stat-chip stat-chip--streak">
         <span class="trophy-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -256,6 +246,7 @@ function template() {
           </div>
         </div>
       </div>
+
       <div class="stat-chip stat-chip--timer" data-timer-chip aria-label="Puzzle timer">
         <span class="timer-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l2.5 1.5M9 3.5h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -265,19 +256,22 @@ function template() {
           <strong data-timer aria-live="polite">1:30</strong>
         </div>
       </div>
+
       <div class="level-pill" aria-label="Current level">
         <strong data-level>LEVEL 1</strong>
         <div class="level-track" data-level-track></div>
       </div>
+
       <div class="stat-chip stat-chip--coins">
         <span class="coin-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fde68a" stroke-width="1.6"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fde68a" stroke-width="1.6"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
         </span>
         <strong data-coins>0</strong>
         <span class="coin-plus" aria-hidden="true">+</span>
       </div>
+
       <button class="icon-btn" data-mute type="button" aria-label="Mute sound">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.2 13a7.2 7.2 0 0 0 .1-2l1.9-1.1-1.9-3.3-2.2.6a7 7 0 0 0-1.6-.9L15 4.2H9l-.5 2.1a7 7 0 0 0-1.6.9l-2.2-.6-1.9 3.3 1.9 1.1a7.2 7.2 0 0 0 0 2l-1.9 1.1 1.9 3.3 2.2-.6a7 7 0 0 0 1.6.9l.5 2.1h6l.5-2.1a7 7 0 0 0 1.6-.9l2.2.6 1.9-3.3-1.9-1.1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
       </button>
     </header>
 
@@ -286,15 +280,37 @@ function template() {
         <img class="chase-panel__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
         <div class="chase-panel__veil" aria-hidden="true"></div>
         <div class="chase-panel__hud" hidden aria-hidden="true">
-          <div class="chase-time"><small>Time left</small><strong>1:30</strong><span class="chase-time__track"><i class="chase-time__bar" data-chase-bar></i></span></div>
+          <div class="chase-time">
+            <small>Time left</small>
+            <strong>1:30</strong>
+            <span class="chase-time__track">
+              <i class="chase-time__bar" data-chase-bar></i>
+            </span>
+          </div>
         </div>
         <div class="chase-stage" aria-hidden="true">
           <div class="chase-cat" data-chase-cat>
             <span class="chase-cat__bubble" data-chase-bubble aria-hidden="true">Save me!</span>
-            <img class="chase-cat__frame is-still" data-chase-cat-frame src="./assets/chase/cat-run-still.png?v=face-right1" alt="" width="160" height="160" decoding="async" />
+            <img
+              class="chase-cat__frame is-still"
+              data-chase-cat-frame
+              src="./assets/chase/cat-run-still.png?v=face-right1"
+              alt=""
+              width="160"
+              height="160"
+              decoding="async"
+            />
           </div>
           <div class="chase-shark-wrap" data-chase-shark-wrap>
-            <img class="chase-shark" data-chase-shark src="./assets/chase/shark.png?v=still1" alt="" width="200" height="160" decoding="async" />
+            <img
+              class="chase-shark"
+              data-chase-shark
+              src="./assets/chase/shark.png?v=still1"
+              alt=""
+              width="200"
+              height="160"
+              decoding="async"
+            />
             <i class="chase-shark__tear chase-shark__tear--a" aria-hidden="true"></i>
             <i class="chase-shark__tear chase-shark__tear--b" aria-hidden="true"></i>
             <i class="chase-shark__tear chase-shark__tear--c" aria-hidden="true"></i>
@@ -312,7 +328,10 @@ function template() {
               <i class="chase-rail__segments"></i>
               <i class="chase-rail__glow" data-chase-rail-glow></i>
             </div>
-            <div class="chase-rail__cogs" aria-hidden="true"><span class="chase-rail__cog"></span><span class="chase-rail__cog"></span></div>
+            <div class="chase-rail__cogs" aria-hidden="true">
+              <span class="chase-rail__cog"></span>
+              <span class="chase-rail__cog"></span>
+            </div>
           </div>
         </div>
       </section>
@@ -322,45 +341,138 @@ function template() {
     <main class="math-play" aria-label="Math Rescue puzzle board">
       <section class="board-stage" aria-label="Target and cards">
         <div class="orbit-ring" aria-hidden="true">
-          <i class="orbit-dot orbit-dot--nw"></i><i class="orbit-dot orbit-dot--ne"></i>
-          <i class="orbit-dot orbit-dot--sw"></i><i class="orbit-dot orbit-dot--se"></i>
+          <i class="orbit-dot orbit-dot--nw"></i>
+          <i class="orbit-dot orbit-dot--ne"></i>
+          <i class="orbit-dot orbit-dot--sw"></i>
+          <i class="orbit-dot orbit-dot--se"></i>
         </div>
         <div class="card-cross" data-numbers aria-label="Four number cards and center target"></div>
       </section>
+
       <section class="equation-panel" aria-label="Equation builder">
-        <div class="equation-panel__head"><span class="equation-panel__title"><i class="sigma-badge" aria-hidden="true">Σ</i><span>Equation</span></span></div>
-        <div class="equation-field"><div data-input class="equation-input" data-empty="true" role="textbox" aria-readonly="true" aria-label="Your equation"></div></div>
+        <div class="equation-panel__head">
+          <span class="equation-panel__title">
+            <i class="sigma-badge" aria-hidden="true">Σ</i>
+            <span>Equation</span>
+          </span>
+        </div>
+        <div class="equation-field">
+          <div data-input class="equation-input" data-empty="true" role="textbox" aria-readonly="true" aria-label="Your equation"></div>
+        </div>
         <p class="equation-tip" data-equation-hint></p>
         <section class="correction-panel" data-correction hidden aria-live="polite"></section>
       </section>
+
       <section class="feedback-line" aria-live="polite">
         <strong data-feedback data-kind="neutral">Use cards without repeating them to match the target.</strong>
         <small data-feedback-detail hidden></small>
       </section>
     </main>
+
     <footer class="control-deck" aria-label="Equation controls">
       <div class="operator-grid" data-operators></div>
       <div class="action-row">
-        <button class="btn-clear" data-clear type="button">Clear</button>
-        <button class="btn-submit" data-submit type="button">Submit</button>
-        <button class="btn-hint" data-hint type="button"><span data-hint-label>Nudge</span></button>
+        <button class="btn-clear" data-clear type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h8l-.7 11.2a1.5 1.5 0 0 1-1.5 1.4H10.2a1.5 1.5 0 0 1-1.5-1.4L8 8Zm-1.5-.8h11M10 5.5h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          Clear
+        </button>
+        <button class="btn-submit" data-submit type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 20 4l-4.8 16.5-3.2-6.2L4 11.5Z" fill="currentColor"/></svg>
+          Submit
+        </button>
+        <button class="btn-hint" data-hint type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5c-1.8-1.2-3-3.2-3-5.4A6.5 6.5 0 0 1 18.5 9c0 2.2-1.2 4.2-3 5.4L15 17H9l-.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-hint-label>Nudge</span>
+        </button>
       </div>
     </footer>
     </div>
 
     <aside class="play-footer" aria-label="Player status">
-      <div class="mascot" aria-hidden="true"><img src="./assets/mascot.png?v=2" alt="" width="88" height="88" /></div>
+      <div class="mascot" aria-hidden="true">
+        <img src="./assets/mascot.png?v=2" alt="" width="88" height="88" />
+      </div>
       <div class="welcome-card">
         <strong data-welcome>Welcome to Math Rescue.</strong>
         <small data-board-meta>Board 1 · Task 1/15</small>
         <button class="player-chip" data-player type="button" hidden>Player</button>
       </div>
       <div class="best-card">
-        <div><small>Best score</small><strong data-best-score>0</strong></div>
+        <span class="trophy-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </span>
+        <div>
+          <small>Best score</small>
+          <strong data-best-score>0</strong>
+        </div>
       </div>
     </aside>
 
-    <div class="result-overlay" data-results hidden>
+    <div class="nickname-overlay screen-overlay" data-nickname-overlay>
+      <div class="screen-card nickname-card">
+        <div class="start-hero">
+          <p class="brand-mark">Math Rescue</p>
+          <h1>Who is playing?</h1>
+          <p class="start-lead">Your name keeps progress on this device.</p>
+        </div>
+        <label class="profile-entry">
+          <span>Your name</span>
+          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
+        </label>
+        <p class="start-status-chip" data-nickname-status hidden></p>
+        <button class="screen-btn screen-btn--primary" data-nickname-continue type="button" disabled>Continue</button>
+        <p class="start-save-hint">Progress saves in this browser.</p>
+      </div>
+    </div>
+
+    <div class="menu-overlay screen-overlay" data-menu-overlay hidden>
+      <div class="screen-card menu-card" data-menu-home>
+        <div class="start-hero">
+          <p class="brand-mark">Math Rescue</p>
+          <h1 data-menu-hello>Hi there</h1>
+          <p class="start-lead" data-menu-meta>Save the cat. Hit the target.</p>
+        </div>
+        <div class="menu-actions">
+          <button class="screen-btn screen-btn--primary" data-menu-play type="button">Play</button>
+          <button class="screen-btn" data-menu-howto-btn type="button">How to Play</button>
+          <button class="screen-btn" data-menu-sound type="button"><span data-menu-sound-label>Sound: On</span></button>
+          <button class="screen-btn" data-menu-leaderboard-btn type="button">Local Best</button>
+          <button class="screen-btn screen-btn--ghost" data-menu-change-name type="button">Change name</button>
+        </div>
+      </div>
+      <div class="screen-card menu-card" data-menu-howto hidden>
+        <strong class="menu-panel-title">How to Play</strong>
+        <ol class="howto-list">
+          <li>Tap the four number cards around the target.</li>
+          <li>Build an equation with +, −, ×, ÷ and parentheses.</li>
+          <li>Submit before the shark catches the cat.</li>
+        </ol>
+        <button class="screen-btn screen-btn--primary" data-howto-back type="button">Back</button>
+      </div>
+      <div class="screen-card menu-card" data-menu-leaderboard hidden>
+        <strong class="menu-panel-title">Local Best</strong>
+        <div class="local-board" data-menu-leaderboard-list></div>
+        <button class="screen-btn screen-btn--primary" data-leaderboard-back type="button">Back</button>
+      </div>
+    </div>
+
+    <div class="levels-overlay screen-overlay" data-levels-overlay hidden>
+      <div class="levels-shell">
+        <header class="levels-header">
+          <button class="screen-btn screen-btn--ghost levels-back" data-levels-back type="button">Menu</button>
+          <div>
+            <p class="brand-mark">Levels</p>
+            <small>Pick a board to rescue the cat</small>
+          </div>
+          <span class="levels-spacer" aria-hidden="true"></span>
+        </header>
+        <div class="levels-scroll">
+          <div class="levels-path" data-levels-path></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-overlay screen-overlay" data-results hidden>
       <section class="result-card" aria-label="Final result">
         <span class="result-kicker">Board complete</span>
         <strong data-result-score>0</strong>
@@ -383,87 +495,8 @@ function template() {
         </div>
       </div>
     </div>
-    </div>
-
-    <section class="app-screen nickname-screen" data-nickname-overlay>
-      <div class="app-screen__bg" aria-hidden="true"></div>
-      <div class="app-screen__body">
-        <header class="app-screen__hero">
-          <p class="brand-mark brand-mark--hero">Math Rescue</p>
-          <h1>Who is playing?</h1>
-          <p class="app-screen__lead">Your name keeps progress on this device.</p>
-        </header>
-        <label class="profile-entry profile-entry--screen">
-          <span>Your name</span>
-          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
-        </label>
-        <p class="start-status-chip" data-nickname-status hidden></p>
-        <button class="app-cta" data-nickname-continue type="button" disabled>Continue</button>
-        <p class="app-screen__hint">Progress saves in this browser.</p>
-      </div>
-    </section>
-
-    <section class="app-screen menu-screen" data-menu-overlay hidden>
-      <div class="app-screen__bg" aria-hidden="true"></div>
-      <div class="app-screen__body" data-menu-home>
-        <header class="app-screen__hero">
-          <p class="brand-mark brand-mark--hero">Math Rescue</p>
-          <h1 data-menu-hello>Hi there</h1>
-          <p class="app-screen__lead" data-menu-meta>Save the cat. Hit the target.</p>
-        </header>
-        <div class="menu-best-chip" aria-label="Your best">
-          <span>Best score</span>
-          <strong data-menu-best>0</strong>
-        </div>
-        <div class="menu-secondary">
-          <button class="menu-link" data-menu-howto-btn type="button">How to Play</button>
-          <button class="menu-link" data-menu-leaderboard-btn type="button">Local Best</button>
-          <button class="menu-link" data-menu-change-name type="button">Change name</button>
-        </div>
-        <button class="app-cta app-cta--play" data-menu-play type="button">Play</button>
-        <button class="menu-sound" data-menu-sound type="button" aria-label="Toggle sound">
-          <span data-menu-sound-label>Sound: On</span>
-        </button>
-      </div>
-      <div class="app-screen__body app-screen__panel" data-menu-howto hidden>
-        <header class="app-screen__hero">
-          <p class="brand-mark">How to Play</p>
-          <h1>Rescue the cat</h1>
-        </header>
-        <ol class="howto-list howto-list--screen">
-          <li>Tap the four number cards around the target.</li>
-          <li>Build an equation with +, −, ×, ÷ and parentheses.</li>
-          <li>Submit before the shark catches the cat.</li>
-        </ol>
-        <button class="app-cta" data-howto-back type="button">Back</button>
-      </div>
-      <div class="app-screen__body app-screen__panel" data-menu-leaderboard hidden>
-        <header class="app-screen__hero">
-          <p class="brand-mark">Local Best</p>
-          <h1>This device</h1>
-        </header>
-        <div class="local-board local-board--screen" data-menu-leaderboard-list></div>
-        <button class="app-cta" data-leaderboard-back type="button">Back</button>
-      </div>
-    </section>
-
-    <section class="app-screen levels-screen" data-levels-overlay hidden>
-      <div class="app-screen__bg app-screen__bg--levels" aria-hidden="true"></div>
-      <header class="levels-top">
-        <button class="menu-link levels-back" data-levels-back type="button">Menu</button>
-        <div class="levels-top__title">
-          <p class="brand-mark">Levels</p>
-          <small>Pick a board to rescue the cat</small>
-        </div>
-        <span class="levels-spacer" aria-hidden="true"></span>
-      </header>
-      <div class="levels-scroll">
-        <div class="levels-path" data-levels-path></div>
-      </div>
-    </section>
   `;
 }
-
 
 function updateChase(els, state, catRun, celebrate) {
   if (!els.chasePanel) return;
@@ -696,9 +729,6 @@ function updateMenuOverlay(els, state) {
   }
   if (els.menuMeta) {
     els.menuMeta.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
-  }
-  if (els.menuBest) {
-    els.menuBest.textContent = String(state.bestScore || 0);
   }
   if (els.menuSoundLabel) {
     els.menuSoundLabel.textContent = state.soundOn ? "Sound: On" : "Sound: Off";
