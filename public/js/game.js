@@ -97,6 +97,7 @@ export function createGame({ mount }) {
         chasePose: "idle",
         boardStars: {},
         menuSettingsOpen: false,
+        menuHowToOpen: false,
         menuToast: "",
       };
 
@@ -123,6 +124,8 @@ export function createGame({ mount }) {
           onOpenMenu,
           onOpenMenuSettings,
           onCloseMenuSettings,
+          onOpenHowTo,
+          onCloseHowTo,
           onComingSoon,
           onUsernameInput,
           onToggleSound,
@@ -212,6 +215,7 @@ export function createGame({ mount }) {
         stopPuzzleTimer();
         clearCatchTimeout();
         state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
         state.phase = "nickname";
         state.expression = "";
         state.usedCounts = new Map();
@@ -233,6 +237,7 @@ export function createGame({ mount }) {
         clearCatchTimeout();
         state.phase = "menu";
         state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
         state.menuToast = "";
         state.showTutorial = false;
         state.awaitingStart = true;
@@ -264,6 +269,7 @@ export function createGame({ mount }) {
       function onPlayFromMenu() {
         if (state.phase !== "menu") return;
         state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
         state.phase = "playing";
         state.boardIndex = state.unlockedBoard;
         state.taskIndex = 1;
@@ -297,12 +303,25 @@ export function createGame({ mount }) {
 
       function onOpenMenuSettings() {
         if (state.phase !== "menu") return;
+        state.menuHowToOpen = false;
         state.menuSettingsOpen = true;
         render();
       }
 
       function onCloseMenuSettings() {
         state.menuSettingsOpen = false;
+        render();
+      }
+
+      function onOpenHowTo() {
+        if (state.phase !== "menu") return;
+        state.menuSettingsOpen = false;
+        state.menuHowToOpen = true;
+        render();
+      }
+
+      function onCloseHowTo() {
+        state.menuHowToOpen = false;
         render();
       }
 

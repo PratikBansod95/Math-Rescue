@@ -48,6 +48,7 @@ export function createUI({ mount, handlers }) {
     menuPlayLevel: shell.querySelector("[data-menu-play-level]"),
     menuPlayers: shell.querySelector("[data-menu-players]"),
     menuSettings: shell.querySelector("[data-menu-settings]"),
+    menuHowTo: shell.querySelector("[data-menu-howto]"),
     menuMute: shell.querySelector("[data-menu-mute]"),
     menuToast: shell.querySelector("[data-menu-toast]"),
     streakValue: shell.querySelector("[data-streak]"),
@@ -138,6 +139,8 @@ export function createUI({ mount, handlers }) {
     on(btn, "click", handlers.onOpenMenuSettings);
   }
   on(shell.querySelector("[data-menu-close-settings]"), "click", handlers.onCloseMenuSettings);
+  on(shell.querySelector("[data-menu-open-howto]"), "click", handlers.onOpenHowTo);
+  on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
   on(els.menuMute, "click", handlers.onToggleSound);
   on(shell.querySelector("[data-menu-change-name]"), "click", handlers.onChangeName);
@@ -341,12 +344,12 @@ function template() {
             <strong>DAILY CHALLENGE</strong>
             <small>Coming soon</small>
           </button>
-          <button class="menu-feature" data-coming-soon type="button">
-            <span class="menu-feature__icon menu-feature__icon--board" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M5 18h3.2v-5H5V18Zm5.4 0H14V7h-3.6v11Zm5.4 0H21V4h-5.2v14Z" fill="#2563eb"/></svg>
+          <button class="menu-feature" data-menu-open-howto type="button">
+            <span class="menu-feature__icon menu-feature__icon--howto" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#2563eb" stroke-width="2"/><path d="M12 10.5v6M12 7.5h.01" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round"/></svg>
             </span>
-            <strong>LEADERBOARD</strong>
-            <small>Top Players</small>
+            <strong>HOW TO PLAY</strong>
+            <small>Quick guide</small>
           </button>
         </div>
 
@@ -364,6 +367,31 @@ function template() {
           <button class="screen-btn" data-menu-mute type="button">Sound on</button>
           <button class="screen-btn screen-btn--primary" data-menu-change-name type="button">Change player</button>
           <button class="screen-btn screen-btn--ghost" data-menu-close-settings type="button">Close</button>
+        </div>
+      </div>
+
+      <div class="menu-howto screen-overlay" data-menu-howto hidden>
+        <div class="screen-card menu-howto-card" role="dialog" aria-labelledby="menu-howto-title">
+          <h2 id="menu-howto-title">How to play</h2>
+          <ol class="menu-howto__steps">
+            <li>
+              <strong>Tap Start</strong>
+              <span>Reveal the target and start the cat chase timer.</span>
+            </li>
+            <li>
+              <strong>Build the equation</strong>
+              <span>Use the four number cards with + − × ÷ and ( ).</span>
+            </li>
+            <li>
+              <strong>Hit Submit</strong>
+              <span>Match the target before the shark catches the cat.</span>
+            </li>
+            <li>
+              <strong>Earn stars</strong>
+              <span>Faster, cleaner solves unlock boards and raise your streak.</span>
+            </li>
+          </ol>
+          <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it</button>
         </div>
       </div>
       <p class="menu-toast" data-menu-toast hidden>Coming soon</p>
@@ -816,6 +844,9 @@ function updateMenuScreen(els, state) {
   }
   if (els.menuSettings) {
     els.menuSettings.hidden = !state.menuSettingsOpen;
+  }
+  if (els.menuHowTo) {
+    els.menuHowTo.hidden = !state.menuHowToOpen;
   }
   if (els.menuToast) {
     const toast = state.menuToast || "";
