@@ -367,7 +367,7 @@ function template() {
 
       <div class="menu-settings screen-overlay" data-menu-settings hidden>
         <div class="screen-card menu-settings-card">
-          <p class="menu-sheet__kicker">Account</p>
+          <p class="menu-sheet__kicker">Options</p>
           <h2>Settings</h2>
           <p class="menu-settings__player" data-menu-settings-player>Player</p>
           <div class="menu-settings__rows">
@@ -378,15 +378,6 @@ function template() {
               <span class="menu-settings__row-copy">
                 <strong>Sound</strong>
                 <small data-menu-mute-label>On</small>
-              </span>
-            </button>
-            <button class="menu-settings__row" data-menu-change-name type="button">
-              <span class="menu-settings__row-ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-8 9a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              </span>
-              <span class="menu-settings__row-copy">
-                <strong>Change player</strong>
-                <small>Switch saved name</small>
               </span>
             </button>
           </div>
