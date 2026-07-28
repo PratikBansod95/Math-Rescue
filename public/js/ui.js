@@ -72,12 +72,20 @@ export function createUI({ mount, handlers }) {
     menuButton: shell.querySelector("[data-menu]"),
     muteButton: shell.querySelector("[data-mute]"),
     playerButton: shell.querySelector("[data-player]"),
-    startOverlay: shell.querySelector("[data-start-overlay]"),
-    startButton: shell.querySelector("[data-start]"),
-    startText: shell.querySelector("[data-start-text]"),
-    startStatus: shell.querySelector("[data-start-status]"),
+    nicknameOverlay: shell.querySelector("[data-nickname-overlay]"),
+    nicknameContinue: shell.querySelector("[data-nickname-continue]"),
     usernameInput: shell.querySelector("[data-username]"),
-    profileText: shell.querySelector("[data-profile-text]"),
+    nicknameStatus: shell.querySelector("[data-nickname-status]"),
+    menuOverlay: shell.querySelector("[data-menu-overlay]"),
+    menuHome: shell.querySelector("[data-menu-home]"),
+    menuHowTo: shell.querySelector("[data-menu-howto]"),
+    menuLeaderboard: shell.querySelector("[data-menu-leaderboard]"),
+    menuHello: shell.querySelector("[data-menu-hello]"),
+    menuMeta: shell.querySelector("[data-menu-meta]"),
+    menuSoundLabel: shell.querySelector("[data-menu-sound-label]"),
+    menuLeaderboardList: shell.querySelector("[data-menu-leaderboard-list]"),
+    levelsOverlay: shell.querySelector("[data-levels-overlay]"),
+    levelsPath: shell.querySelector("[data-levels-path]"),
     resultsOverlay: shell.querySelector("[data-results]"),
     resultScore: shell.querySelector("[data-result-score]"),
     resultStars: shell.querySelector("[data-result-stars]"),
@@ -107,22 +115,31 @@ export function createUI({ mount, handlers }) {
   });
   buildOperatorPad(els.operatorPad, handlers.onAppend, handlers.onBackspace);
 
-  on(els.startButton, "click", handlers.onStart);
+  on(els.nicknameContinue, "click", handlers.onConfirmNickname);
   on(els.usernameInput, "input", () => handlers.onUsernameInput(els.usernameInput.value));
   on(els.usernameInput, "keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      handlers.onStart();
+      handlers.onConfirmNickname();
     }
   });
+
+  on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
+  on(shell.querySelector("[data-menu-howto-btn]"), "click", handlers.onOpenHowTo);
+  on(shell.querySelector("[data-menu-sound]"), "click", handlers.onToggleSound);
+  on(shell.querySelector("[data-menu-leaderboard-btn]"), "click", handlers.onOpenLeaderboard);
+  on(shell.querySelector("[data-menu-change-name]"), "click", handlers.onChangeName);
+  on(shell.querySelector("[data-howto-back]"), "click", handlers.onCloseMenuPanel);
+  on(shell.querySelector("[data-leaderboard-back]"), "click", handlers.onCloseMenuPanel);
+  on(shell.querySelector("[data-levels-back]"), "click", handlers.onBackToMenu);
 
   on(els.clearButton, "click", handlers.onClear);
   on(els.submitButton, "click", handlers.onSubmit);
   on(els.hintButton, "click", handlers.onHintOrNext);
   on(els.newGameButton, "click", handlers.onNewGame);
   on(els.muteButton, "click", handlers.onToggleSound);
-  on(els.menuButton, "click", handlers.onSwitchPlayer);
-  on(els.playerButton, "click", handlers.onSwitchPlayer);
+  on(els.menuButton, "click", handlers.onOpenMenu);
+  on(els.playerButton, "click", handlers.onOpenMenu);
   on(els.tutorialNext, "click", handlers.onTutorialNext);
   on(els.tutorialSkip, "click", handlers.onTutorialSkip);
 
@@ -159,13 +176,6 @@ export function createUI({ mount, handlers }) {
       if (document.activeElement !== els.usernameInput) {
         els.usernameInput.value = state.username;
       }
-      if (state.usernameKey) {
-        els.profileText.hidden = false;
-        els.profileText.textContent = "Welcome";
-      } else {
-        els.profileText.hidden = true;
-        els.profileText.textContent = "";
-      }
 
       const expression = state.expression.trim();
       els.input.textContent = expression || "";
@@ -188,13 +198,11 @@ export function createUI({ mount, handlers }) {
       renderCorrection(els.correction, state.correction);
       renderCards(els.numbers, state, handlers.onAppend, handlers.onPuzzleGo);
       updateControls(els, state);
-      updateStartOverlay(els, state);
+      updateNicknameOverlay(els, state);
+      updateMenuOverlay(els, state);
+      updateLevelsOverlay(els, state, handlers.onSelectLevel);
       updateResults(els, state);
       updateTutorial(els, state);
-    },
-
-    hideStartOverlay() {
-      els.startOverlay.hidden = true;
     },
 
     destroy() {
@@ -222,7 +230,7 @@ function template() {
     </div>
 
     <header class="top-bar" aria-label="Game status">
-      <button class="icon-btn" data-menu type="button" aria-label="Switch player">
+      <button class="icon-btn" data-menu type="button" aria-label="Open main menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
 
@@ -400,28 +408,71 @@ function template() {
       </div>
     </aside>
 
-    <div class="start-overlay" data-start-overlay>
-      <div class="start-prompt">
+    <div class="nickname-overlay screen-overlay" data-nickname-overlay>
+      <div class="screen-card nickname-card">
         <div class="start-hero">
           <p class="brand-mark">Math Rescue</p>
-          <h1>Combine four cards. Hit the target.</h1>
-          <p class="start-lead">Build smart equations with +, −, ×, ÷ and parentheses.</p>
+          <h1>Who is playing?</h1>
+          <p class="start-lead">Your name keeps progress on this device.</p>
         </div>
-
         <label class="profile-entry">
           <span>Your name</span>
           <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
         </label>
-        <p class="start-status" data-profile-text hidden>Welcome</p>
-
-        <p class="start-note" data-start-text>Four cards. One target. Make the equation.</p>
-        <p class="start-status-chip" data-start-status hidden></p>
-        <button data-start type="button" disabled>Start playing</button>
-        <p class="start-save-hint">Progress saves in this browser. Cloud save comes later.</p>
+        <p class="start-status-chip" data-nickname-status hidden></p>
+        <button class="screen-btn screen-btn--primary" data-nickname-continue type="button" disabled>Continue</button>
+        <p class="start-save-hint">Progress saves in this browser.</p>
       </div>
     </div>
 
-    <div class="result-overlay" data-results hidden>
+    <div class="menu-overlay screen-overlay" data-menu-overlay hidden>
+      <div class="screen-card menu-card" data-menu-home>
+        <div class="start-hero">
+          <p class="brand-mark">Math Rescue</p>
+          <h1 data-menu-hello>Hi there</h1>
+          <p class="start-lead" data-menu-meta>Save the cat. Hit the target.</p>
+        </div>
+        <div class="menu-actions">
+          <button class="screen-btn screen-btn--primary" data-menu-play type="button">Play</button>
+          <button class="screen-btn" data-menu-howto-btn type="button">How to Play</button>
+          <button class="screen-btn" data-menu-sound type="button"><span data-menu-sound-label>Sound: On</span></button>
+          <button class="screen-btn" data-menu-leaderboard-btn type="button">Local Best</button>
+          <button class="screen-btn screen-btn--ghost" data-menu-change-name type="button">Change name</button>
+        </div>
+      </div>
+      <div class="screen-card menu-card" data-menu-howto hidden>
+        <strong class="menu-panel-title">How to Play</strong>
+        <ol class="howto-list">
+          <li>Tap the four number cards around the target.</li>
+          <li>Build an equation with +, −, ×, ÷ and parentheses.</li>
+          <li>Submit before the shark catches the cat.</li>
+        </ol>
+        <button class="screen-btn screen-btn--primary" data-howto-back type="button">Back</button>
+      </div>
+      <div class="screen-card menu-card" data-menu-leaderboard hidden>
+        <strong class="menu-panel-title">Local Best</strong>
+        <div class="local-board" data-menu-leaderboard-list></div>
+        <button class="screen-btn screen-btn--primary" data-leaderboard-back type="button">Back</button>
+      </div>
+    </div>
+
+    <div class="levels-overlay screen-overlay" data-levels-overlay hidden>
+      <div class="levels-shell">
+        <header class="levels-header">
+          <button class="screen-btn screen-btn--ghost levels-back" data-levels-back type="button">Menu</button>
+          <div>
+            <p class="brand-mark">Levels</p>
+            <small>Pick a board to rescue the cat</small>
+          </div>
+          <span class="levels-spacer" aria-hidden="true"></span>
+        </header>
+        <div class="levels-scroll">
+          <div class="levels-path" data-levels-path></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-overlay screen-overlay" data-results hidden>
       <section class="result-card" aria-label="Final result">
         <span class="result-kicker">Board complete</span>
         <strong data-result-score>0</strong>
@@ -430,7 +481,7 @@ function template() {
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
         <div class="local-board" data-result-board></div>
-        <button data-new-game type="button">Start unlocked board</button>
+        <button data-new-game type="button">Back to levels</button>
       </section>
     </div>
 
@@ -453,7 +504,10 @@ function updateChase(els, state, catRun, celebrate) {
   const limit = Math.max(1, Number(state.timerLimit) || 90);
   const seconds = Math.max(0, Number(state.timeLeft) || 0);
   const pose = state.chasePose || "idle";
-  const idle = Boolean(state.awaitingStart) || Boolean(state.showTutorial) || state.phase === "ready";
+  const idle =
+    Boolean(state.awaitingStart) ||
+    Boolean(state.showTutorial) ||
+    ["nickname", "menu", "levels", "loading"].includes(state.phase);
   const catching = pose === "caught" || pose === "ate" || Boolean(state.timerExpired);
   const running =
     state.phase === "playing" && !state.awaitingStart && !state.showTutorial && !catching;
@@ -644,23 +698,130 @@ function updateControls(els, state) {
   }
 }
 
-function updateStartOverlay(els, state) {
-  if (state.phase === "playing" || state.phase === "review" || state.phase === "finished") {
-    return;
-  }
-  els.startOverlay.hidden = false;
-  els.startButton.disabled = state.phase !== "ready" || !state.usernameKey;
-  els.startButton.textContent = state.usernameKey ? "Continue" : "Start playing";
-  els.startText.textContent = "Four cards. One target. Make the equation.";
-
-  if (els.startStatus) {
+function updateNicknameOverlay(els, state) {
+  const show = state.phase === "nickname" || state.phase === "loading";
+  els.nicknameOverlay.hidden = !show;
+  if (!show) return;
+  els.nicknameContinue.disabled = !state.usernameKey;
+  if (els.nicknameStatus) {
     if (state.usernameKey) {
-      els.startStatus.hidden = false;
-      els.startStatus.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
+      els.nicknameStatus.hidden = false;
+      els.nicknameStatus.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
     } else {
-      els.startStatus.hidden = true;
-      els.startStatus.textContent = "";
+      els.nicknameStatus.hidden = true;
+      els.nicknameStatus.textContent = "";
     }
+  }
+}
+
+function updateMenuOverlay(els, state) {
+  const show = state.phase === "menu";
+  els.menuOverlay.hidden = !show;
+  if (!show) return;
+
+  const view = state.menuView || "home";
+  els.menuHome.hidden = view !== "home";
+  els.menuHowTo.hidden = view !== "howto";
+  els.menuLeaderboard.hidden = view !== "leaderboard";
+
+  if (els.menuHello) {
+    els.menuHello.textContent = state.username ? `Hi, ${state.username}` : "Hi there";
+  }
+  if (els.menuMeta) {
+    els.menuMeta.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
+  }
+  if (els.menuSoundLabel) {
+    els.menuSoundLabel.textContent = state.soundOn ? "Sound: On" : "Sound: Off";
+  }
+
+  if (view === "leaderboard" && els.menuLeaderboardList) {
+    const board = els.menuLeaderboardList;
+    board.replaceChildren();
+    const list = state.leaderboard || [];
+    if (list.length === 0) {
+      const empty = document.createElement("p");
+      empty.textContent = "No scores yet. Play a board to appear here.";
+      board.append(empty);
+      return;
+    }
+    const ol = document.createElement("ol");
+    for (const entry of list) {
+      const li = document.createElement("li");
+      li.textContent = `${entry.name} — ${entry.bestScore}`;
+      ol.append(li);
+    }
+    board.append(ol);
+  }
+}
+
+function updateLevelsOverlay(els, state, onSelectLevel) {
+  const show = state.phase === "levels";
+  els.levelsOverlay.hidden = !show;
+  if (!show || !els.levelsPath) return;
+
+  const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
+  const total = Math.max(10, unlocked + 2);
+  const starsMap = state.boardStars || {};
+  els.levelsPath.replaceChildren();
+
+  for (let level = total; level >= 1; level -= 1) {
+    const lane = ((total - level) % 3) - 1;
+    const wrap = document.createElement("div");
+    wrap.className = `level-node-wrap level-node-wrap--lane${lane}`;
+
+    if (level < total) {
+      const connector = document.createElement("i");
+      connector.className = "level-connector";
+      wrap.append(connector);
+    }
+
+    const cleared = level < unlocked;
+    const current = level === unlocked;
+    const locked = level > unlocked;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `level-node${cleared ? " is-cleared" : ""}${current ? " is-current" : ""}${locked ? " is-locked" : ""}`;
+    btn.disabled = locked;
+    btn.setAttribute("aria-label", locked ? `Board ${level} locked` : `Play board ${level}`);
+
+    const num = document.createElement("strong");
+    num.textContent = String(level);
+    btn.append(num);
+
+    if (locked) {
+      const lock = document.createElement("span");
+      lock.className = "level-node__lock";
+      lock.setAttribute("aria-hidden", "true");
+      lock.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 10V8a4 4 0 0 1 8 0v2M7 10h10v10H7V10Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+      btn.append(lock);
+    } else if (cleared) {
+      const stars = Number(starsMap[level]) || 0;
+      const row = document.createElement("span");
+      row.className = "level-node__stars";
+      row.setAttribute("aria-hidden", "true");
+      row.textContent = stars > 0 ? "★".repeat(stars) + "☆".repeat(3 - stars) : "✓";
+      btn.append(row);
+    } else {
+      const play = document.createElement("span");
+      play.className = "level-node__play";
+      play.textContent = "Play";
+      btn.append(play);
+    }
+
+    if (!locked) {
+      btn.addEventListener("click", () => onSelectLevel?.(level));
+    }
+
+    wrap.append(btn);
+    els.levelsPath.append(wrap);
+  }
+
+  // Keep current level in view
+  const currentEl = els.levelsPath.querySelector(".level-node.is-current");
+  if (currentEl?.scrollIntoView) {
+    requestAnimationFrame(() => {
+      currentEl.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
   }
 }
 

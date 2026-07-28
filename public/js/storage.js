@@ -18,6 +18,7 @@ export function emptyProfile() {
     bestStars: 0,
     tutorialSeen: false,
     taskStars: {},
+    boardStars: {},
   };
 }
 
@@ -139,6 +140,19 @@ function normalizeResume(resume) {
   };
 }
 
+function normalizeBoardStars(value, fallback = {}) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ...fallback };
+  const result = {};
+  for (const [key, stars] of Object.entries(value)) {
+    const board = Number(key);
+    const n = Number(stars);
+    if (!Number.isFinite(board) || board < 1) continue;
+    if (!Number.isFinite(n) || n < 1) continue;
+    result[String(Math.floor(board))] = Math.max(1, Math.min(3, Math.floor(n)));
+  }
+  return result;
+}
+
 function normalizeProfiles(profiles) {
   if (!profiles || typeof profiles !== "object" || Array.isArray(profiles)) return {};
   const result = {};
@@ -161,6 +175,7 @@ function normalizeProfiles(profiles) {
         value.taskStars && typeof value.taskStars === "object" && !Array.isArray(value.taskStars)
           ? value.taskStars
           : fresh.taskStars,
+      boardStars: normalizeBoardStars(value.boardStars, fresh.boardStars),
     };
   }
   return result;

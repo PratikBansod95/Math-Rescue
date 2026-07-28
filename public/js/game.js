@@ -95,6 +95,8 @@ export function createGame({ mount }) {
         timerExpired: false,
         awaitingStart: true,
         chasePose: "idle",
+        boardStars: {},
+        menuView: "home",
       };
 
       let timerIntervalId = null;
@@ -106,7 +108,14 @@ export function createGame({ mount }) {
       const ui = createUI({
         mount,
         handlers: {
-          onStart,
+          onConfirmNickname,
+          onPlayFromMenu,
+          onOpenHowTo,
+          onOpenLeaderboard,
+          onCloseMenuPanel,
+          onChangeName,
+          onBackToMenu,
+          onSelectLevel,
           onPuzzleGo,
           onAppend,
           onBackspace,
@@ -118,7 +127,7 @@ export function createGame({ mount }) {
           onToggleSound,
           onTutorialNext,
           onTutorialSkip,
-          onSwitchPlayer,
+          onOpenMenu,
         },
       });
 
@@ -148,36 +157,23 @@ export function createGame({ mount }) {
         state.storageReady = true;
 
         if (state.usernameKey) {
-          const resume =
-            state.resume && state.resume.usernameKey === state.usernameKey ? state.resume : null;
-          if (resume) {
-            state.boardIndex = resume.boardIndex;
-            state.taskIndex = resume.taskIndex;
-            state.score = resume.score;
-            state.runStars = resume.runStars;
-          } else {
-            state.boardIndex = state.unlockedBoard;
-            state.taskIndex = 1;
-            state.score = 0;
-            state.runStars = 0;
-          }
+          state.phase = "menu";
+          state.menuView = "home";
           state.round = makeRound(state);
-          state.phase = "playing";
           state.feedback = {
             kind: "neutral",
-            text: "Tap Start to reveal the target.",
-            detail: "",
+            text: `Hi, ${state.username}.`,
+            detail: `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`,
           };
           state.correction = null;
-          ui.hideStartOverlay();
           persist();
-          startPuzzleTimer();
           render();
           return;
         }
 
         state.round = makeRound(state);
-        state.phase = "ready";
+        state.phase = "nickname";
+        state.menuView = "home";
         state.feedback = {
           kind: "neutral",
           text: "Enter a name to save your progress.",
@@ -187,47 +183,62 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onStart() {
-        if (state.phase !== "ready") return;
+      function onConfirmNickname() {
+        if (state.phase !== "nickname") return;
         if (!state.usernameKey) {
           state.feedback = {
             kind: "bad",
-            text: "Enter your name to begin.",
+            text: "Enter your name to continue.",
             detail: "Use a different name for another saved profile.",
           };
           render();
           return;
         }
-        resetTaskFlags();
-        state.boardIndex = state.unlockedBoard;
-        state.taskIndex = 1;
-        state.score = 0;
-        state.runStars = 0;
-        state.round = makeRound(state);
-        state.expression = "";
-        state.usedCounts = new Map();
-        state.result = null;
-        state.phase = "playing";
-        state.showTutorial = !state.tutorialSeen;
-        state.tutorialStep = state.showTutorial ? 1 : 0;
+        state.phase = "menu";
+        state.menuView = "home";
         state.feedback = {
           kind: "neutral",
-          text: "Tap Start to reveal the target.",
-          detail: "",
+          text: `Hi, ${state.username}.`,
+          detail: `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`,
         };
-        state.correction = null;
-        state.resume = buildResume();
-        ui.hideStartOverlay();
-        startPuzzleTimer();
+        persist();
         render();
         audio.unlockFromGesture();
         vibrate(12);
-        persist();
       }
 
-      function onSwitchPlayer() {
+      function onPlayFromMenu() {
+        if (state.phase !== "menu" || !state.usernameKey) return;
+        state.phase = "levels";
+        state.menuView = "home";
+        render();
+        audio.unlockFromGesture();
+      }
+
+      function onOpenHowTo() {
+        if (state.phase !== "menu") return;
+        state.menuView = "howto";
+        render();
+      }
+
+      function onOpenLeaderboard() {
+        if (state.phase !== "menu") return;
+        state.leaderboard = topProfilesByScore(state.profiles, 8);
+        state.menuView = "leaderboard";
+        render();
+      }
+
+      function onCloseMenuPanel() {
+        if (state.phase !== "menu") return;
+        state.menuView = "home";
+        render();
+      }
+
+      function onChangeName() {
         stopPuzzleTimer();
-        state.phase = "ready";
+        clearCatchTimeout();
+        state.phase = "nickname";
+        state.menuView = "home";
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
@@ -241,18 +252,57 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onNewGame() {
-        state.phase = "playing";
-        state.boardIndex = state.unlockedBoard;
-        state.taskIndex = 1;
-        state.score = 0;
-        state.runStars = 0;
+      function onBackToMenu() {
+        stopPuzzleTimer();
+        clearCatchTimeout();
+        state.phase = "menu";
+        state.menuView = "home";
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.correction = null;
+        state.showTutorial = false;
+        state.awaitingStart = true;
+        state.chasePose = "idle";
+        render();
+      }
+
+      function onOpenMenu() {
+        if (!["playing", "review", "finished", "levels"].includes(state.phase)) return;
+        onBackToMenu();
+      }
+
+      function onSelectLevel(board) {
+        if (state.phase !== "levels" || !state.usernameKey) return;
+        const level = Math.max(1, Math.floor(Number(board) || 0));
+        if (!level || level > state.unlockedBoard) return;
+
+        const resume =
+          state.resume &&
+          state.resume.usernameKey === state.usernameKey &&
+          state.resume.boardIndex === level
+            ? state.resume
+            : null;
+
+        resetTaskFlags();
+        state.boardIndex = level;
+        if (resume) {
+          state.taskIndex = resume.taskIndex;
+          state.score = resume.score;
+          state.runStars = resume.runStars;
+        } else {
+          state.taskIndex = 1;
+          state.score = 0;
+          state.runStars = 0;
+        }
         state.round = makeRound(state);
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
-        state.leaderboard = [];
-        resetTaskFlags();
+        state.phase = "playing";
+        state.menuView = "home";
+        state.showTutorial = !state.tutorialSeen;
+        state.tutorialStep = state.showTutorial ? 1 : 0;
         state.feedback = {
           kind: "neutral",
           text: "Tap Start to reveal the target.",
@@ -261,6 +311,22 @@ export function createGame({ mount }) {
         state.correction = null;
         state.resume = buildResume();
         startPuzzleTimer();
+        render();
+        audio.unlockFromGesture();
+        vibrate(12);
+        persist();
+      }
+
+      function onNewGame() {
+        state.phase = "levels";
+        state.menuView = "home";
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.leaderboard = [];
+        state.correction = null;
+        state.showTutorial = false;
+        resetTaskFlags();
         render();
         persist();
       }
@@ -564,6 +630,12 @@ export function createGame({ mount }) {
         }
         state.bestScore = Math.max(state.bestScore, state.score);
         state.bestStars = Math.max(state.bestStars, state.runStars);
+        const earned = boardStarsFromRun(state.runStars, state.tasksPerBoard);
+        const prevStars = Number(state.boardStars?.[finishedBoard]) || 0;
+        state.boardStars = {
+          ...(state.boardStars || {}),
+          [finishedBoard]: Math.max(prevStars, earned),
+        };
         state.leaderboard = topProfilesByScore(
           {
             ...state.profiles,
@@ -572,6 +644,7 @@ export function createGame({ mount }) {
               bestScore: state.bestScore,
               unlockedBoard: state.unlockedBoard,
               bestStars: state.bestStars,
+              boardStars: state.boardStars,
             },
           },
           5
@@ -633,7 +706,7 @@ export function createGame({ mount }) {
       }
 
       function onUsernameInput(value) {
-        if (!["loading", "ready"].includes(state.phase)) return;
+        if (!["loading", "nickname"].includes(state.phase)) return;
         applyUsername(value);
         state.round = makeRound(state);
         state.feedback = {
@@ -662,6 +735,7 @@ export function createGame({ mount }) {
           state.bestStars = fresh.bestStars;
           state.tutorialSeen = false;
           state.boardIndex = fresh.unlockedBoard;
+          state.boardStars = {};
           state.profileMessage = "Welcome";
           return;
         }
@@ -678,6 +752,7 @@ export function createGame({ mount }) {
         state.bestStars = profile.bestStars || 0;
         state.tutorialSeen = Boolean(profile.tutorialSeen);
         state.boardIndex = profile.unlockedBoard;
+        state.boardStars = { ...(profile.boardStars || {}) };
         state.profileMessage = "Welcome";
       }
 
@@ -707,6 +782,7 @@ export function createGame({ mount }) {
           bestStars: Math.max(existing.bestStars || 0, state.bestStars || 0),
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
+          boardStars: { ...(existing.boardStars || {}), ...(state.boardStars || {}) },
         };
         if (["playing", "review"].includes(state.phase)) {
           state.resume = buildResume();
@@ -743,7 +819,9 @@ export function createGame({ mount }) {
       }
 
       function resetRun(message) {
-        state.phase = state.phase === "ready" ? "ready" : "playing";
+        state.phase = state.phase === "nickname" || state.phase === "menu" || state.phase === "levels"
+          ? state.phase
+          : "playing";
         state.taskIndex = 1;
         state.score = 0;
         state.runStars = 0;
@@ -823,6 +901,13 @@ function makeRound(state) {
     divisionId: state.divisionId,
     difficultyId: state.difficultyId,
   });
+}
+
+function boardStarsFromRun(runStars, tasksPerBoard) {
+  const avg = Number(runStars) / Math.max(1, Number(tasksPerBoard) || 1);
+  if (avg >= 2.5) return 3;
+  if (avg >= 1.5) return 2;
+  return 1;
 }
 
 function calcTaskStars({ firstTry, usedNudge, retriesUsed }) {
