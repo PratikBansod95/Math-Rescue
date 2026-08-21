@@ -3523,7 +3523,8 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-settings,
-.menu-howto {
+.menu-howto,
+.menu-leaderboard {
   z-index: 40;
   position: absolute;
   inset: 0;

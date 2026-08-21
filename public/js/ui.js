@@ -123,6 +123,7 @@ export function createUI({ mount, handlers }) {
   };
 
   let coachResizeObserver = null;
+  let leaderboardBackdropGuard = false;
 
   const listeners = [];
   const celebrate = { lastPose: "", stop: null };
@@ -186,10 +187,27 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-open-journey]"), "click", handlers.onOpenJourney);
   on(shell.querySelector("[data-menu-close-journey]"), "click", handlers.onCloseJourney);
-  on(shell.querySelector("[data-menu-open-leaderboard]"), "click", handlers.onOpenLeaderboard);
-  on(shell.querySelector("[data-menu-close-leaderboard]"), "click", handlers.onCloseLeaderboard);
+  on(shell.querySelector("[data-menu-open-leaderboard]"), "click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    leaderboardBackdropGuard = true;
+    handlers.onOpenLeaderboard?.();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        leaderboardBackdropGuard = false;
+      });
+    });
+  });
+  on(shell.querySelector("[data-menu-close-leaderboard]"), "click", (event) => {
+    event.stopPropagation();
+    handlers.onCloseLeaderboard?.();
+  });
   on(els.menuLeaderboard, "click", (event) => {
+    if (leaderboardBackdropGuard) return;
     if (event.target === els.menuLeaderboard) handlers.onCloseLeaderboard?.();
+  });
+  on(els.menuLeaderboard?.querySelector(".menu-leaderboard-card"), "click", (event) => {
+    event.stopPropagation();
   });
   on(els.menuJourneyMount, "click", (event) => {
     const btn = event.target.closest("[data-select-board]");

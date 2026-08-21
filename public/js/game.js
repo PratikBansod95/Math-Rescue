@@ -333,8 +333,8 @@ export function createGame({ mount }) {
       function onOpenLeaderboard() {
         if (state.phase !== "menu") return;
         state.menuLeaderboardOpen = true;
-        void refreshLeaderboard(25);
         render();
+        void refreshLeaderboard(25);
       }
 
       function onCloseLeaderboard() {
@@ -391,6 +391,7 @@ export function createGame({ mount }) {
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
         state.menuJourneyOpen = Boolean(openJourney);
+        state.menuLeaderboardOpen = false;
         state.menuToast = "";
         state.showTutorial = false;
         state.awaitingStart = true;
