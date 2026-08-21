@@ -18,13 +18,13 @@ test("evaluateSubmission requires all four cards", () => {
 });
 
 test("evaluateSubmission accepts a valid four-card equation", () => {
-  const round = createRound({ boardIndex: 1, taskIndex: 1 });
+  const round = createRound({ levelIndex: 1, puzzleVariant: 0 });
   const result = evaluateSubmission(round.exampleSolution, round);
   assert.equal(result.ok, true, result.reason);
 });
 
 test("createRound produces a solvable board-1 puzzle", () => {
-  const round = createRound({ boardIndex: 1, taskIndex: 1 });
+  const round = createRound({ levelIndex: 1, puzzleVariant: 0 });
   assert.equal(round.cards.length, 4);
   assert.ok(Number.isFinite(round.target));
   const check = evaluateSubmission(round.exampleSolution, round);

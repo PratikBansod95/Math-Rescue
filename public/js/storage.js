@@ -1,13 +1,12 @@
+import { bestBoardRating } from "./scoring.js";
+
 const STORAGE_KEY = "math-rescue-v1";
 const LEGACY_KEYS = ["mathmaster-v2", "mathmaster-v1"];
 const VERSION = 1;
 
-export const DEFAULT_BOARD_LENGTH = 15;
-
 export function defaultSettings() {
   return {
     sound: true,
-    boardLength: DEFAULT_BOARD_LENGTH,
   };
 }
 
@@ -24,6 +23,17 @@ export function emptyProfile() {
 
 export function normalizeUsername(name) {
   return name.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 24);
+}
+
+export function clearAllState() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    for (const key of LEGACY_KEYS) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore private mode / quota errors.
+  }
 }
 
 export function loadState() {
@@ -119,7 +129,6 @@ function normalizeSettings(settings) {
   if (!settings || typeof settings !== "object") return base;
   return {
     sound: settings.sound !== false,
-    boardLength: DEFAULT_BOARD_LENGTH,
   };
 }
 
@@ -127,14 +136,17 @@ function normalizeResume(resume) {
   if (!resume || typeof resume !== "object") return null;
   const usernameKey = normalizeUsername(String(resume.usernameKey || ""));
   if (!usernameKey) return null;
-  const boardIndex = Number(resume.boardIndex);
-  const taskIndex = Number(resume.taskIndex);
+  const levelIndex = Number(resume.levelIndex ?? resume.boardIndex);
+  const puzzleVariant = Number(resume.puzzleVariant);
   const score = Number(resume.score);
   const runStars = Number(resume.runStars);
   return {
     usernameKey,
-    boardIndex: Number.isFinite(boardIndex) ? Math.max(1, boardIndex) : 1,
-    taskIndex: Number.isFinite(taskIndex) ? Math.max(1, Math.min(DEFAULT_BOARD_LENGTH, taskIndex)) : 1,
+    levelIndex: Number.isFinite(levelIndex) ? Math.max(1, levelIndex) : 1,
+    puzzleVariant:
+      Number.isFinite(puzzleVariant) && puzzleVariant >= 0
+        ? puzzleVariant
+        : Math.max(0, (Number(resume.taskIndex) || 1) - 1),
     score: Number.isFinite(score) ? Math.max(0, score) : 0,
     runStars: Number.isFinite(runStars) ? Math.max(0, runStars) : 0,
   };
@@ -160,6 +172,7 @@ function normalizeProfiles(profiles) {
     const id = normalizeUsername(key);
     if (!id || !value || typeof value !== "object") continue;
     const fresh = emptyProfile();
+    const boardStars = normalizeBoardStars(value.boardStars, fresh.boardStars);
     result[id] = {
       name:
         typeof value.name === "string" && value.name.trim()
@@ -169,13 +182,13 @@ function normalizeProfiles(profiles) {
       unlockedBoard: Number.isFinite(value.unlockedBoard)
         ? Math.max(1, value.unlockedBoard)
         : 1,
-      bestStars: Number.isFinite(value.bestStars) ? Math.max(0, value.bestStars) : 0,
+      bestStars: bestBoardRating(boardStars),
       tutorialSeen: Boolean(value.tutorialSeen),
       taskStars:
         value.taskStars && typeof value.taskStars === "object" && !Array.isArray(value.taskStars)
           ? value.taskStars
           : fresh.taskStars,
-      boardStars: normalizeBoardStars(value.boardStars, fresh.boardStars),
+      boardStars,
     };
   }
   return result;

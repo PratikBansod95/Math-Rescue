@@ -1,4 +1,5 @@
 import { createCatRunAnimator } from "./chaseCatRun.js";
+import { levelStarPace } from "./scoring.js";
 import { burstConfetti } from "./confetti.js";
 
 const OPERATORS = [
@@ -19,18 +20,24 @@ const CARD_THEMES = [
 
 const TUTORIAL_COPY = {
   1: {
-    title: "Step 1 · Cards",
-    body: "Tap the number cards around the target to add them to your equation.",
+    title: "Start",
+    body: "Tap Start in the center to reveal the target.",
   },
   2: {
-    title: "Step 2 · Operators",
-    body: "Use +, −, ×, ÷ and parentheses from the pad below.",
+    title: "Cards",
+    body: "Tap a number card to add it to your equation.",
   },
   3: {
-    title: "Step 3 · Submit",
-    body: "Hit Submit when your equation uses all four cards and equals the target.",
+    title: "Operators",
+    body: "Use +, −, ×, ÷ or ( ) from the pad below.",
+  },
+  4: {
+    title: "Submit",
+    body: "Hit Submit when all four cards equal the target.",
   },
 };
+
+const TUTORIAL_LAST_STEP = 4;
 
 export function createUI({ mount, handlers }) {
   const shell = document.createElement("section");
@@ -42,13 +49,11 @@ export function createUI({ mount, handlers }) {
     shell,
     playShell: shell.querySelector("[data-play-shell]"),
     menuScreen: shell.querySelector("[data-menu-screen]"),
-    menuStreak: shell.querySelector("[data-menu-streak]"),
     menuLevel: shell.querySelector("[data-menu-level]"),
     menuCoins: shell.querySelector("[data-menu-coins]"),
     menuPlayLevel: shell.querySelector("[data-menu-play-level]"),
     menuPlayTitle: shell.querySelector("[data-menu-play-title]"),
     menuPlay: shell.querySelector("[data-menu-play]"),
-    menuNewRun: shell.querySelector("[data-menu-new-run]"),
     menuPlayers: shell.querySelector("[data-menu-players]"),
     menuSettings: shell.querySelector("[data-menu-settings]"),
     menuHowTo: shell.querySelector("[data-menu-howto]"),
@@ -104,12 +109,17 @@ export function createUI({ mount, handlers }) {
     resultBest: shell.querySelector("[data-result-best]"),
     resultBoard: shell.querySelector("[data-result-board]"),
     newGameButton: shell.querySelector("[data-new-game]"),
-    tutorial: shell.querySelector("[data-tutorial]"),
-    tutorialTitle: shell.querySelector("[data-tutorial-title]"),
-    tutorialBody: shell.querySelector("[data-tutorial-body]"),
-    tutorialNext: shell.querySelector("[data-tutorial-next]"),
-    tutorialSkip: shell.querySelector("[data-tutorial-skip]"),
+    coachTip: shell.querySelector("[data-coach-tip]"),
+    coachStep: shell.querySelector("[data-coach-step]"),
+    coachBody: shell.querySelector("[data-coach-body]"),
+    coachSkip: shell.querySelector("[data-coach-skip]"),
+    coachPointer: shell.querySelector("[data-coach-pointer]"),
+    coachSvg: shell.querySelector("[data-coach-svg]"),
+    coachPath: shell.querySelector("[data-coach-path]"),
+    coachTap: shell.querySelector("[data-coach-tap]"),
   };
+
+  let coachResizeObserver = null;
 
   const listeners = [];
   const celebrate = { lastPose: "", stop: null };
@@ -124,6 +134,13 @@ export function createUI({ mount, handlers }) {
     chaseBar: els.chaseBar,
   });
   buildOperatorPad(els.operatorPad, handlers.onAppend, handlers.onBackspace);
+
+  if (typeof ResizeObserver !== "undefined" && els.playShell) {
+    coachResizeObserver = new ResizeObserver(() => {
+      if (coachLayoutState) layoutCoachPointer(els, coachLayoutState);
+    });
+    coachResizeObserver.observe(els.playShell);
+  }
 
   on(els.nicknameContinue, "click", handlers.onConfirmNickname);
   on(els.usernameInput, "input", () => handlers.onUsernameInput(els.usernameInput.value));
@@ -141,13 +158,27 @@ export function createUI({ mount, handlers }) {
   on(els.muteButton, "click", handlers.onToggleSound);
   on(els.menuButton, "click", handlers.onOpenMenu);
   on(els.playerButton, "click", handlers.onChangeName);
-  on(els.tutorialNext, "click", handlers.onTutorialNext);
-  on(els.tutorialSkip, "click", handlers.onTutorialSkip);
+  on(els.coachTip?.querySelector("[data-coach-skip]"), "click", handlers.onTutorialSkip);
+  on(els.coachPointer, "click", () => {
+    if (coachLayoutState?.showTutorial && coachLayoutState.tutorialStep === TUTORIAL_LAST_STEP) {
+      handlers.onTutorialSkip?.();
+    }
+  });
+  on(els.coachTip, "click", () => {
+    if (coachLayoutState?.showTutorial && coachLayoutState.tutorialStep === TUTORIAL_LAST_STEP) {
+      handlers.onTutorialSkip?.();
+    }
+  });
 
   for (const btn of shell.querySelectorAll("[data-menu-open-settings]")) {
     on(btn, "click", handlers.onOpenMenuSettings);
   }
   on(shell.querySelector("[data-menu-close-settings]"), "click", handlers.onCloseMenuSettings);
+  on(shell.querySelector("[data-menu-reset]"), "click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void handlers.onResetAll?.();
+  });
   on(shell.querySelector("[data-menu-open-howto]"), "click", handlers.onOpenHowTo);
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-open-journey]"), "click", handlers.onOpenJourney);
@@ -166,7 +197,6 @@ export function createUI({ mount, handlers }) {
     handlers.onOpenJourney?.();
   });
   on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
-  on(shell.querySelector("[data-menu-new-run]"), "click", handlers.onStartNewRun);
   on(window, "keydown", (event) => {
     if (event.key === "Escape") handlers.onEscape?.();
   });
@@ -185,6 +215,7 @@ export function createUI({ mount, handlers }) {
   }
 
   return {
+    shell,
     render(state, options = {}) {
       shell.dataset.phase = state.phase;
       shell.classList.toggle("is-shaking", Boolean(state.shake));
@@ -198,13 +229,13 @@ export function createUI({ mount, handlers }) {
       updateNicknameOverlay(els, state);
       if (onMenu) return;
 
-      const segsOn = Math.min(4, state.runStars || 0);
+      const segsOn = levelStarPace(state.runStars || 0);
       els.streakValue.textContent = String(state.runStars || 0);
       els.streakSegs.forEach((seg, index) => {
         seg.classList.toggle("is-on", index < segsOn);
       });
 
-      els.levelLabel.textContent = `LEVEL ${state.boardIndex}`;
+      els.levelLabel.textContent = `LEVEL ${state.levelIndex}`;
       renderLevelTrack(els.levelTrack, state);
 
       els.coins.textContent = String(state.score);
@@ -214,7 +245,7 @@ export function createUI({ mount, handlers }) {
       els.welcome.textContent = state.usernameKey
         ? `Welcome back, ${state.username}.`
         : "Welcome to Math Rescue.";
-      els.boardMeta.textContent = `Board ${state.boardIndex} · Task ${state.taskIndex}/${state.tasksPerBoard}`;
+      els.boardMeta.textContent = `Level ${state.levelIndex}`;
 
       els.muteButton.classList.toggle("is-muted", !state.soundOn);
       els.muteButton.setAttribute("aria-label", state.soundOn ? "Mute sound" : "Unmute sound");
@@ -246,12 +277,15 @@ export function createUI({ mount, handlers }) {
       renderCards(els.numbers, state, handlers.onAppend, handlers.onPuzzleGo);
       updateControls(els, state);
       updateResults(els, state);
-      updateTutorial(els, state);
+      updateCoachTip(els, state);
     },
 
     destroy() {
       if (typeof celebrate.stop === "function") celebrate.stop();
       catRun.destroy();
+      coachResizeObserver?.disconnect();
+      coachResizeObserver = null;
+      coachLayoutState = null;
       for (const [el, type, fn] of listeners) {
         el.removeEventListener(type, fn);
       }
@@ -272,7 +306,7 @@ function template() {
       <div class="menu-screen__bg" aria-hidden="true">
         <div class="menu-screen__wash"></div>
         <div class="menu-screen__grid"></div>
-        <img class="menu-screen__doodles" src="./assets/menu/doodles.svg?v=2" alt="" />
+        <div class="menu-screen__doodles" role="presentation" aria-hidden="true"></div>
         <div class="menu-screen__formulas" aria-hidden="true">
           <span class="menu-formula menu-formula--a">y = mx + c</span>
           <span class="menu-formula menu-formula--b">a² + b² = c²</span>
@@ -288,33 +322,19 @@ function template() {
       </div>
       <div class="menu-screen__scroll">
         <header class="menu-hud" aria-label="Menu status">
-          <button class="menu-icon-btn" data-menu-open-settings type="button" aria-label="Open menu">
+          <button class="menu-hud__menu menu-icon-btn" data-menu-open-settings type="button" aria-label="Menu and settings">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
           </button>
-          <div class="menu-chip menu-chip--streak">
-            <span class="menu-chip__ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-            <span class="menu-chip__text">
-              <span class="menu-chip__label">STARS</span>
-              <strong data-menu-streak>0</strong>
-            </span>
+          <div class="menu-hud__level" aria-label="Current level">
+            <span class="menu-hud__level-tag">Level</span>
+            <strong class="menu-hud__level-num" data-menu-level>1</strong>
           </div>
-          <div class="menu-chip menu-chip--level">
-            <strong data-menu-level>LEVEL 1</strong>
-          </div>
-          <div class="menu-chip menu-chip--coins" title="Best score">
-            <span class="menu-chip__ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6" fill="none" stroke="#fde68a" stroke-width="1.5"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
+          <div class="menu-hud__score" title="Total score">
+            <span class="menu-hud__score-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#fbbf24"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
             </span>
-            <span class="menu-chip__text">
-              <span class="menu-chip__label">BEST</span>
-              <strong data-menu-coins>0</strong>
-            </span>
+            <strong class="menu-hud__score-val" data-menu-coins>0</strong>
           </div>
-          <button class="menu-icon-btn" data-menu-open-settings type="button" aria-label="Settings">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 13a7.8 7.8 0 0 0 .1-2l2-1.2-2-3.4-2.3.6a7.6 7.6 0 0 0-1.7-1L15 4h-6l-.5 2a7.6 7.6 0 0 0-1.7 1L4.5 6.4l-2 3.4 2 1.2a7.8 7.8 0 0 0 0 2l-2 1.2 2 3.4 2.3-.6a7.6 7.6 0 0 0 1.7 1l.5 2h6l.5-2a7.6 7.6 0 0 0 1.7-1l2.3.6 2-3.4-2-1.2Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-          </button>
         </header>
 
         <div class="menu-hero">
@@ -369,7 +389,6 @@ function template() {
             <small data-menu-play-level>LEVEL 1</small>
           </span>
         </button>
-        <button class="menu-new-run" data-menu-new-run type="button" hidden>Start new board</button>
 
         <div class="menu-path" data-menu-path aria-label="Level progress"></div>
 
@@ -379,7 +398,7 @@ function template() {
           </span>
           <span class="menu-journey__copy">
             <strong>JOURNEY</strong>
-            <small>Candy-crush level map</small>
+            <small>Level map</small>
           </span>
           <span class="menu-journey__chev" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -424,6 +443,15 @@ function template() {
               <span class="menu-settings__row-copy">
                 <strong>Sound</strong>
                 <small data-menu-mute-label>On</small>
+              </span>
+            </button>
+            <button class="menu-settings__row menu-settings__row--danger" data-menu-reset type="button">
+              <span class="menu-settings__row-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7h12Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v5M14 11v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              <span class="menu-settings__row-copy">
+                <strong>Reset progress</strong>
+                <small>Clears this device and cloud saves</small>
               </span>
             </button>
           </div>
@@ -494,6 +522,24 @@ function template() {
     </div>
 
     <div class="play-shell" data-play-shell>
+    <div class="coach-tip" data-coach-tip hidden aria-live="polite">
+      <div class="coach-tip__bubble">
+        <p class="coach-tip__label" data-coach-step>Start</p>
+        <p class="coach-tip__body" data-coach-body>Tap Start in the center to reveal the target.</p>
+        <button class="coach-tip__skip" data-coach-skip type="button">Skip tutorial</button>
+      </div>
+    </div>
+    <div class="coach-pointer" data-coach-pointer hidden aria-hidden="true">
+      <svg class="coach-pointer__svg" data-coach-svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path class="coach-pointer__path" data-coach-path />
+      </svg>
+      <div class="coach-pointer__tap" data-coach-tap>
+        <span class="coach-pointer__ring"></span>
+        <span class="coach-pointer__hand" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 11V6a1.5 1.5 0 1 1 3 0v4h1V5.5a1.5 1.5 0 1 1 3 0V11h1V8a1.5 1.5 0 1 1 3 0v6.2c0 2.8-1.6 5.4-4.1 6.6l-3.2 1.4a2 2 0 0 1-2.6-1.1l-1.2-2.4a2 2 0 0 1 .9-2.7l1.1-.7V11H9Z" fill="currentColor"/></svg>
+        </span>
+      </div>
+    </div>
     <div class="play-backdrop" aria-hidden="true">
       <div class="play-grid"></div>
       <img class="play-bg-art" src="./assets/play-bg.svg?v=2" alt="" />
@@ -509,10 +555,10 @@ function template() {
           <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
         </span>
         <div class="stat-chip__body">
-          <small>Stars</small>
+          <small>Run ★</small>
           <strong data-streak>0</strong>
           <div class="streak-segs" aria-hidden="true">
-            <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
+            <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
           </div>
         </div>
       </div>
@@ -664,7 +710,7 @@ function template() {
       </div>
       <div class="welcome-card">
         <strong data-welcome>Welcome to Math Rescue.</strong>
-        <small data-board-meta>Board 1 · Task 1/15</small>
+        <small data-board-meta>Level 1</small>
         <button class="player-chip" data-player type="button" hidden>Player</button>
       </div>
       <div class="best-card">
@@ -699,7 +745,7 @@ function template() {
 
     <div class="result-overlay screen-overlay" data-results hidden>
       <section class="result-card" aria-label="Final result">
-        <span class="result-kicker">Board complete</span>
+        <span class="result-kicker">Level complete</span>
         <strong data-result-score>0</strong>
         <p class="result-stars" data-result-stars>★ 0</p>
         <h2 data-result-rank>Practice Explorer</h2>
@@ -708,17 +754,6 @@ function template() {
         <div class="local-board" data-result-board></div>
         <button data-new-game type="button">See your path</button>
       </section>
-    </div>
-
-    <div class="tutorial-overlay" data-tutorial hidden>
-      <div class="tutorial-card">
-        <strong data-tutorial-title>Step 1</strong>
-        <p data-tutorial-body>Tap cards to build your equation.</p>
-        <div class="tutorial-actions">
-          <button data-tutorial-skip type="button" class="secondary">Skip</button>
-          <button data-tutorial-next type="button" class="primary">Got it</button>
-        </div>
-      </div>
     </div>
   `;
 }
@@ -805,10 +840,7 @@ function formatClock(totalSeconds) {
 function renderLevelTrack(track, state) {
   track.replaceChildren();
   const steps = 3;
-  const progress = Math.min(
-    steps,
-    Math.max(1, Math.ceil((state.taskIndex / state.tasksPerBoard) * steps))
-  );
+  const progress = levelStarPace(state.runStars || 0);
   for (let i = 1; i <= steps; i += 1) {
     if (i > 1) {
       const line = document.createElement("i");
@@ -870,7 +902,7 @@ function renderCards(container, state, onAppend, onPuzzleGo) {
     startBtn.type = "button";
     startBtn.className = "target-badge target-badge--start";
     startBtn.setAttribute("aria-label", "Start puzzle and reveal target");
-    startBtn.disabled = Boolean(state.showTutorial);
+    startBtn.disabled = false;
     startBtn.innerHTML = `
       <span class="target-badge__label">Ready</span>
       <strong class="target-badge__value target-badge__value--start">Start</strong>
@@ -930,12 +962,11 @@ function updateMenuScreen(els, state) {
   if (!show) return;
 
   const level = Math.max(1, Number(state.unlockedBoard) || 1);
-  if (els.menuStreak) els.menuStreak.textContent = String(state.bestStars || 0);
-  if (els.menuLevel) els.menuLevel.textContent = `LEVEL ${level}`;
+  if (els.menuLevel) els.menuLevel.textContent = String(level);
   if (els.menuCoins) els.menuCoins.textContent = String(state.bestScore || 0);
   if (els.menuPlayLevel) {
     els.menuPlayLevel.textContent = state.canResume
-      ? `PUZZLE ${Number(state.resume?.taskIndex) || 1}/${state.tasksPerBoard || 15}`
+      ? `LEVEL ${resumeLevelFromSave(state.resume)}`
       : `LEVEL ${level}`;
   }
   if (els.menuPlayTitle) {
@@ -944,10 +975,9 @@ function updateMenuScreen(els, state) {
   if (els.menuPlay) {
     els.menuPlay.setAttribute(
       "aria-label",
-      state.canResume ? "Continue your board" : `Play level ${level}`
+      state.canResume ? "Continue your level" : `Play level ${level}`
     );
   }
-  if (els.menuNewRun) els.menuNewRun.hidden = !state.canResume;
 
   if (els.menuMute) {
     els.menuMute.classList.toggle("is-muted", !state.soundOn);
@@ -998,7 +1028,7 @@ function renderMenuPlayers(container, list) {
     empty.innerHTML = `
       <img src="./assets/chase/cat-run-still.png?v=face-right1" alt="" width="48" height="48" />
       <p>Be the first on this device.</p>
-      <small>Finish a board to appear here.</small>
+      <small>Finish a level to appear here.</small>
     `;
     container.append(empty);
     return;
@@ -1045,7 +1075,7 @@ function updateNicknameOverlay(els, state) {
   if (els.nicknameStatus) {
     if (state.usernameKey) {
       els.nicknameStatus.hidden = false;
-      els.nicknameStatus.textContent = `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
+      els.nicknameStatus.textContent = `Level ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
     } else {
       els.nicknameStatus.hidden = true;
       els.nicknameStatus.textContent = "";
@@ -1062,10 +1092,11 @@ function updateResults(els, state) {
   els.resultsOverlay.hidden = !show;
   if (!show) return;
   els.resultScore.textContent = String(state.score);
-  els.resultStars.textContent = `★ ${state.runStars} this run`;
+  const levelStars = state.taskStarsEarned || state.runStars || 1;
+  els.resultStars.textContent = `★ ${levelStars} this level`;
   els.resultRank.textContent = state.result.title;
-  els.resultMessage.textContent = `${state.result.message} Board ${state.unlockedBoard} is now unlocked.`;
-  els.resultBest.textContent = `Best score ${state.bestScore} · Best ★ ${state.bestStars}`;
+  els.resultMessage.textContent = `${state.result.message} Level ${state.unlockedBoard} is now unlocked.`;
+  els.resultBest.textContent = `Total score ${state.bestScore} · Best ★ ${state.bestStars}`;
 
   const board = els.resultBoard;
   board.replaceChildren();
@@ -1088,14 +1119,143 @@ function updateResults(els, state) {
   board.append(ol);
 }
 
-function updateTutorial(els, state) {
+function updateCoachTip(els, state) {
   const show = Boolean(state.showTutorial && state.tutorialStep >= 1);
-  els.tutorial.hidden = !show;
-  if (!show) return;
+  if (els.coachTip) els.coachTip.hidden = !show;
+  if (!show) {
+    coachLayoutState = null;
+    if (els.coachPointer) els.coachPointer.hidden = true;
+    return;
+  }
   const copy = TUTORIAL_COPY[state.tutorialStep] || TUTORIAL_COPY[1];
-  els.tutorialTitle.textContent = copy.title;
-  els.tutorialBody.textContent = copy.body;
-  els.tutorialNext.textContent = state.tutorialStep >= 3 ? "Play" : "Got it";
+  if (els.coachStep) els.coachStep.textContent = copy.title;
+  if (els.coachBody) els.coachBody.textContent = copy.body;
+  if (els.coachSkip) {
+    const isLastStep = state.tutorialStep === TUTORIAL_LAST_STEP;
+    els.coachSkip.textContent = isLastStep ? "Done" : "Skip tutorial";
+    els.coachSkip.classList.toggle("coach-tip__skip--done", isLastStep);
+    els.coachSkip.setAttribute("aria-label", isLastStep ? "Finish tutorial" : "Skip tutorial");
+  }
+  if (els.coachTip) {
+    els.coachTip.classList.toggle("coach-tip--last", state.tutorialStep === TUTORIAL_LAST_STEP);
+  }
+  coachLayoutState = state;
+  layoutCoachPointer(els, state);
+}
+
+const TUTORIAL_TARGETS = {
+  1: ".target-badge--start",
+  2: ".number-card--left",
+  3: ".operator-grid",
+  4: "[data-submit]",
+};
+
+let coachLayoutState = null;
+
+function rectCenter(rect, origin) {
+  return {
+    x: rect.left + rect.width / 2 - origin.left,
+    y: rect.top + rect.height / 2 - origin.top,
+  };
+}
+
+function anchorOnRect(rect, origin, toward) {
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = toward.x + origin.left - cx;
+  const dy = toward.y + origin.top - cy;
+  if (!dx && !dy) {
+    return { x: cx - origin.left, y: cy - origin.top };
+  }
+  const scale = Math.min(rect.width / 2 / Math.abs(dx), rect.height / 2 / Math.abs(dy));
+  return {
+    x: cx - origin.left + dx * scale,
+    y: cy - origin.top + dy * scale,
+  };
+}
+
+function layoutCoachPointer(els, state) {
+  const pointer = els.coachPointer;
+  if (!pointer || !state.showTutorial || state.tutorialStep < 1) {
+    if (pointer) {
+      pointer.hidden = true;
+      pointer.classList.remove("coach-pointer--dismiss");
+    }
+    return;
+  }
+
+  if (state.tutorialStep === TUTORIAL_LAST_STEP) {
+    pointer.hidden = false;
+    pointer.classList.add("coach-pointer--dismiss");
+    if (els.coachPath) els.coachPath.setAttribute("d", "");
+    if (els.coachTap) els.coachTap.hidden = true;
+    return;
+  }
+
+  pointer.classList.remove("coach-pointer--dismiss");
+  if (els.coachTap) els.coachTap.hidden = false;
+
+  window.requestAnimationFrame(() => {
+    const playShell = els.playShell;
+    const selector = TUTORIAL_TARGETS[state.tutorialStep];
+    let target = playShell?.querySelector(selector);
+    if (!target && state.tutorialStep === 2) {
+      target = playShell?.querySelector(".number-card");
+    }
+    const bubble = els.coachTip?.querySelector(".coach-tip__bubble");
+    if (!playShell || !target || !bubble || els.coachTip?.hidden) {
+      pointer.hidden = true;
+      return;
+    }
+
+    const shellRect = playShell.getBoundingClientRect();
+    if (!shellRect.width || !shellRect.height) {
+      pointer.hidden = true;
+      return;
+    }
+
+    const targetRect = target.getBoundingClientRect();
+    const bubbleRect = bubble.getBoundingClientRect();
+    if (!targetRect.width || !targetRect.height || !bubbleRect.width || !bubbleRect.height) {
+      pointer.hidden = true;
+      return;
+    }
+    const targetCenter = rectCenter(targetRect, shellRect);
+    const bubbleCenter = rectCenter(bubbleRect, shellRect);
+    const start = anchorOnRect(bubbleRect, shellRect, targetCenter);
+    const end = anchorOnRect(targetRect, shellRect, bubbleCenter);
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const curve = Math.min(72, distance * 0.28);
+    const nx = -dy / distance;
+    const ny = dx / distance;
+    const midX = (start.x + end.x) / 2 + nx * curve;
+    const midY = (start.y + end.y) / 2 + ny * curve;
+
+    const svg = els.coachSvg;
+    const path = els.coachPath;
+    if (svg && path) {
+      svg.setAttribute("viewBox", `0 0 ${shellRect.width} ${shellRect.height}`);
+      path.setAttribute(
+        "d",
+        `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
+      );
+    }
+
+    if (els.coachTap) {
+      els.coachTap.style.left = `${targetCenter.x}px`;
+      els.coachTap.style.top = `${targetCenter.y}px`;
+    }
+
+    if (els.coachTip) {
+      const pointerDir = bubbleCenter.y > targetCenter.y ? "up" : "down";
+      els.coachTip.dataset.pointer = pointerDir;
+    }
+
+    pointer.hidden = false;
+  });
 }
 
 function renderCorrection(panel, correction) {
@@ -1149,12 +1309,12 @@ function countByKey(cards) {
 }
 
 const JOURNEY_WORLDS = [
-  { name: "Sandy Shore", blurb: "Warm-up boards" },
+  { name: "Sandy Shore", blurb: "Warm-up levels" },
   { name: "River Bend", blurb: "The chase speeds up" },
   { name: "Storm Bay", blurb: "Trickier targets" },
   { name: "Deep Current", blurb: "Sharper equations" },
   { name: "Shark Tide", blurb: "Expert rescue" },
-  { name: "Coral Peak", blurb: "Legendary boards" },
+  { name: "Coral Peak", blurb: "Legendary levels" },
 ];
 
 function journeyLevelCount(unlockedBoard) {
@@ -1171,6 +1331,11 @@ function journeyWorld(board) {
     blurb: base.blurb,
     start: index * 5 + 1,
   };
+}
+
+function resumeLevelFromSave(resume) {
+  const level = Number(resume?.levelIndex ?? resume?.boardIndex);
+  return Number.isFinite(level) ? Math.max(1, level) : 1;
 }
 
 function boardStatus(board, unlocked, stars) {

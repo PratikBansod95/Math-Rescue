@@ -43,6 +43,7 @@ API routes:
 - `GET /api/health`
 - `GET /api/players/:username`
 - `PUT /api/players/:username`
+- `DELETE /api/players/:username`
 - `GET /api/leaderboard?limit=10`
 
 The game keeps a localStorage cache and syncs progress to Neon when online. Leaderboard / Top Players read from Neon when available.

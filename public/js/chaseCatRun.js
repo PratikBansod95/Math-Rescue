@@ -146,7 +146,7 @@ export function createCatRunAnimator(els) {
   function sync(opts) {
     limitSec = Math.max(1, Number(opts.limit) || 45);
 
-    if (opts.deadline != null && Number.isFinite(opts.deadline)) {
+    if (opts.deadline != null && Number.isFinite(opts.deadline) && opts.deadline > 0) {
       deadline = opts.deadline;
     }
 
@@ -180,7 +180,7 @@ export function createCatRunAnimator(els) {
       return;
     }
 
-    if (!deadline) {
+    if (!deadline || deadline <= performance.now()) {
       const left = Math.max(0, Number(opts.timeLeft) || limitSec);
       deadline = performance.now() + left * 1000;
     }

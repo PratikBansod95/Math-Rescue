@@ -52,12 +52,13 @@ const OPERATORS = [
   { symbol: "/", apply: (a, b) => (Math.abs(b) < EPSILON ? null : a / b) },
 ];
 
+// End-of-run ranks: cumulative career score (+10 per level cleared).
 export const RANKS = [
-  { minScore: 270, title: "Grand Mastermind", message: "Elite accuracy. You made the numbers dance." },
-  { minScore: 210, title: "Number Wizard", message: "Sharp mental math with strong target instincts." },
-  { minScore: 150, title: "Equation Expert", message: "Solid solving. Parentheses are becoming your power tool." },
-  { minScore: 90, title: "Puzzle Apprentice", message: "Good practice run. Keep testing multiplication paths first." },
-  { minScore: 0, title: "Practice Explorer", message: "Every attempt trains your math eye. Try another board." },
+  { minScore: 200, title: "Grand Mastermind", message: "Elite accuracy. You made the numbers dance." },
+  { minScore: 150, title: "Number Wizard", message: "Sharp mental math with strong target instincts." },
+  { minScore: 100, title: "Equation Expert", message: "Solid solving. Parentheses are becoming your power tool." },
+  { minScore: 50, title: "Puzzle Apprentice", message: "Good practice run. Keep testing multiplication paths first." },
+  { minScore: 0, title: "Practice Explorer", message: "Every attempt trains your math eye. Try another level." },
 ];
 
 export function getDivision(id) {
@@ -73,31 +74,37 @@ export function getRank(score) {
 }
 
 export function createRound({
-  boardIndex = 1,
-  taskIndex = 1,
+  levelIndex = 1,
+  puzzleVariant = 0,
   divisionId = DEFAULT_DIVISION_ID,
   difficultyId = DEFAULT_DIFFICULTY_ID,
+  /** @deprecated use levelIndex */
+  boardIndex,
+  /** @deprecated use puzzleVariant */
+  taskIndex,
 } = {}) {
-  // Same board + task always yields the same puzzle (stable across reloads).
-  seedRandom(hashSeed(boardIndex, taskIndex, divisionId, difficultyId));
+  const level = levelIndex ?? boardIndex ?? 1;
+  const variant = puzzleVariant ?? Math.max(0, (taskIndex ?? 1) - 1);
+  // Same level + variant always yields the same puzzle (stable across reloads).
+  seedRandom(hashSeed(level, variant, divisionId, difficultyId));
 
   const division = getDivision(divisionId);
   const difficulty = getDifficulty(difficultyId);
-  const special = specialTypeForTask(taskIndex, division, boardIndex);
+  const special = specialTypeForLevel(level, division);
 
   if (special === "matching-target-cards") {
-    return createMatchingTargetRound(boardIndex, taskIndex, division, difficulty);
+    return createMatchingTargetRound(level, division, difficulty);
   }
   if (special === "all-target-with-fraction") {
-    return createAllTargetFractionRound(boardIndex, taskIndex, division, difficulty);
+    return createAllTargetFractionRound(level, division, difficulty);
   }
 
   for (let attempt = 0; attempt < 180; attempt += 1) {
-    const cards = generateCards(division, difficulty, boardIndex, difficultyId);
+    const cards = generateCards(division, difficulty, level, difficultyId);
     if (cards.every((card) => card.key === cards[0].key)) continue;
 
-    const solutions = findIntegerTargets(cards, boardIndex, difficulty, difficultyId);
-    const pool = preferFriendlyTargets(solutions, boardIndex, difficultyId);
+    const solutions = findIntegerTargets(cards, level, difficulty, difficultyId);
+    const pool = preferFriendlyTargets(solutions, level, difficultyId);
     if (pool.length > 0) {
       const picked = pickGentleSolution(pool);
       return {
@@ -169,20 +176,19 @@ export function findAlternateSolutions(round, attempted = "", limit = 3) {
   return results;
 }
 
-function specialTypeForTask(taskIndex, division, boardIndex = 1) {
-  // Keep boards 1–5 on the normal friendly generator (no nested special templates).
-  if (boardIndex <= 5) return null;
-  if ([5, 15, 25].includes(taskIndex)) return "matching-target-cards";
-  if ([10, 20, 30].includes(taskIndex)) {
+function specialTypeForLevel(levelIndex, division) {
+  if (levelIndex <= 5) return null;
+  if (levelIndex % 5 === 0) return "matching-target-cards";
+  if (levelIndex % 10 === 0) {
     return division.allowFractions ? "all-target-with-fraction" : "matching-target-cards";
   }
   return null;
 }
 
-function createMatchingTargetRound(boardIndex, taskIndex, division, difficulty) {
-  const target = pickSpecialTarget(boardIndex, difficulty, taskIndex);
-  const matchCount = taskIndex === 15 ? 3 : randomInt(2, 3);
-  const other = pickOtherCard(target, boardIndex, difficulty);
+function createMatchingTargetRound(levelIndex, division, difficulty) {
+  const target = pickSpecialTarget(levelIndex, difficulty);
+  const matchCount = levelIndex % 15 === 0 ? 3 : randomInt(2, 3);
+  const other = pickOtherCard(target, levelIndex, difficulty);
   const raw =
     matchCount === 3
       ? [target, target, target, other]
@@ -201,13 +207,13 @@ function createMatchingTargetRound(boardIndex, taskIndex, division, difficulty) 
     exampleSolution: example,
     specialType: "matching-target-cards",
     note: division.allowFractions
-      ? "Some boards include target-matching cards."
-      : "Target-matching cards appear on this board.",
+      ? "Some levels include target-matching cards."
+      : "Target-matching cards appear on this level.",
   };
 }
 
-function createAllTargetFractionRound(boardIndex, taskIndex, division, difficulty) {
-  const target = pickSpecialTarget(boardIndex, difficulty, taskIndex);
+function createAllTargetFractionRound(levelIndex, division, difficulty) {
+  const target = pickSpecialTarget(levelIndex, difficulty);
   const denom = Math.max(2, Math.min(12, division.denominatorMax + difficulty.denominatorBonus || 2));
   const cards = makeCards([
     target,
@@ -228,24 +234,23 @@ function createAllTargetFractionRound(boardIndex, taskIndex, division, difficult
   };
 }
 
-function pickSpecialTarget(boardIndex, difficulty, taskIndex) {
-  const ceiling = 4 + boardIndex * 2 + difficulty.integerBonus;
-  return randomInt(2, Math.max(3, ceiling + (taskIndex % 4) * 2));
+function pickSpecialTarget(levelIndex, difficulty) {
+  const ceiling = 4 + levelIndex * 2 + difficulty.integerBonus;
+  return randomInt(2, Math.max(3, ceiling + (levelIndex % 4) * 2));
 }
 
-function pickOtherCard(target, boardIndex, difficulty) {
-  let value = randomInt(1, Math.max(target + 2, target + boardIndex + difficulty.integerBonus + 5));
+function pickOtherCard(target, levelIndex, difficulty) {
+  let value = randomInt(1, Math.max(target + 2, target + levelIndex + difficulty.integerBonus + 5));
   if (value === target) value += 1;
   return value;
 }
 
-function generateCards(division, difficulty, boardIndex, difficultyId = DEFAULT_DIFFICULTY_ID) {
-  let maxInt = division.integerBaseMax + difficulty.integerBonus + Math.max(0, boardIndex - 1) * 2;
-  if (isFriendlyBoard(boardIndex, difficultyId)) {
-    // Smaller digits on early / easy boards so solutions stay simple.
-    maxInt = Math.min(maxInt, 5 + boardIndex);
+function generateCards(division, difficulty, levelIndex, difficultyId = DEFAULT_DIFFICULTY_ID) {
+  let maxInt = division.integerBaseMax + difficulty.integerBonus + Math.max(0, levelIndex - 1) * 2;
+  if (isFriendlyLevel(levelIndex, difficultyId)) {
+    maxInt = Math.min(maxInt, 5 + levelIndex);
   }
-  const fractionCount = isFriendlyBoard(boardIndex, difficultyId)
+  const fractionCount = isFriendlyLevel(levelIndex, difficultyId)
     ? 0
     : division.allowFractions
       ? Math.min(2, difficulty.fractionCards)
@@ -287,16 +292,16 @@ function randomFraction(denominatorMax) {
   return reduceFraction(randomInt(1, denom - 1), denom);
 }
 
-function isFriendlyBoard(boardIndex, difficultyId) {
-  return boardIndex <= 5 || difficultyId === "easy";
+function isFriendlyLevel(levelIndex, difficultyId) {
+  return levelIndex <= 5 || difficultyId === "easy";
 }
 
-function findIntegerTargets(cards, boardIndex, difficulty, difficultyId = DEFAULT_DIFFICULTY_ID) {
+function findIntegerTargets(cards, levelIndex, difficulty, difficultyId = DEFAULT_DIFFICULTY_ID) {
   const map = new Map();
-  const friendly = isFriendlyBoard(boardIndex, difficultyId);
+  const friendly = isFriendlyLevel(levelIndex, difficultyId);
   const maxAbs = friendly
-    ? 20 + boardIndex * 6
-    : 80 + boardIndex * 30 + difficulty.integerBonus * 10;
+    ? 20 + levelIndex * 6
+    : 80 + levelIndex * 30 + difficulty.integerBonus * 10;
   const nodes = cards.map((c) => ({ value: c.value, expression: c.input, depth: 0 }));
 
   for (const result of combineAll(nodes, { friendly })) {
@@ -318,12 +323,12 @@ function findIntegerTargets(cards, boardIndex, difficulty, difficultyId = DEFAUL
 }
 
 /** Keep early boards friendly: prefer small positive targets and simpler expressions. */
-function preferFriendlyTargets(solutions, boardIndex, difficultyId) {
+function preferFriendlyTargets(solutions, levelIndex, difficultyId) {
   if (!solutions.length) return solutions;
-  if (!isFriendlyBoard(boardIndex, difficultyId)) return solutions;
+  if (!isFriendlyLevel(levelIndex, difficultyId)) return solutions;
 
   const positive = solutions.filter((s) => s.value > 0);
-  const gentleCap = 18 + boardIndex * 3;
+  const gentleCap = 18 + levelIndex * 3;
   const gentle = positive.filter((s) => s.value <= gentleCap);
   const pool = gentle.length ? gentle : positive;
   if (!pool.length) return solutions;
@@ -646,8 +651,8 @@ function seedRandom(seed) {
   rngState = (seed >>> 0) || 0x9e3779b9;
 }
 
-function hashSeed(boardIndex, taskIndex, divisionId, difficultyId) {
-  const text = `${boardIndex}|${taskIndex}|${divisionId}|${difficultyId}`;
+function hashSeed(levelIndex, puzzleVariant, divisionId, difficultyId) {
+  const text = `${levelIndex}|v${puzzleVariant}|${divisionId}|${difficultyId}`;
   let hash = 2166136261;
   for (let i = 0; i < text.length; i += 1) {
     hash ^= text.charCodeAt(i);

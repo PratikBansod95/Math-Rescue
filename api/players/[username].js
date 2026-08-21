@@ -1,8 +1,8 @@
 import { applyCors, json, normalizeUsername, publicError, readJsonBody } from "../../server/db.js";
-import { getPlayerByUsername, upsertPlayer } from "../../server/players.js";
+import { deletePlayerByUsername, getPlayerByUsername, upsertPlayer } from "../../server/players.js";
 
 export default async function handler(req, res) {
-  applyCors(res, "GET,PUT,OPTIONS");
+  applyCors(res, "GET,PUT,DELETE,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -31,6 +31,16 @@ export default async function handler(req, res) {
       const body = typeof req.body === "object" && req.body ? req.body : await readJsonBody(req);
       const player = await upsertPlayer(key, body);
       json(res, 200, { player });
+      return;
+    }
+
+    if (req.method === "DELETE") {
+      const deleted = await deletePlayerByUsername(key);
+      if (!deleted) {
+        json(res, 404, { error: "Player not found" });
+        return;
+      }
+      json(res, 200, { ok: true, deleted: true });
       return;
     }
 

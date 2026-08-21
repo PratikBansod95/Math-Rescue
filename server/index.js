@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { applyCors, json, normalizeUsername, publicError, readJsonBody } from "./db.js";
-import { getLeaderboard, getPlayerByUsername, pingDb, upsertPlayer } from "./players.js";
+import { getLeaderboard, getPlayerByUsername, pingDb, upsertPlayer, deletePlayerByUsername } from "./players.js";
 
 dotenv.config();
 
@@ -42,7 +42,7 @@ function resolvePublic(urlPath) {
 }
 
 async function handleApi(req, res, url) {
-  applyCors(res, "GET,PUT,OPTIONS");
+  applyCors(res, "GET,PUT,DELETE,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -92,6 +92,15 @@ async function handleApi(req, res, url) {
         const body = await readJsonBody(req);
         const player = await upsertPlayer(key, body);
         json(res, 200, { player });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const deleted = await deletePlayerByUsername(key);
+        if (!deleted) {
+          json(res, 404, { error: "Player not found" });
+          return;
+        }
+        json(res, 200, { ok: true, deleted: true });
         return;
       }
       json(res, 405, { error: "Method not allowed" });

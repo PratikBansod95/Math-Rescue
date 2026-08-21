@@ -30,7 +30,7 @@ export async function upsertPlayer(username, body = {}) {
   const displayName = clampDisplayName(body.name || body.displayName || username, key);
   const unlockedBoard = Math.max(1, Math.floor(Number(body.unlockedBoard) || 1));
   const bestScore = Math.max(0, Math.floor(Number(body.bestScore) || 0));
-  const bestStars = Math.max(0, Math.floor(Number(body.bestStars) || 0));
+  const bestStars = Math.min(3, Math.max(0, Math.floor(Number(body.bestStars) || 0)));
   const tutorialSeen = Boolean(body.tutorialSeen);
   const incomingStars = body.boardStars || {};
 
@@ -75,7 +75,7 @@ export async function upsertPlayer(username, body = {}) {
       display_name = ${displayName},
       unlocked_board = ${Math.max(Number(existing.unlocked_board) || 1, unlockedBoard)},
       best_score = ${Math.max(Number(existing.best_score) || 0, bestScore)},
-      best_stars = ${Math.max(Number(existing.best_stars) || 0, bestStars)},
+      best_stars = ${Math.min(3, Math.max(Number(existing.best_stars) || 0, bestStars))},
       board_stars = ${mergedStars},
       tutorial_seen = ${Boolean(existing.tutorial_seen) || tutorialSeen},
       updated_at = now()
@@ -96,6 +96,22 @@ export async function getLeaderboard(limit = 10) {
     LIMIT ${safeLimit}
   `;
   return rows.map(rowToPlayer);
+}
+
+export async function deletePlayerByUsername(username) {
+  const key = normalizeUsername(username);
+  if (!key) {
+    const error = new Error("Username is required");
+    error.status = 400;
+    throw error;
+  }
+  const sql = getSql();
+  const rows = await sql`
+    DELETE FROM players
+    WHERE username_key = ${key}
+    RETURNING username_key
+  `;
+  return Boolean(rows[0]);
 }
 
 export async function pingDb() {

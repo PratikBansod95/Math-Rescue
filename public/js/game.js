@@ -15,26 +15,32 @@ import {
   formatNumber,
 } from "./puzzle.js";
 import { createUI } from "./ui.js";
+import { createConfirmDialog } from "./confirm.js";
 import { createAudio } from "./audio.js";
 import {
   loadState,
   saveState,
+  clearAllState,
   emptyProfile,
   normalizeUsername,
   defaultSettings,
-  DEFAULT_BOARD_LENGTH,
   topProfilesByScore,
 } from "./storage.js";
 import {
   fetchPlayer,
   savePlayer,
+  deletePlayer,
   fetchLeaderboard,
   remoteToLocalProfile,
   leaderboardToUi,
 } from "./api.js";
+import {
+  POINTS_CORRECT,
+  POINTS_WRONG,
+  bestBoardRating,
+  calcTaskStars,
+} from "./scoring.js";
 
-const POINTS_CORRECT = 10;
-const POINTS_WRONG = 2;
 const MAX_RETRIES = 2;
 
 const TIMER_LIMITS = {
@@ -56,10 +62,10 @@ export function createGame({ mount }) {
 
       const state = {
         phase: "loading",
-        boardIndex: 1,
+        levelIndex: 1,
         unlockedBoard: 1,
-        taskIndex: 1,
-        tasksPerBoard: DEFAULT_BOARD_LENGTH,
+        puzzleVariant: 0,
+        reviewOutcome: null,
         divisionId: DEFAULT_DIVISION_ID,
         difficultyId: DEFAULT_DIFFICULTY_ID,
         division: getDivision(DEFAULT_DIVISION_ID),
@@ -133,11 +139,11 @@ export function createGame({ mount }) {
           onHintOrNext,
           onNewGame,
           onPlayFromMenu,
-          onStartNewRun,
           onSelectBoard,
           onOpenMenu,
           onOpenMenuSettings,
           onCloseMenuSettings,
+          onResetAll,
           onOpenHowTo,
           onCloseHowTo,
           onOpenJourney,
@@ -145,13 +151,15 @@ export function createGame({ mount }) {
           onComingSoon,
           onUsernameInput,
           onToggleSound,
-          onTutorialNext,
           onTutorialSkip,
           onEscape,
         },
       });
 
+      const confirm = createConfirmDialog();
+
       document.addEventListener("visibilitychange", onVisibilityChange);
+      document.addEventListener("keydown", onDocumentKeydown);
 
       render();
       boot();
@@ -163,10 +171,20 @@ export function createGame({ mount }) {
         window.clearTimeout(toastTimerId);
         window.clearTimeout(remoteSyncTimerId);
         document.removeEventListener("visibilitychange", onVisibilityChange);
+        document.removeEventListener("keydown", onDocumentKeydown);
+        confirm.destroy();
         audio.dispose();
         ui.destroy();
         mount.replaceChildren();
       };
+
+      function onDocumentKeydown(event) {
+        if (event.key === "Escape") onEscape();
+      }
+
+      function askConfirm(options) {
+        return confirm.ask(options);
+      }
 
       async function boot() {
         await wait(120);
@@ -177,15 +195,14 @@ export function createGame({ mount }) {
         settings = saved.settings;
         state.settings = settings;
         state.soundOn = settings.sound !== false;
-        state.tasksPerBoard = DEFAULT_BOARD_LENGTH;
         applyUsername(saved.lastUsername || "");
         state.storageReady = true;
 
         if (state.usernameKey) {
           await syncFromRemote();
           if (disposed) return;
-          state.boardIndex = state.unlockedBoard;
-          state.taskIndex = 1;
+          state.levelIndex = state.unlockedBoard;
+          state.puzzleVariant = 0;
           state.score = 0;
           state.runStars = 0;
           if (!resumeIsValid(state.resume)) state.resume = null;
@@ -222,8 +239,8 @@ export function createGame({ mount }) {
         resetTaskFlags();
         await syncFromRemote();
         if (disposed) return;
-        state.boardIndex = state.unlockedBoard;
-        state.taskIndex = 1;
+        state.levelIndex = state.unlockedBoard;
+        state.puzzleVariant = 0;
         state.score = 0;
         state.runStars = 0;
         state.round = makeRound(state);
@@ -254,7 +271,7 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "neutral",
           text: "Switch player or keep your saved name.",
-          detail: "Each name keeps its own board progress on this device.",
+          detail: "Each name keeps its own level progress on this device.",
         };
         render();
       }
@@ -280,7 +297,7 @@ export function createGame({ mount }) {
         state.usedCounts = new Map();
         state.correction = null;
         state.canResume = resumeIsValid(state.resume);
-        state.boardIndex = state.unlockedBoard;
+        state.levelIndex = state.unlockedBoard;
         state.leaderboard = topProfilesByScore(state.profiles, 3).filter(
           (entry) => (entry.bestScore || 0) > 0
         );
@@ -293,8 +310,18 @@ export function createGame({ mount }) {
         refreshLeaderboard(3);
       }
 
-      function onOpenMenu() {
+      async function onOpenMenu() {
         if (!["playing", "review", "finished"].includes(state.phase)) return;
+        if (state.phase === "playing") {
+          const ok = await askConfirm({
+            title: "Leave this puzzle?",
+            message:
+              "Your level progress is saved. You can continue later from the menu.",
+            confirmLabel: "Yes, leave",
+            cancelLabel: "No",
+          });
+          if (!ok) return;
+        }
         goToMenu();
         persist();
       }
@@ -302,49 +329,55 @@ export function createGame({ mount }) {
       function onPlayFromMenu() {
         if (state.phase !== "menu") return;
         if (resumeIsValid(state.resume)) {
-          startBoard(state.resume.boardIndex, { resume: true });
+          startLevel(resumeLevel(state.resume), { resume: true });
           return;
         }
-        startBoard(state.unlockedBoard);
+        startLevel(state.unlockedBoard);
       }
 
-      function onStartNewRun() {
+      async function onSelectBoard(level) {
         if (state.phase !== "menu") return;
-        state.resume = null;
-        state.canResume = false;
-        startBoard(state.unlockedBoard);
-      }
-
-      function onSelectBoard(boardIndex) {
-        if (state.phase !== "menu") return;
-        const board = Math.floor(Number(boardIndex));
-        if (!Number.isFinite(board) || board < 1) return;
-        if (board > state.unlockedBoard) {
+        const picked = Math.floor(Number(level));
+        if (!Number.isFinite(picked) || picked < 1) return;
+        if (picked > state.unlockedBoard) {
           showMenuToast(`Clear level ${state.unlockedBoard} to unlock this one`);
           return;
         }
         const resumeHere =
-          resumeIsValid(state.resume) && Number(state.resume.boardIndex) === board;
-        startBoard(board, { resume: resumeHere });
+          resumeIsValid(state.resume) && resumeLevel(state.resume) === picked;
+        if (resumeIsValid(state.resume) && resumeLevel(state.resume) !== picked) {
+          const ok = await askConfirm({
+            title: "Switch levels?",
+            message: `Starting level ${picked} will discard your saved progress on level ${resumeLevel(state.resume)}.`,
+            confirmLabel: "Yes",
+            cancelLabel: "No",
+            danger: true,
+          });
+          if (!ok) return;
+          state.resume = null;
+          state.canResume = false;
+        }
+        startLevel(picked, { resume: resumeHere });
       }
 
-      function startBoard(boardIndex, { resume = false } = {}) {
+      function startLevel(levelIndex, { resume = false } = {}) {
         if (state.phase !== "menu") return;
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
         state.menuJourneyOpen = false;
         state.phase = "playing";
+        state.reviewOutcome = null;
         const resuming = Boolean(resume) && resumeIsValid(state.resume);
         if (resuming) {
-          state.boardIndex = state.resume.boardIndex;
-          state.taskIndex = state.resume.taskIndex;
+          state.levelIndex = resumeLevel(state.resume);
+          state.puzzleVariant = resumeVariant(state.resume);
           state.score = Number(state.resume.score) || 0;
           state.runStars = Number(state.resume.runStars) || 0;
           state.showTutorial = false;
           state.tutorialStep = 0;
         } else {
-          state.boardIndex = Math.max(1, boardIndex);
-          state.taskIndex = 1;
+          state.levelIndex = Math.max(1, levelIndex);
+          state.puzzleVariant = 0;
           state.score = 0;
           state.runStars = 0;
           state.showTutorial = !state.tutorialSeen;
@@ -358,7 +391,7 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "neutral",
           text: resuming
-            ? `Welcome back. Puzzle ${state.taskIndex} of ${state.tasksPerBoard}.`
+            ? `Welcome back to level ${state.levelIndex}.`
             : "Tap Start to reveal the target.",
           detail: resuming ? "Tap Start to continue." : "",
         };
@@ -389,6 +422,92 @@ export function createGame({ mount }) {
         render();
       }
 
+      async function onResetAll() {
+        const confirmed = await askConfirm({
+          title: "Reset all progress?",
+          message:
+            "This clears every saved player on this device and deletes cloud progress from the server. You will return to the name screen at level 1. This cannot be undone.",
+          confirmLabel: "Yes, reset",
+          cancelLabel: "No",
+          danger: true,
+        });
+        if (!confirmed) return;
+
+        state.menuSettingsOpen = false;
+
+        const profileKeys = [
+          ...new Set([
+            ...Object.keys(state.profiles || {}),
+            ...(state.usernameKey ? [state.usernameKey] : []),
+          ]),
+        ];
+
+        stopPuzzleTimer();
+        clearCatchTimeout();
+        window.clearTimeout(remoteSyncTimerId);
+        window.clearTimeout(toastTimerId);
+
+        let cloudError = false;
+        for (const key of profileKeys) {
+          try {
+            await deletePlayer(key);
+          } catch (error) {
+            if (error.status !== 404) cloudError = true;
+          }
+        }
+
+        clearAllState();
+        settings = defaultSettings();
+        state.settings = settings;
+        state.soundOn = settings.sound !== false;
+        state.profiles = {};
+        state.resume = null;
+        state.canResume = false;
+        state.leaderboard = [];
+        state.username = "";
+        state.usernameKey = "";
+        state.bestScore = 0;
+        state.unlockedBoard = 1;
+        state.bestStars = 0;
+        state.boardStars = {};
+        state.tutorialSeen = false;
+        state.showTutorial = false;
+        state.tutorialStep = 0;
+        state.levelIndex = 1;
+        state.puzzleVariant = 0;
+        state.score = 0;
+        state.runStars = 0;
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.correction = null;
+        state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
+        state.menuJourneyOpen = false;
+        state.menuToast = "";
+        state.syncStatus = cloudError ? "offline" : "ok";
+        state.awaitingStart = true;
+        state.chasePose = "idle";
+        state.timerExpired = false;
+        resetTaskFlags();
+        state.round = makeRound(state);
+        state.phase = "nickname";
+        state.feedback = {
+          kind: cloudError ? "bad" : "neutral",
+          text: "Enter a name to save your progress.",
+          detail: cloudError
+            ? "This device was reset, but cloud progress could not be deleted. Try again when online."
+            : "Progress was cleared on this device and in the cloud.",
+        };
+        saveState({
+          profiles: {},
+          lastUsername: "",
+          settings,
+          resume: null,
+        });
+        render();
+      }
+
       function onOpenHowTo() {
         if (state.phase !== "menu") return;
         state.menuSettingsOpen = false;
@@ -415,6 +534,10 @@ export function createGame({ mount }) {
       }
 
       function onEscape() {
+        if (confirm.isOpen()) {
+          confirm.cancel();
+          return;
+        }
         if (state.menuSettingsOpen) {
           onCloseMenuSettings();
           return;
@@ -444,8 +567,9 @@ export function createGame({ mount }) {
       }
 
       function onPuzzleGo() {
-        if (!isPlaying() || !state.awaitingStart || state.showTutorial) return;
+        if (!isPlaying() || !state.awaitingStart) return;
         state.awaitingStart = false;
+        if (state.showTutorial && state.tutorialStep === 1) state.tutorialStep = 2;
         state.chasePose = "running";
         state.feedback = {
           kind: "neutral",
@@ -472,7 +596,13 @@ export function createGame({ mount }) {
           detail: retriesDetail(),
         };
         state.correction = null;
-        if (state.showTutorial && state.tutorialStep === 1) state.tutorialStep = 2;
+        if (state.showTutorial) {
+          if (state.tutorialStep === 2 && !isOperatorFragment(fragment)) {
+            state.tutorialStep = 3;
+          } else if (state.tutorialStep === 3 && isOperatorFragment(fragment)) {
+            state.tutorialStep = 4;
+          }
+        }
         render();
         audio.playBlip(560, { duration: 0.045, volume: 0.08 });
       }
@@ -506,9 +636,6 @@ export function createGame({ mount }) {
       function onSubmit() {
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
         state.attempts += 1;
-        if (state.showTutorial && state.tutorialStep === 3) {
-          // allow submit during tutorial
-        }
         const result = evaluateSubmission(state.expression, state.round);
 
         if (!result.ok) {
@@ -545,10 +672,11 @@ export function createGame({ mount }) {
           retriesUsed: MAX_RETRIES - state.retriesLeft,
         });
         state.taskStarsEarned = stars;
-        state.runStars += stars;
+        state.runStars = stars;
         recordTaskStars(stars);
 
         state.phase = "review";
+        state.reviewOutcome = "success";
         state.score += POINTS_CORRECT;
         state.correction = buildCorrectCorrection(state.expression, state.round);
         state.feedback = {
@@ -562,6 +690,7 @@ export function createGame({ mount }) {
           state.showTutorial = false;
           state.tutorialSeen = true;
           state.tutorialStep = 0;
+          persist();
         }
         audio.play("correct");
         audio.playBlip(880, { duration: 0.08, volume: 0.13 });
@@ -574,20 +703,28 @@ export function createGame({ mount }) {
         stopPuzzleTimer();
         const correction = buildWrongCorrection(state.expression, result, state.round);
         state.phase = "review";
+        state.reviewOutcome = "fail";
         state.score = Math.max(0, state.score - POINTS_WRONG);
         state.expression = correction.solution;
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
         state.taskStarsEarned = 1;
-        state.runStars += 1;
+        state.runStars = 1;
         recordTaskStars(1);
         state.feedback = {
           kind: "bad",
           text: state.timerExpired
             ? "Time’s up! The shark caught the cat. Here’s the solution."
             : result.reason || "Incorrect. Study the solution.",
-          detail: `−${POINTS_WRONG} points · ★1 · Tap Next`,
+          detail: `−${POINTS_WRONG} points · New puzzle on Next`,
         };
         state.correction = correction;
+        if (state.showTutorial && state.tutorialStep === 4) {
+          state.showTutorial = false;
+          state.tutorialSeen = true;
+          state.tutorialStep = 0;
+          persist();
+          ensureTimerRunning();
+        }
         if (!state.timerExpired) {
           audio.play("incorrect");
           vibrate(24);
@@ -622,6 +759,7 @@ export function createGame({ mount }) {
             ? remainingSeconds
             : state.timerLimit;
         state.timerDeadline = performance.now() + seconds * 1000;
+        state.timeLeft = Math.ceil(seconds);
         timerIntervalId = window.setInterval(() => {
           if (
             disposed ||
@@ -649,6 +787,20 @@ export function createGame({ mount }) {
           window.clearInterval(timerIntervalId);
           timerIntervalId = null;
         }
+      }
+
+      function ensureTimerRunning() {
+        if (
+          disposed ||
+          !isPlaying() ||
+          state.awaitingStart ||
+          state.timerExpired ||
+          state.showTutorial ||
+          state.timerDeadline > 0
+        ) {
+          return;
+        }
+        beginTimerTicks(state.timeLeft || state.timerLimit);
       }
 
       function clearCatchTimeout() {
@@ -687,7 +839,11 @@ export function createGame({ mount }) {
 
       function onHintOrNext() {
         if (state.phase === "review") {
-          advanceTask();
+          if (state.reviewOutcome === "fail") {
+            retryLevelWithNewPuzzle();
+          } else {
+            finishLevel();
+          }
           return;
         }
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
@@ -714,45 +870,44 @@ export function createGame({ mount }) {
         render();
       }
 
-      function advanceTask() {
-        if (state.taskIndex >= state.tasksPerBoard) {
-          finishBoard();
-          return;
-        }
-        state.taskIndex += 1;
-        state.round = makeRound(state);
+      function retryLevelWithNewPuzzle() {
+        state.puzzleVariant = (state.puzzleVariant || 0) + 1;
+        state.phase = "playing";
+        state.reviewOutcome = null;
         state.expression = "";
         state.usedCounts = new Map();
-        state.phase = "playing";
+        state.correction = null;
+        state.runStars = 0;
+        state.taskStarsEarned = 0;
         resetTaskFlags();
+        state.round = makeRound(state);
         state.feedback = {
           kind: "neutral",
-          text: "Tap Start to reveal the target.",
+          text: "New puzzle — try again!",
           detail: "",
         };
-        state.correction = null;
         state.resume = buildResume();
         startPuzzleTimer();
         render();
         persist();
       }
 
-      function finishBoard() {
+      function finishLevel() {
         stopPuzzleTimer();
         state.phase = "finished";
-        state.result = getRank(state.score);
-        const finishedBoard = state.boardIndex;
-        if (finishedBoard >= state.unlockedBoard) {
-          state.unlockedBoard = finishedBoard + 1;
+        const finishedLevel = state.levelIndex;
+        const earned = state.taskStarsEarned || state.runStars || 1;
+        if (finishedLevel >= state.unlockedBoard) {
+          state.unlockedBoard = finishedLevel + 1;
         }
-        state.bestScore = Math.max(state.bestScore, state.score);
-        state.bestStars = Math.max(state.bestStars, state.runStars);
-        const earned = boardStarsFromRun(state.runStars, state.tasksPerBoard);
-        const prevStars = Number(state.boardStars?.[finishedBoard]) || 0;
+        state.bestScore += Math.max(0, state.score);
+        const prevStars = Number(state.boardStars?.[finishedLevel]) || 0;
         state.boardStars = {
           ...(state.boardStars || {}),
-          [finishedBoard]: Math.max(prevStars, earned),
+          [finishedLevel]: Math.max(prevStars, earned),
         };
+        state.bestStars = bestBoardRating(state.boardStars);
+        state.result = getRank(state.bestScore);
         state.leaderboard = topProfilesByScore(
           {
             ...state.profiles,
@@ -768,12 +923,13 @@ export function createGame({ mount }) {
         );
         state.feedback = {
           kind: "good",
-          text: `Board ${finishedBoard} complete!`,
-          detail: `Board ${state.unlockedBoard} unlocked · ★${state.runStars} this run`,
+          text: `Level ${finishedLevel} complete!`,
+          detail: `★${earned} · Level ${state.unlockedBoard} unlocked · Total ${state.bestScore}`,
         };
         state.correction = null;
         state.resume = null;
         state.canResume = false;
+        state.reviewOutcome = null;
         render();
         audio.playBlip(660, { duration: 0.1, volume: 0.12 });
         audio.playBlip(990, { duration: 0.13, volume: 0.12 });
@@ -787,7 +943,12 @@ export function createGame({ mount }) {
 
       function render(options = {}) {
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
-        state.hintLabel = state.phase === "review" ? "Next" : "Nudge";
+        state.hintLabel =
+          state.phase === "review"
+            ? state.reviewOutcome === "fail"
+              ? "Try again"
+              : "Next"
+            : "Nudge";
         ui.render(state, options);
       }
 
@@ -803,24 +964,13 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onTutorialNext() {
-        if (!state.showTutorial) return;
-        if (state.tutorialStep < 3) {
-          state.tutorialStep += 1;
-        } else {
-          state.showTutorial = false;
-          state.tutorialSeen = true;
-          state.tutorialStep = 0;
-          persist();
-        }
-        render();
-      }
-
       function onTutorialSkip() {
+        if (!state.showTutorial) return;
         state.showTutorial = false;
         state.tutorialSeen = true;
         state.tutorialStep = 0;
         persist();
+        ensureTimerRunning();
         render();
       }
 
@@ -834,7 +984,7 @@ export function createGame({ mount }) {
             ? `Welcome, ${state.username}.`
             : "Enter a name to save progress.",
           detail: state.usernameKey
-            ? `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`
+            ? `Level ${state.unlockedBoard} unlocked · Best ${state.bestScore}`
             : "Progress stays on this device.",
         };
         if (state.usernameKey) persist({ remote: false });
@@ -853,7 +1003,7 @@ export function createGame({ mount }) {
           state.unlockedBoard = fresh.unlockedBoard;
           state.bestStars = fresh.bestStars;
           state.tutorialSeen = false;
-          state.boardIndex = fresh.unlockedBoard;
+          state.levelIndex = fresh.unlockedBoard;
           state.boardStars = {};
           state.profileMessage = "Welcome";
           return;
@@ -868,10 +1018,10 @@ export function createGame({ mount }) {
         }
         state.bestScore = profile.bestScore;
         state.unlockedBoard = profile.unlockedBoard;
-        state.bestStars = profile.bestStars || 0;
-        state.tutorialSeen = Boolean(profile.tutorialSeen);
-        state.boardIndex = profile.unlockedBoard;
         state.boardStars = { ...(profile.boardStars || {}) };
+        state.bestStars = bestBoardRating(state.boardStars);
+        state.tutorialSeen = Boolean(profile.tutorialSeen);
+        state.levelIndex = profile.unlockedBoard;
         state.profileMessage = "Welcome";
       }
 
@@ -880,8 +1030,8 @@ export function createGame({ mount }) {
         if (!["playing", "review"].includes(state.phase)) return null;
         return {
           usernameKey: state.usernameKey,
-          boardIndex: state.boardIndex,
-          taskIndex: state.taskIndex,
+          levelIndex: state.levelIndex,
+          puzzleVariant: state.puzzleVariant || 0,
           score: state.score,
           runStars: state.runStars,
         };
@@ -889,11 +1039,9 @@ export function createGame({ mount }) {
 
       function resumeIsValid(resume) {
         if (!resume || resume.usernameKey !== state.usernameKey) return false;
-        const board = Number(resume.boardIndex);
-        const task = Number(resume.taskIndex);
-        if (!Number.isFinite(board) || board < 1) return false;
-        if (board > Math.max(1, state.unlockedBoard || 1)) return false;
-        if (!Number.isFinite(task) || task < 1 || task > state.tasksPerBoard) return false;
+        const level = resumeLevel(resume);
+        if (!Number.isFinite(level) || level < 1) return false;
+        if (level > Math.max(1, state.unlockedBoard || 1)) return false;
         return true;
       }
 
@@ -908,7 +1056,10 @@ export function createGame({ mount }) {
           name: state.username,
           bestScore: state.bestScore,
           unlockedBoard: state.unlockedBoard,
-          bestStars: Math.max(existing.bestStars || 0, state.bestStars || 0),
+          bestStars: bestBoardRating({
+            ...(existing.boardStars || {}),
+            ...(state.boardStars || {}),
+          }),
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
           boardStars: { ...(existing.boardStars || {}), ...(state.boardStars || {}) },
@@ -945,10 +1096,10 @@ export function createGame({ mount }) {
         }
         state.bestScore = Math.max(state.bestScore || 0, remote.bestScore || 0);
         state.unlockedBoard = Math.max(state.unlockedBoard || 1, remote.unlockedBoard || 1);
-        state.bestStars = Math.max(state.bestStars || 0, remote.bestStars || 0);
         state.tutorialSeen = Boolean(state.tutorialSeen || remote.tutorialSeen);
         state.boardStars = boardStars;
-        state.boardIndex = state.unlockedBoard;
+        state.bestStars = bestBoardRating(boardStars);
+        state.levelIndex = state.unlockedBoard;
         state.profiles[state.usernameKey] = {
           name: remote.name || state.username,
           bestScore: state.bestScore,
@@ -1025,7 +1176,7 @@ export function createGame({ mount }) {
           name: state.username,
           ...emptyProfile(),
         };
-        const key = `${state.boardIndex}-${state.taskIndex}-${state.divisionId}-${state.difficultyId}`;
+        const key = `${state.levelIndex}-v${state.puzzleVariant || 0}-${state.divisionId}-${state.difficultyId}`;
         const prev = Number(profile.taskStars?.[key]) || 0;
         if (!profile.taskStars) profile.taskStars = {};
         if (stars > prev) profile.taskStars[key] = stars;
@@ -1099,15 +1250,19 @@ export function createGame({ mount }) {
   };
 }
 
-/** Shared path: Boards 1–5 stay Easy; then difficulty rises board by board. */
-function applyLevelProgression(state, effectiveBoard) {
-  const board = Math.max(1, effectiveBoard);
-  if (board <= 5) {
+function isOperatorFragment(fragment) {
+  return /[+\-*/()]/.test(String(fragment || ""));
+}
+
+/** Shared path: levels 1–5 stay Easy; then difficulty rises level by level. */
+function applyLevelProgression(state, effectiveLevel) {
+  const level = Math.max(1, effectiveLevel);
+  if (level <= 5) {
     state.difficultyId = "easy";
     state.divisionId = DIVISIONS[0].id;
   } else {
-    const difficultyIndex = Math.min(DIFFICULTIES.length - 1, board - 5);
-    const divisionIndex = Math.min(DIVISIONS.length - 1, Math.floor((board - 1) / 2));
+    const difficultyIndex = Math.min(DIFFICULTIES.length - 1, level - 5);
+    const divisionIndex = Math.min(DIVISIONS.length - 1, Math.floor((level - 1) / 2));
     state.difficultyId = DIFFICULTIES[difficultyIndex].id;
     state.divisionId = DIVISIONS[divisionIndex].id;
   }
@@ -1115,28 +1270,26 @@ function applyLevelProgression(state, effectiveBoard) {
   state.division = getDivision(state.divisionId);
 }
 
-/** Wrapper: bump effective boardIndex for late tasks without changing puzzle.js. */
 function makeRound(state) {
-  applyLevelProgression(state, state.boardIndex);
-  const ramp = Math.floor((state.taskIndex - 1) / 10);
+  applyLevelProgression(state, state.levelIndex);
   return createRound({
-    boardIndex: state.boardIndex + ramp,
-    taskIndex: state.taskIndex,
+    levelIndex: state.levelIndex,
+    puzzleVariant: state.puzzleVariant || 0,
     divisionId: state.divisionId,
     difficultyId: state.difficultyId,
   });
 }
 
-function boardStarsFromRun(runStars, tasksPerBoard) {
-  const avg = Number(runStars) / Math.max(1, Number(tasksPerBoard) || 1);
-  if (avg >= 2.5) return 3;
-  if (avg >= 1.5) return 2;
-  return 1;
+function resumeLevel(resume) {
+  const level = Number(resume?.levelIndex ?? resume?.boardIndex);
+  return Number.isFinite(level) ? Math.max(1, level) : 1;
 }
 
-function calcTaskStars({ firstTry, usedNudge, retriesUsed }) {
-  if (firstTry && !usedNudge && retriesUsed === 0) return 3;
-  return 2;
+function resumeVariant(resume) {
+  const variant = Number(resume?.puzzleVariant);
+  if (Number.isFinite(variant) && variant >= 0) return variant;
+  const legacyTask = Number(resume?.taskIndex);
+  return Number.isFinite(legacyTask) && legacyTask > 1 ? legacyTask - 1 : 0;
 }
 
 function softNudge(reason) {

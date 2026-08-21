@@ -79,6 +79,13 @@ export async function savePlayer(profile) {
   return data?.player || null;
 }
 
+export async function deletePlayer(username) {
+  const key = encodeURIComponent(String(username || "").trim());
+  if (!key) return false;
+  const data = await request(`/api/players/${key}`, { method: "DELETE" });
+  return Boolean(data?.deleted);
+}
+
 export async function fetchLeaderboard(limit = 10) {
   const data = await request(`/api/leaderboard?limit=${encodeURIComponent(String(limit))}`);
   return Array.isArray(data?.players) ? data.players : [];
