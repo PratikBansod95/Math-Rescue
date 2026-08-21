@@ -2585,7 +2585,7 @@ button:disabled { cursor: not-allowed }
   padding-inline: 0.9rem;
   background: linear-gradient(180deg, #ffffff, #eef5ff)
 }
-.menu-chip--coins { padding-right: 0.28rem }
+.menu-chip--coins { padding-inline: 0.7rem 0.85rem }
 .menu-chip__plus {
   width: 1.6rem;
   height: 1.6rem;
@@ -2852,6 +2852,17 @@ button:disabled { cursor: not-allowed }
   letter-spacing: 0.06em;
   line-height: 1;
   text-shadow: 0 2px 0 rgba(30, 64, 175, .35)
+}
+.menu-new-run {
+  margin: -0.15rem auto 0;
+  border: 0;
+  background: none;
+  color: #4b6a99;
+  font: 700 0.82rem Quicksand, sans-serif;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+  cursor: pointer;
 }
 .menu-play__copy small {
   font-size: 0.8rem;

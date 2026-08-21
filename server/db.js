@@ -54,6 +54,14 @@ export function rowToPlayer(row) {
   };
 }
 
+export function applyCors(res, methods = "GET,OPTIONS") {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", methods);
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+}
+
 export function json(res, status, body) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -61,10 +69,34 @@ export function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+export function publicError(error, fallback = "Request failed") {
+  const status = Number(error?.status) || 500;
+  const raw = String(error?.message || "");
+  const leak =
+    /DATABASE_URL|password|ECONN|neon|postgres|sql/i.test(raw) || status >= 500;
+  return {
+    status,
+    message: leak || !raw ? fallback : raw,
+  };
+}
+
+const MAX_BODY_BYTES = 32 * 1024;
+
 export function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
+    let size = 0;
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        const error = new Error("Request body too large");
+        error.status = 413;
+        req.destroy();
+        reject(error);
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => {
       if (!chunks.length) {
         resolve({});
@@ -72,7 +104,9 @@ export function readJsonBody(req) {
       }
       try {
         resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-      } catch (error) {
+      } catch {
+        const error = new Error("Invalid JSON");
+        error.status = 400;
         reject(error);
       }
     });

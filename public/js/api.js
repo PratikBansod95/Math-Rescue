@@ -3,19 +3,34 @@ const DEFAULT_BASE =
     ? window.MATH_RESCUE_API.replace(/\/$/, "")
     : "";
 
+const REQUEST_TIMEOUT_MS = 8000;
+
 function apiUrl(path) {
   return `${DEFAULT_BASE}${path}`;
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(apiUrl(path), {
-    headers: {
-      Accept: "application/json",
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(apiUrl(path), {
+      headers: {
+        Accept: "application/json",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {}),
+      },
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    const failed = new Error(error?.name === "AbortError" ? "Request timed out" : "Network error");
+    failed.status = 0;
+    throw failed;
+  } finally {
+    window.clearTimeout(timer);
+  }
 
   let data = null;
   try {

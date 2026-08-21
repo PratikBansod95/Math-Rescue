@@ -106,11 +106,15 @@ export function createGame({ mount }) {
         menuSettingsOpen: false,
         menuHowToOpen: false,
         menuToast: "",
+        syncStatus: "idle",
+        canResume: false,
       };
 
       let timerIntervalId = null;
       let catchTimeoutId = null;
       let toastTimerId = null;
+      let remoteSyncTimerId = null;
+      let timerPausedRemaining = null;
       const audio = createAudio(() => state.soundOn);
 
       state.round = makeRound(state);
@@ -128,6 +132,7 @@ export function createGame({ mount }) {
           onHintOrNext,
           onNewGame,
           onPlayFromMenu,
+          onStartNewRun,
           onOpenMenu,
           onOpenMenuSettings,
           onCloseMenuSettings,
@@ -138,8 +143,11 @@ export function createGame({ mount }) {
           onToggleSound,
           onTutorialNext,
           onTutorialSkip,
+          onEscape,
         },
       });
+
+      document.addEventListener("visibilitychange", onVisibilityChange);
 
       render();
       boot();
@@ -149,6 +157,8 @@ export function createGame({ mount }) {
         stopPuzzleTimer();
         clearCatchTimeout();
         window.clearTimeout(toastTimerId);
+        window.clearTimeout(remoteSyncTimerId);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
         audio.dispose();
         ui.destroy();
         mount.replaceChildren();
@@ -174,10 +184,12 @@ export function createGame({ mount }) {
           state.taskIndex = 1;
           state.score = 0;
           state.runStars = 0;
+          if (!resumeIsValid(state.resume)) state.resume = null;
+          state.canResume = resumeIsValid(state.resume);
           state.round = makeRound(state);
           state.correction = null;
           goToMenu();
-          persist();
+          persist({ remote: false });
           return;
         }
 
@@ -244,8 +256,12 @@ export function createGame({ mount }) {
       }
 
       function goToMenu() {
+        if (["playing", "review"].includes(state.phase)) {
+          state.resume = buildResume();
+        }
         stopPuzzleTimer();
         clearCatchTimeout();
+        timerPausedRemaining = null;
         state.phase = "menu";
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
@@ -258,7 +274,7 @@ export function createGame({ mount }) {
         state.expression = "";
         state.usedCounts = new Map();
         state.correction = null;
-        state.resume = null;
+        state.canResume = resumeIsValid(state.resume);
         state.boardIndex = state.unlockedBoard;
         state.leaderboard = topProfilesByScore(state.profiles, 3).filter(
           (entry) => (entry.bestScore || 0) > 0
@@ -283,29 +299,49 @@ export function createGame({ mount }) {
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
         state.phase = "playing";
-        state.boardIndex = state.unlockedBoard;
-        state.taskIndex = 1;
-        state.score = 0;
-        state.runStars = 0;
+        const resuming = resumeIsValid(state.resume);
+        if (resuming) {
+          state.boardIndex = state.resume.boardIndex;
+          state.taskIndex = state.resume.taskIndex;
+          state.score = Number(state.resume.score) || 0;
+          state.runStars = Number(state.resume.runStars) || 0;
+          state.showTutorial = false;
+          state.tutorialStep = 0;
+        } else {
+          state.boardIndex = state.unlockedBoard;
+          state.taskIndex = 1;
+          state.score = 0;
+          state.runStars = 0;
+          state.showTutorial = !state.tutorialSeen;
+          state.tutorialStep = state.showTutorial ? 1 : 0;
+        }
         state.round = makeRound(state);
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
         resetTaskFlags();
-        state.showTutorial = !state.tutorialSeen;
-        state.tutorialStep = state.showTutorial ? 1 : 0;
         state.feedback = {
           kind: "neutral",
-          text: "Tap Start to reveal the target.",
-          detail: "",
+          text: resuming
+            ? `Welcome back. Puzzle ${state.taskIndex} of ${state.tasksPerBoard}.`
+            : "Tap Start to reveal the target.",
+          detail: resuming ? "Tap Start to continue." : "",
         };
         state.correction = null;
         state.resume = buildResume();
+        state.canResume = true;
         startPuzzleTimer();
         render();
         persist();
         audio.unlockFromGesture();
         vibrate(12);
+      }
+
+      function onStartNewRun() {
+        if (state.phase !== "menu") return;
+        state.resume = null;
+        state.canResume = false;
+        onPlayFromMenu();
       }
 
       function onNewGame() {
@@ -335,6 +371,16 @@ export function createGame({ mount }) {
       function onCloseHowTo() {
         state.menuHowToOpen = false;
         render();
+      }
+
+      function onEscape() {
+        if (state.menuSettingsOpen) {
+          onCloseMenuSettings();
+          return;
+        }
+        if (state.menuHowToOpen) {
+          onCloseHowTo();
+        }
       }
 
       function onComingSoon() {
@@ -503,6 +549,7 @@ export function createGame({ mount }) {
       function startPuzzleTimer() {
         stopPuzzleTimer();
         clearCatchTimeout();
+        timerPausedRemaining = null;
         state.timerExpired = false;
         state.awaitingStart = true;
         state.chasePose = "idle";
@@ -511,7 +558,7 @@ export function createGame({ mount }) {
         state.timerDeadline = 0;
       }
 
-      function beginTimerTicks() {
+      function beginTimerTicks(remainingSeconds) {
         stopPuzzleTimer();
         if (
           disposed ||
@@ -521,7 +568,11 @@ export function createGame({ mount }) {
         ) {
           return;
         }
-        state.timerDeadline = performance.now() + state.timerLimit * 1000;
+        const seconds =
+          Number.isFinite(remainingSeconds) && remainingSeconds > 0
+            ? remainingSeconds
+            : state.timerLimit;
+        state.timerDeadline = performance.now() + seconds * 1000;
         timerIntervalId = window.setInterval(() => {
           if (
             disposed ||
@@ -673,6 +724,7 @@ export function createGame({ mount }) {
         };
         state.correction = null;
         state.resume = null;
+        state.canResume = false;
         render();
         audio.playBlip(660, { duration: 0.1, volume: 0.12 });
         audio.playBlip(990, { duration: 0.13, volume: 0.12 });
@@ -736,7 +788,7 @@ export function createGame({ mount }) {
             ? `Board ${state.unlockedBoard} unlocked · Best ${state.bestScore}`
             : "Progress stays on this device.",
         };
-        if (state.usernameKey) persist();
+        if (state.usernameKey) persist({ remote: false });
         render();
       }
 
@@ -786,7 +838,17 @@ export function createGame({ mount }) {
         };
       }
 
-      function persist() {
+      function resumeIsValid(resume) {
+        if (!resume || resume.usernameKey !== state.usernameKey) return false;
+        const board = Number(resume.boardIndex);
+        const task = Number(resume.taskIndex);
+        if (!Number.isFinite(board) || board < 1) return false;
+        if (board > Math.max(1, state.unlockedBoard || 1)) return false;
+        if (!Number.isFinite(task) || task < 1 || task > state.tasksPerBoard) return false;
+        return true;
+      }
+
+      function persist({ remote = true } = {}) {
         if (!state.storageReady) return;
         if (!state.usernameKey) {
           persistSettings();
@@ -811,7 +873,7 @@ export function createGame({ mount }) {
           settings,
           resume: state.resume,
         });
-        syncToRemote();
+        if (remote) scheduleRemoteSync();
       }
 
       function persistSettings() {
@@ -855,9 +917,17 @@ export function createGame({ mount }) {
         try {
           const player = await fetchPlayer(state.usernameKey);
           if (player) applyRemotePlayer(player);
+          state.syncStatus = "ok";
         } catch {
-          // Offline or API unavailable — keep local progress.
+          state.syncStatus = "offline";
         }
+      }
+
+      function scheduleRemoteSync() {
+        window.clearTimeout(remoteSyncTimerId);
+        remoteSyncTimerId = window.setTimeout(() => {
+          syncToRemote();
+        }, 700);
       }
 
       function syncToRemote() {
@@ -872,9 +942,13 @@ export function createGame({ mount }) {
           bestStars: profile.bestStars,
           boardStars: profile.boardStars,
           tutorialSeen: profile.tutorialSeen,
-        }).catch(() => {
-          // Ignore sync failures; localStorage remains source offline.
-        });
+        })
+          .then(() => {
+            if (!disposed) state.syncStatus = "ok";
+          })
+          .catch(() => {
+            if (!disposed) state.syncStatus = "offline";
+          });
       }
 
       async function refreshLeaderboard(limit = 10) {
@@ -909,22 +983,34 @@ export function createGame({ mount }) {
         state.profiles[state.usernameKey] = profile;
       }
 
-      function resetRun(message) {
-        state.phase = ["nickname", "menu"].includes(state.phase) ? state.phase : "playing";
-        state.taskIndex = 1;
-        state.score = 0;
-        state.runStars = 0;
-        state.round = makeRound(state);
-        state.expression = "";
-        state.usedCounts = new Map();
-        state.result = null;
-        resetTaskFlags();
-        state.feedback = {
-          kind: "neutral",
-          text: message,
-          detail: state.division.gradeLabel,
-        };
-        state.correction = null;
+      function onVisibilityChange() {
+        if (disposed) return;
+        if (document.hidden) {
+          pauseTimerForBackground();
+          return;
+        }
+        resumeTimerFromBackground();
+      }
+
+      function pauseTimerForBackground() {
+        if (!isPlaying() || state.awaitingStart || state.timerExpired || state.showTutorial) return;
+        if (!state.timerDeadline) return;
+        timerPausedRemaining = Math.max(0, (state.timerDeadline - performance.now()) / 1000);
+        state.timeLeft = Math.ceil(timerPausedRemaining);
+        stopPuzzleTimer();
+        render();
+      }
+
+      function resumeTimerFromBackground() {
+        if (timerPausedRemaining == null) return;
+        const remaining = timerPausedRemaining;
+        timerPausedRemaining = null;
+        if (!isPlaying() || state.awaitingStart || state.timerExpired || state.showTutorial) return;
+        if (remaining <= 0) {
+          onTimerExpire();
+          return;
+        }
+        beginTimerTicks(remaining);
         render();
       }
 

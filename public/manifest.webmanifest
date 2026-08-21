@@ -1,7 +1,7 @@
 {
   "name": "Math Rescue",
   "short_name": "Math Rescue",
-  "description": "Build equations from four cards to hit the target.",
+  "description": "Build equations from four cards to hit the target before the shark catches the cat.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F8FD",

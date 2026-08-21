@@ -1,10 +1,8 @@
-import { json } from "../server/db.js";
+import { applyCors, json, publicError } from "../server/db.js";
 import { getLeaderboard } from "../server/players.js";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  applyCors(res, "GET,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -21,6 +19,7 @@ export default async function handler(req, res) {
     const players = await getLeaderboard(limit);
     json(res, 200, { players });
   } catch (error) {
-    json(res, 500, { error: error.message || "Failed to load leaderboard" });
+    const { status, message } = publicError(error, "Failed to load leaderboard");
+    json(res, status, { error: message });
   }
 }

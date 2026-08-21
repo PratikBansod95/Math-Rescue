@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import { json, normalizeUsername, readJsonBody } from "./db.js";
+import { applyCors, json, normalizeUsername, publicError, readJsonBody } from "./db.js";
 import { getLeaderboard, getPlayerByUsername, pingDb, upsertPlayer } from "./players.js";
 
 dotenv.config();
@@ -42,9 +42,7 @@ function resolvePublic(urlPath) {
 }
 
 async function handleApi(req, res, url) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,PUT,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  applyCors(res, "GET,PUT,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -56,7 +54,8 @@ async function handleApi(req, res, url) {
       const ok = await pingDb();
       json(res, 200, { ok: Boolean(ok), service: "math-rescue-api" });
     } catch (error) {
-      json(res, 500, { ok: false, error: error.message || "Database unavailable" });
+      const { status, message } = publicError(error, "Database unavailable");
+      json(res, status, { ok: false, error: message });
     }
     return;
   }
@@ -66,7 +65,8 @@ async function handleApi(req, res, url) {
       const players = await getLeaderboard(url.searchParams.get("limit") || 10);
       json(res, 200, { players });
     } catch (error) {
-      json(res, 500, { error: error.message || "Failed to load leaderboard" });
+      const { status, message } = publicError(error, "Failed to load leaderboard");
+      json(res, status, { error: message });
     }
     return;
   }
@@ -96,7 +96,8 @@ async function handleApi(req, res, url) {
       }
       json(res, 405, { error: "Method not allowed" });
     } catch (error) {
-      json(res, error.status || 500, { error: error.message || "Player request failed" });
+      const { status, message } = publicError(error, "Player request failed");
+      json(res, status, { error: message });
     }
     return;
   }
@@ -125,7 +126,8 @@ const server = http.createServer(async (req, res) => {
     }
     sendFile(res, filePath);
   } catch (error) {
-    json(res, 500, { error: error.message || "Server error" });
+    const { status, message } = publicError(error, "Server error");
+    json(res, status, { error: message });
   }
 });
 

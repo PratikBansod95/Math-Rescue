@@ -1,10 +1,8 @@
-import { json, normalizeUsername, readJsonBody } from "../../server/db.js";
+import { applyCors, json, normalizeUsername, publicError, readJsonBody } from "../../server/db.js";
 import { getPlayerByUsername, upsertPlayer } from "../../server/players.js";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,PUT,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  applyCors(res, "GET,PUT,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -38,7 +36,7 @@ export default async function handler(req, res) {
 
     json(res, 405, { error: "Method not allowed" });
   } catch (error) {
-    const status = error.status || 500;
-    json(res, status, { error: error.message || "Player request failed" });
+    const { status, message } = publicError(error, "Player request failed");
+    json(res, status, { error: message });
   }
 }

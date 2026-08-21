@@ -28,7 +28,7 @@ const TUTORIAL_COPY = {
   },
   3: {
     title: "Step 3 · Submit",
-    body: "Hit Submit when your equation equals the target. You get free retries!",
+    body: "Hit Submit when your equation uses all four cards and equals the target.",
   },
 };
 
@@ -46,6 +46,9 @@ export function createUI({ mount, handlers }) {
     menuLevel: shell.querySelector("[data-menu-level]"),
     menuCoins: shell.querySelector("[data-menu-coins]"),
     menuPlayLevel: shell.querySelector("[data-menu-play-level]"),
+    menuPlayTitle: shell.querySelector("[data-menu-play-title]"),
+    menuPlay: shell.querySelector("[data-menu-play]"),
+    menuNewRun: shell.querySelector("[data-menu-new-run]"),
     menuPlayers: shell.querySelector("[data-menu-players]"),
     menuSettings: shell.querySelector("[data-menu-settings]"),
     menuHowTo: shell.querySelector("[data-menu-howto]"),
@@ -145,6 +148,16 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-open-howto]"), "click", handlers.onOpenHowTo);
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
+  on(shell.querySelector("[data-menu-new-run]"), "click", handlers.onStartNewRun);
+  on(window, "keydown", (event) => {
+    if (event.key === "Escape") handlers.onEscape?.();
+  });
+  on(els.menuSettings, "click", (event) => {
+    if (event.target === els.menuSettings) handlers.onCloseMenuSettings();
+  });
+  on(els.menuHowTo, "click", (event) => {
+    if (event.target === els.menuHowTo) handlers.onCloseHowTo();
+  });
   on(els.menuMute, "click", handlers.onToggleSound);
   for (const btn of shell.querySelectorAll("[data-coming-soon]")) {
     on(btn, "click", handlers.onComingSoon);
@@ -194,7 +207,7 @@ export function createUI({ mount, handlers }) {
       els.input.textContent = expression || "";
       els.input.dataset.empty = expression ? "false" : "true";
       const targetLabel = state.round?.targetLabel || state.round?.target || "?";
-      els.equationHint.innerHTML = `<span class="tip-ico" aria-hidden="true">💡</span><span>Use <b>+ − × ÷</b> and <b>( )</b> to make <b>${targetLabel}</b></span>`;
+      els.equationHint.innerHTML = `<span class="tip-ico" aria-hidden="true">💡</span><span>Use <b>all four cards</b> with <b>+ − × ÷</b> to make <b>${targetLabel}</b></span>`;
 
       els.feedback.textContent = state.feedback.text;
       els.feedback.dataset.kind = state.feedback.kind;
@@ -262,19 +275,21 @@ function template() {
               <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
             </span>
             <span class="menu-chip__text">
-              <span class="menu-chip__label">STREAK</span>
+              <span class="menu-chip__label">STARS</span>
               <strong data-menu-streak>0</strong>
             </span>
           </div>
           <div class="menu-chip menu-chip--level">
             <strong data-menu-level>LEVEL 1</strong>
           </div>
-          <div class="menu-chip menu-chip--coins">
+          <div class="menu-chip menu-chip--coins" title="Best score">
             <span class="menu-chip__ico" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6" fill="none" stroke="#fde68a" stroke-width="1.5"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
             </span>
-            <strong data-menu-coins>0</strong>
-            <button class="menu-chip__plus" data-coming-soon type="button" aria-label="Add coins">+</button>
+            <span class="menu-chip__text">
+              <span class="menu-chip__label">BEST</span>
+              <strong data-menu-coins>0</strong>
+            </span>
           </div>
           <button class="menu-icon-btn" data-menu-open-settings type="button" aria-label="Settings">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 13a7.8 7.8 0 0 0 .1-2l2-1.2-2-3.4-2.3.6a7.6 7.6 0 0 0-1.7-1L15 4h-6l-.5 2a7.6 7.6 0 0 0-1.7 1L4.5 6.4l-2 3.4 2 1.2a7.8 7.8 0 0 0 0 2l-2 1.2 2 3.4 2.3-.6a7.6 7.6 0 0 0 1.7 1l.5 2h6l.5-2a7.6 7.6 0 0 0 1.7-1l2.3.6 2-3.4-2-1.2Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -324,15 +339,16 @@ function template() {
           </div>
         </div>
 
-        <button class="menu-play" data-menu-play type="button">
+        <button class="menu-play" data-menu-play type="button" aria-label="Play">
           <span class="menu-play__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M9 6.5v11l9-5.5-9-5.5Z" fill="currentColor"/></svg>
           </span>
           <span class="menu-play__copy">
-            <strong>PLAY</strong>
+            <strong data-menu-play-title>PLAY</strong>
             <small data-menu-play-level>LEVEL 1</small>
           </span>
         </button>
+        <button class="menu-new-run" data-menu-new-run type="button" hidden>Start new board</button>
 
         <button class="menu-journey" data-coming-soon type="button">
           <span class="menu-journey__icon" aria-hidden="true">
@@ -373,9 +389,9 @@ function template() {
       </div>
 
       <div class="menu-settings screen-overlay" data-menu-settings hidden>
-        <div class="screen-card menu-settings-card">
+        <div class="screen-card menu-settings-card" role="dialog" aria-modal="true" aria-labelledby="menu-settings-title">
           <p class="menu-sheet__kicker">Options</p>
-          <h2>Settings</h2>
+          <h2 id="menu-settings-title">Settings</h2>
           <p class="menu-settings__player" data-menu-settings-player>Player</p>
           <div class="menu-settings__rows">
             <button class="menu-settings__row" data-menu-mute type="button">
@@ -393,7 +409,7 @@ function template() {
       </div>
 
       <div class="menu-howto screen-overlay" data-menu-howto hidden>
-        <div class="screen-card menu-howto-card" role="dialog" aria-labelledby="menu-howto-title">
+        <div class="screen-card menu-howto-card" role="dialog" aria-modal="true" aria-labelledby="menu-howto-title">
           <div class="menu-howto__hero" aria-hidden="true">
             <img src="./assets/chase/cat-run-still.png?v=face-right1" alt="" />
           </div>
@@ -430,10 +446,10 @@ function template() {
               </div>
             </li>
           </ol>
-          <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it — let’s play</button>
+          <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it</button>
         </div>
       </div>
-      <p class="menu-toast" data-menu-toast hidden>Coming soon</p>
+      <p class="menu-toast" data-menu-toast role="status" aria-live="polite" hidden>Coming soon</p>
     </div>
 
     <div class="play-shell" data-play-shell>
@@ -452,7 +468,7 @@ function template() {
           <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#f5b942"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
         </span>
         <div class="stat-chip__body">
-          <small>Streak</small>
+          <small>Stars</small>
           <strong data-streak>0</strong>
           <div class="streak-segs" aria-hidden="true">
             <i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i><i data-streak-seg></i>
@@ -876,7 +892,21 @@ function updateMenuScreen(els, state) {
   if (els.menuStreak) els.menuStreak.textContent = String(state.bestStars || 0);
   if (els.menuLevel) els.menuLevel.textContent = `LEVEL ${level}`;
   if (els.menuCoins) els.menuCoins.textContent = String(state.bestScore || 0);
-  if (els.menuPlayLevel) els.menuPlayLevel.textContent = `LEVEL ${level}`;
+  if (els.menuPlayLevel) {
+    els.menuPlayLevel.textContent = state.canResume
+      ? `PUZZLE ${Number(state.resume?.taskIndex) || 1}/${state.tasksPerBoard || 15}`
+      : `LEVEL ${level}`;
+  }
+  if (els.menuPlayTitle) {
+    els.menuPlayTitle.textContent = state.canResume ? "CONTINUE" : "PLAY";
+  }
+  if (els.menuPlay) {
+    els.menuPlay.setAttribute(
+      "aria-label",
+      state.canResume ? "Continue your board" : `Play level ${level}`
+    );
+  }
+  if (els.menuNewRun) els.menuNewRun.hidden = !state.canResume;
 
   if (els.menuMute) {
     els.menuMute.classList.toggle("is-muted", !state.soundOn);
@@ -961,7 +991,10 @@ function escapeHtml(value) {
 function updateNicknameOverlay(els, state) {
   const show = state.phase === "nickname" || state.phase === "loading";
   els.nicknameOverlay.hidden = !show;
-  if (!show) return;
+  if (!show) {
+    if (els.usernameInput) delete els.usernameInput.dataset.focused;
+    return;
+  }
   els.nicknameContinue.disabled = !state.usernameKey;
   if (els.nicknameStatus) {
     if (state.usernameKey) {
@@ -971,6 +1004,10 @@ function updateNicknameOverlay(els, state) {
       els.nicknameStatus.hidden = true;
       els.nicknameStatus.textContent = "";
     }
+  }
+  if (state.phase === "nickname" && els.usernameInput && !els.usernameInput.dataset.focused) {
+    els.usernameInput.dataset.focused = "1";
+    window.setTimeout(() => els.usernameInput.focus(), 40);
   }
 }
 

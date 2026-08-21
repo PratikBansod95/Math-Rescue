@@ -1,10 +1,8 @@
-import { json } from "../server/db.js";
+import { applyCors, json, publicError } from "../server/db.js";
 import { pingDb } from "../server/players.js";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  applyCors(res, "GET,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -19,6 +17,7 @@ export default async function handler(req, res) {
     const ok = await pingDb();
     json(res, 200, { ok: Boolean(ok), service: "math-rescue-api" });
   } catch (error) {
-    json(res, 500, { ok: false, error: error.message || "Database unavailable" });
+    const { status, message } = publicError(error, "Database unavailable");
+    json(res, status, { ok: false, error: message });
   }
 }

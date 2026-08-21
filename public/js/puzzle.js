@@ -133,7 +133,9 @@ export function evaluateSubmission(expression, round) {
   if (!parsed.ok) return fail(parsed.reason);
 
   const usage = countTokens(parsed.tokens);
-  if (usage.total < 2) return fail("Use at least two cards before submitting.");
+  if (usage.total < round.cards.length) {
+    return fail(`Use all ${round.cards.length} cards.`);
+  }
   if (usage.total > round.cards.length) return fail("Do not repeat a card twice.");
 
   const available = cardAvailability(round.cards);
