@@ -34,6 +34,16 @@ async function main() {
   await sql`CREATE INDEX IF NOT EXISTS players_updated_at_idx ON players (updated_at DESC)`;
   console.log("OK: updated_at index");
 
+  await sql`ALTER TABLE players ADD COLUMN IF NOT EXISTS auth_token_hash TEXT`;
+  console.log("OK: auth_token_hash column");
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS players_auth_token_hash_idx
+    ON players (auth_token_hash)
+    WHERE auth_token_hash IS NOT NULL
+  `;
+  console.log("OK: auth_token_hash index");
+
   console.log("Migration complete.");
 }
 

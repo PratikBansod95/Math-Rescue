@@ -101,13 +101,16 @@ export function createUI({ mount, handlers }) {
     nicknameContinue: shell.querySelector("[data-nickname-continue]"),
     usernameInput: shell.querySelector("[data-username]"),
     nicknameStatus: shell.querySelector("[data-nickname-status]"),
+    nicknameError: shell.querySelector("[data-nickname-error]"),
+    menuLeaderboard: shell.querySelector("[data-menu-leaderboard]"),
+    menuLeaderboardList: shell.querySelector("[data-menu-leaderboard-list]"),
+    menuLeaderboardRank: shell.querySelector("[data-menu-leaderboard-rank]"),
     resultsOverlay: shell.querySelector("[data-results]"),
     resultScore: shell.querySelector("[data-result-score]"),
     resultStars: shell.querySelector("[data-result-stars]"),
     resultRank: shell.querySelector("[data-result-rank]"),
     resultMessage: shell.querySelector("[data-result-message]"),
     resultBest: shell.querySelector("[data-result-best]"),
-    resultBoard: shell.querySelector("[data-result-board]"),
     newGameButton: shell.querySelector("[data-new-game]"),
     coachTip: shell.querySelector("[data-coach-tip]"),
     coachStep: shell.querySelector("[data-coach-step]"),
@@ -183,6 +186,11 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-open-journey]"), "click", handlers.onOpenJourney);
   on(shell.querySelector("[data-menu-close-journey]"), "click", handlers.onCloseJourney);
+  on(shell.querySelector("[data-menu-open-leaderboard]"), "click", handlers.onOpenLeaderboard);
+  on(shell.querySelector("[data-menu-close-leaderboard]"), "click", handlers.onCloseLeaderboard);
+  on(els.menuLeaderboard, "click", (event) => {
+    if (event.target === els.menuLeaderboard) handlers.onCloseLeaderboard?.();
+  });
   on(els.menuJourneyMount, "click", (event) => {
     const btn = event.target.closest("[data-select-board]");
     if (!btn) return;
@@ -227,6 +235,7 @@ export function createUI({ mount, handlers }) {
       if (els.playShell) els.playShell.hidden = onMenu;
       updateMenuScreen(els, state);
       updateNicknameOverlay(els, state);
+      updateLeaderboardOverlay(els, state);
       if (onMenu) return;
 
       const segsOn = levelStarPace(state.runStars || 0);
@@ -425,9 +434,20 @@ function template() {
         <section class="menu-top-players" aria-label="Top players">
           <div class="menu-top-players__head">
             <h2>TOP PLAYERS</h2>
+            <button class="menu-top-players__more" data-menu-open-leaderboard type="button">See ranks</button>
           </div>
           <div class="menu-players" data-menu-players></div>
         </section>
+      </div>
+
+      <div class="menu-leaderboard screen-overlay" data-menu-leaderboard hidden>
+        <div class="screen-card menu-leaderboard-card" role="dialog" aria-modal="true" aria-labelledby="menu-leaderboard-title">
+          <p class="menu-sheet__kicker">Global ranks</p>
+          <h2 id="menu-leaderboard-title">Rescue League</h2>
+          <p class="menu-leaderboard__rank" data-menu-leaderboard-rank hidden></p>
+          <div class="menu-leaderboard__list" data-menu-leaderboard-list></div>
+          <button class="screen-btn" data-menu-close-leaderboard type="button">Back</button>
+        </div>
       </div>
 
       <div class="menu-settings screen-overlay" data-menu-settings hidden>
@@ -730,16 +750,17 @@ function template() {
         <div class="start-hero">
           <img class="nickname-mascot" src="./assets/chase/cat-run-still.png?v=face-right1" alt="" width="72" height="72" />
           <p class="brand-mark">Math Rescue</p>
-          <h1>Who is playing?</h1>
-          <p class="start-lead">Your name keeps progress on this device.</p>
+          <h1>Pick your rescue name</h1>
+          <p class="start-lead">3–8 characters. Letters, numbers, spaces, _ and - only.</p>
         </div>
         <label class="profile-entry">
-          <span>Your name</span>
-          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="24" placeholder="Type your name" aria-label="Username for saving progress" />
+          <span>Rescue name</span>
+          <input data-username type="text" inputmode="text" autocomplete="nickname" maxlength="8" placeholder="e.g. MathCat" aria-label="Rescue name for saving progress" />
         </label>
         <p class="start-status-chip" data-nickname-status hidden></p>
+        <p class="nickname-error" data-nickname-error hidden></p>
         <button class="screen-btn screen-btn--primary" data-nickname-continue type="button" disabled>Continue</button>
-        <p class="start-save-hint">Progress saves in this browser.</p>
+        <p class="start-save-hint">Your name is checked against the global league.</p>
       </div>
     </div>
 
@@ -751,7 +772,6 @@ function template() {
         <h2 data-result-rank>Practice Explorer</h2>
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
-        <div class="local-board" data-result-board></div>
         <button data-new-game type="button">See your path</button>
       </section>
     </div>
@@ -1007,6 +1027,9 @@ function updateMenuScreen(els, state) {
   if (els.menuJourney) {
     els.menuJourney.hidden = !state.menuJourneyOpen;
   }
+  if (els.menuLeaderboard) {
+    els.menuLeaderboard.hidden = !state.menuLeaderboardOpen;
+  }
   renderMenuPath(els.menuPath, state);
   renderJourneyMap(els, state);
   if (els.menuToast) {
@@ -1015,10 +1038,10 @@ function updateMenuScreen(els, state) {
     els.menuToast.textContent = toast || "Coming soon";
   }
 
-  renderMenuPlayers(els.menuPlayers, state.leaderboard || []);
+  renderMenuPlayers(els.menuPlayers, state.leaderboard || [], state.usernameKey);
 }
 
-function renderMenuPlayers(container, list) {
+function renderMenuPlayers(container, list, usernameKey = "") {
   if (!container) return;
   container.replaceChildren();
   const players = (list || []).filter((entry) => (entry.bestScore || 0) > 0).slice(0, 3);
@@ -1027,21 +1050,24 @@ function renderMenuPlayers(container, list) {
     empty.className = "menu-players__empty";
     empty.innerHTML = `
       <img src="./assets/chase/cat-run-still.png?v=face-right1" alt="" width="48" height="48" />
-      <p>Be the first on this device.</p>
-      <small>Finish a level to appear here.</small>
+      <p>Be the first rescuer.</p>
+      <small>Clear a level to join the league.</small>
     `;
     container.append(empty);
     return;
   }
-  players.forEach((entry, index) => {
+  players.forEach((entry) => {
     const card = document.createElement("article");
-    card.className = `menu-player menu-player--${index + 1}`;
+    const rank = Number(entry.rank) || 0;
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
+    card.className = `menu-player menu-player--${Math.min(rank, 3) || 1}`;
+    if (entry.isCurrentPlayer) card.classList.add("is-you");
     const initials = playerInitials(entry.name);
     card.innerHTML = `
-      <span class="menu-player__medal" aria-hidden="true">${index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}</span>
+      <span class="menu-player__medal" aria-hidden="true">${medal}</span>
       <span class="menu-player__avatar" aria-hidden="true">${initials}</span>
       <span class="menu-player__meta">
-        <strong>${escapeHtml(entry.name || "Player")}</strong>
+        <strong>${escapeHtml(entry.name || "Player")}${entry.isCurrentPlayer ? " · you" : ""}</strong>
         <small>${Number(entry.bestScore || 0).toLocaleString()}</small>
       </span>
     `;
@@ -1071,11 +1097,18 @@ function updateNicknameOverlay(els, state) {
     if (els.usernameInput) delete els.usernameInput.dataset.focused;
     return;
   }
-  els.nicknameContinue.disabled = !state.usernameKey;
+  const canContinue = Boolean(state.nicknameValid) && !state.nicknamePending;
+  els.nicknameContinue.disabled = !canContinue;
+  els.nicknameContinue.textContent = state.nicknamePending ? "Saving…" : "Continue";
+  if (els.nicknameError) {
+    const error = state.nicknameError || "";
+    els.nicknameError.hidden = !error;
+    els.nicknameError.textContent = error;
+  }
   if (els.nicknameStatus) {
-    if (state.usernameKey) {
+    if (state.usernameKey && state.nicknameValid && !state.nicknameError) {
       els.nicknameStatus.hidden = false;
-      els.nicknameStatus.textContent = `Level ${state.unlockedBoard} unlocked · Best ${state.bestScore}`;
+      els.nicknameStatus.textContent = `Level ${state.unlockedBoard} unlocked · Score ${state.bestScore}`;
     } else {
       els.nicknameStatus.hidden = true;
       els.nicknameStatus.textContent = "";
@@ -1085,6 +1118,59 @@ function updateNicknameOverlay(els, state) {
     els.usernameInput.dataset.focused = "1";
     window.setTimeout(() => els.usernameInput.focus(), 40);
   }
+}
+
+function updateLeaderboardOverlay(els, state) {
+  if (!els.menuLeaderboardList) return;
+  els.menuLeaderboardList.replaceChildren();
+  const entries = (state.leaderboard || []).filter((entry) => (entry.bestScore || 0) > 0);
+  if (entries.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "menu-leaderboard__empty";
+    empty.textContent = "No scores yet. Clear a level to join the league.";
+    els.menuLeaderboardList.append(empty);
+  } else {
+    for (const entry of entries) {
+      els.menuLeaderboardList.append(createLeagueRow(entry));
+    }
+    if (state.playerRank && !entries.some((entry) => entry.isCurrentPlayer)) {
+      const divider = document.createElement("div");
+      divider.className = "menu-leaderboard__divider";
+      divider.textContent = "Your rank";
+      els.menuLeaderboardList.append(divider, createLeagueRow(state.playerRank, true));
+    }
+  }
+  if (els.menuLeaderboardRank) {
+    const rank = state.playerRank?.rank;
+    if (rank) {
+      els.menuLeaderboardRank.hidden = false;
+      els.menuLeaderboardRank.textContent = `You are #${rank} globally`;
+    } else if (entries.some((entry) => entry.isCurrentPlayer)) {
+      const yours = entries.find((entry) => entry.isCurrentPlayer);
+      els.menuLeaderboardRank.hidden = false;
+      els.menuLeaderboardRank.textContent = `You are #${yours.rank} globally`;
+    } else {
+      els.menuLeaderboardRank.hidden = true;
+      els.menuLeaderboardRank.textContent = "";
+    }
+  }
+}
+
+function createLeagueRow(entry, highlight = false) {
+  const row = document.createElement("article");
+  const rank = Number(entry.rank) || 0;
+  row.className = "league-row";
+  if (highlight || entry.isCurrentPlayer) row.classList.add("is-you");
+  if (rank === 1) row.classList.add("is-gold");
+  if (rank === 2) row.classList.add("is-silver");
+  if (rank === 3) row.classList.add("is-bronze");
+  row.innerHTML = `
+    <span class="league-row__rank">${rank}.</span>
+    <span class="league-row__avatar">${escapeHtml(playerInitials(entry.name))}</span>
+    <span class="league-row__name">${escapeHtml(entry.name || "Player")}</span>
+    <span class="league-row__score">${Number(entry.bestScore || 0).toLocaleString()}</span>
+  `;
+  return row;
 }
 
 function updateResults(els, state) {
@@ -1097,26 +1183,6 @@ function updateResults(els, state) {
   els.resultRank.textContent = state.result.title;
   els.resultMessage.textContent = `${state.result.message} Level ${state.unlockedBoard} is now unlocked.`;
   els.resultBest.textContent = `Total score ${state.bestScore} · Best ★ ${state.bestStars}`;
-
-  const board = els.resultBoard;
-  board.replaceChildren();
-  const title = document.createElement("strong");
-  title.textContent = "This device";
-  board.append(title);
-  const list = state.leaderboard || [];
-  if (list.length === 0) {
-    const empty = document.createElement("p");
-    empty.textContent = "No other scores yet.";
-    board.append(empty);
-    return;
-  }
-  const ol = document.createElement("ol");
-  for (const entry of list) {
-    const li = document.createElement("li");
-    li.textContent = `${entry.name} — ${entry.bestScore}`;
-    ol.append(li);
-  }
-  board.append(ol);
 }
 
 function updateCoachTip(els, state) {

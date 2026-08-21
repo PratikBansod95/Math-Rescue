@@ -1,5 +1,11 @@
 import { applyCors, json, normalizeUsername, publicError, readJsonBody } from "../../server/db.js";
-import { deletePlayerByUsername, getPlayerByUsername, upsertPlayer } from "../../server/players.js";
+import { getBearerToken } from "../../server/playerAuth.js";
+import {
+  deletePlayerByUsername,
+  getPlayerByUsername,
+  upsertPlayer,
+  ValidationError,
+} from "../../server/players.js";
 
 export default async function handler(req, res) {
   applyCors(res, "GET,PUT,DELETE,OPTIONS");
@@ -29,13 +35,14 @@ export default async function handler(req, res) {
 
     if (req.method === "PUT") {
       const body = typeof req.body === "object" && req.body ? req.body : await readJsonBody(req);
-      const player = await upsertPlayer(key, body);
+      const player = await upsertPlayer(key, body, getBearerToken(req));
       json(res, 200, { player });
       return;
     }
 
     if (req.method === "DELETE") {
-      const deleted = await deletePlayerByUsername(key);
+      const body = typeof req.body === "object" && req.body ? req.body : await readJsonBody(req);
+      const deleted = await deletePlayerByUsername(key, getBearerToken(req), body?.playerId || "");
       if (!deleted) {
         json(res, 404, { error: "Player not found" });
         return;
@@ -46,6 +53,10 @@ export default async function handler(req, res) {
 
     json(res, 405, { error: "Method not allowed" });
   } catch (error) {
+    if (error instanceof ValidationError) {
+      json(res, error.statusCode, { error: error.message, field: error.field });
+      return;
+    }
     const { status, message } = publicError(error, "Player request failed");
     json(res, status, { error: message });
   }

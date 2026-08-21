@@ -3303,6 +3303,129 @@ button:disabled { cursor: not-allowed }
   letter-spacing: 0.06em
 }
 
+.menu-top-players__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.menu-top-players__more {
+  border: 0;
+  background: none;
+  color: var(--menu-blue);
+  font: 700 0.78rem Quicksand, sans-serif;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 0.16rem;
+  cursor: pointer;
+}
+
+.menu-player.is-you {
+  outline: 2px solid rgba(37, 99, 235, .35);
+}
+
+.nickname-error {
+  margin: 0.35rem 0 0;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.menu-leaderboard-card {
+  width: min(100%, 26rem);
+  max-height: min(78vh, 34rem);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.menu-leaderboard__rank {
+  margin: 0;
+  text-align: center;
+  color: var(--menu-blue);
+  font-weight: 800;
+}
+
+.menu-leaderboard__list {
+  display: grid;
+  gap: 0.45rem;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.menu-leaderboard__empty {
+  margin: 0;
+  text-align: center;
+  color: #64748b;
+}
+
+.menu-leaderboard__divider {
+  margin: 0.35rem 0 0.1rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.league-row {
+  display: grid;
+  grid-template-columns: 2rem 2rem 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.9rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.league-row.is-you {
+  border-color: #93c5fd;
+  background: linear-gradient(180deg, #fff, #eff6ff);
+}
+
+.league-row.is-gold { border-color: #fcd34d; }
+.league-row.is-silver { border-color: #cbd5e1; }
+.league-row.is-bronze { border-color: #fdba74; }
+
+.league-row__rank {
+  font-weight: 800;
+  color: #64748b;
+}
+
+.league-row__avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #dbeafe, #93c5fd);
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.league-row__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.league-row__score {
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.local-board ol li.is-you {
+  color: var(--menu-blue);
+  font-weight: 800;
+}
+
 .menu-players {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

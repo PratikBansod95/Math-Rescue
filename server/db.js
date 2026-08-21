@@ -17,11 +17,14 @@ export function normalizeUsername(name) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ")
-    .slice(0, 24);
+    .slice(0, 8);
 }
 
 export function clampDisplayName(name, fallback = "Player") {
-  const trimmed = String(name || "").trim().replace(/\s+/g, " ").slice(0, 24);
+  const trimmed = String(name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 8);
   return trimmed || fallback;
 }
 
@@ -43,6 +46,7 @@ export function mergeBoardStars(existing = {}, incoming = {}) {
 export function rowToPlayer(row) {
   if (!row) return null;
   return {
+    playerId: row.id,
     usernameKey: row.username_key,
     name: row.display_name,
     unlockedBoard: Number(row.unlocked_board) || 1,
@@ -57,7 +61,7 @@ export function rowToPlayer(row) {
 export function applyCors(res, methods = "GET,OPTIONS") {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", methods);
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 }
@@ -70,13 +74,14 @@ export function json(res, status, body) {
 }
 
 export function publicError(error, fallback = "Request failed") {
-  const status = Number(error?.status) || 500;
+  const status = Number(error?.statusCode || error?.status) || 500;
   const raw = String(error?.message || "");
   const leak =
     /DATABASE_URL|password|ECONN|neon|postgres|sql/i.test(raw) || status >= 500;
   return {
     status,
     message: leak || !raw ? fallback : raw,
+    field: error?.field,
   };
 }
 

@@ -4,7 +4,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { applyCors, json, normalizeUsername, publicError, readJsonBody } from "./db.js";
-import { getLeaderboard, getPlayerByUsername, pingDb, upsertPlayer, deletePlayerByUsername } from "./players.js";
+import {
+  getLeaderboardResponse,
+  getPlayerByUsername,
+  pingDb,
+  registerPlayer,
+  upsertPlayer,
+  deletePlayerByUsername,
+  ValidationError,
+} from "./players.js";
+import { getBearerToken } from "./playerAuth.js";
 
 dotenv.config();
 
@@ -42,7 +51,7 @@ function resolvePublic(urlPath) {
 }
 
 async function handleApi(req, res, url) {
-  applyCors(res, "GET,PUT,DELETE,OPTIONS");
+  applyCors(res, "GET,POST,PUT,DELETE,OPTIONS");
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.end();
@@ -62,10 +71,33 @@ async function handleApi(req, res, url) {
 
   if (url.pathname === "/api/leaderboard") {
     try {
-      const players = await getLeaderboard(url.searchParams.get("limit") || 10);
-      json(res, 200, { players });
+      const payload = await getLeaderboardResponse(
+        url.searchParams.get("limit") || 10,
+        url.searchParams.get("playerId") || "",
+      );
+      json(res, 200, payload);
     } catch (error) {
+      if (error instanceof ValidationError) {
+        json(res, error.statusCode, { error: error.message, field: error.field });
+        return;
+      }
       const { status, message } = publicError(error, "Failed to load leaderboard");
+      json(res, status, { error: message });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/players/register" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const player = await registerPlayer(body, getBearerToken(req));
+      json(res, 200, { player });
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        json(res, error.statusCode, { error: error.message, field: error.field });
+        return;
+      }
+      const { status, message } = publicError(error, "Could not register player");
       json(res, status, { error: message });
     }
     return;
@@ -90,12 +122,13 @@ async function handleApi(req, res, url) {
       }
       if (req.method === "PUT") {
         const body = await readJsonBody(req);
-        const player = await upsertPlayer(key, body);
+        const player = await upsertPlayer(key, body, getBearerToken(req));
         json(res, 200, { player });
         return;
       }
       if (req.method === "DELETE") {
-        const deleted = await deletePlayerByUsername(key);
+        const body = await readJsonBody(req);
+        const deleted = await deletePlayerByUsername(key, getBearerToken(req), body?.playerId || "");
         if (!deleted) {
           json(res, 404, { error: "Player not found" });
           return;

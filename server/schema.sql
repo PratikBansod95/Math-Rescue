@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS players (
   best_stars INTEGER NOT NULL DEFAULT 0 CHECK (best_stars >= 0),
   board_stars JSONB NOT NULL DEFAULT '{}'::jsonb,
   tutorial_seen BOOLEAN NOT NULL DEFAULT false,
+  auth_token_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

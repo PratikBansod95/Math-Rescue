@@ -1,4 +1,6 @@
 import { bestBoardRating } from "./scoring.js";
+import { ensurePlayerIdentity } from "./playerIdentity.js";
+import { MAX_NICKNAME_LENGTH, normalizeNicknameKey } from "./nicknameValidation.js";
 
 const STORAGE_KEY = "math-rescue-v1";
 const LEGACY_KEYS = ["mathmaster-v2", "mathmaster-v1"];
@@ -11,18 +13,19 @@ export function defaultSettings() {
 }
 
 export function emptyProfile() {
-  return {
+  return ensurePlayerIdentity({
     bestScore: 0,
     unlockedBoard: 1,
     bestStars: 0,
     tutorialSeen: false,
     taskStars: {},
     boardStars: {},
-  };
+    registered: false,
+  });
 }
 
 export function normalizeUsername(name) {
-  return name.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 24);
+  return normalizeNicknameKey(name).slice(0, MAX_NICKNAME_LENGTH);
 }
 
 export function clearAllState() {
@@ -70,7 +73,7 @@ export function saveState({ profiles, lastUsername, settings, resume }) {
     const previous = safeReadRaw();
     const nextUsername =
       typeof lastUsername === "string" && lastUsername.trim()
-        ? lastUsername.trim().slice(0, 24)
+        ? lastUsername.trim().slice(0, 8)
         : previous?.lastUsername || "";
 
     localStorage.setItem(
@@ -107,7 +110,7 @@ function emptySave() {
 function normalizeSave(data) {
   return {
     profiles: normalizeProfiles(data.profiles),
-    lastUsername: typeof data.lastUsername === "string" ? data.lastUsername.trim().slice(0, 24) : "",
+    lastUsername: typeof data.lastUsername === "string" ? data.lastUsername.trim().slice(0, 8) : "",
     settings: normalizeSettings(data.settings),
     resume: normalizeResume(data.resume),
   };
@@ -173,10 +176,10 @@ function normalizeProfiles(profiles) {
     if (!id || !value || typeof value !== "object") continue;
     const fresh = emptyProfile();
     const boardStars = normalizeBoardStars(value.boardStars, fresh.boardStars);
-    result[id] = {
+    result[id] = ensurePlayerIdentity({
       name:
         typeof value.name === "string" && value.name.trim()
-          ? value.name.trim().slice(0, 24)
+          ? value.name.trim().slice(0, MAX_NICKNAME_LENGTH)
           : key,
       bestScore: Number.isFinite(value.bestScore) ? Math.max(0, value.bestScore) : 0,
       unlockedBoard: Number.isFinite(value.unlockedBoard)
@@ -189,7 +192,10 @@ function normalizeProfiles(profiles) {
           ? value.taskStars
           : fresh.taskStars,
       boardStars,
-    };
+      playerId: value.playerId,
+      playerToken: value.playerToken,
+      registered: Boolean(value.registered),
+    });
   }
   return result;
 }

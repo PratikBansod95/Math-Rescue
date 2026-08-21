@@ -9,6 +9,10 @@ function apiUrl(path) {
   return `${DEFAULT_BASE}${path}`;
 }
 
+function playerAuthorization(token) {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request(path, options = {}) {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -42,11 +46,21 @@ async function request(path, options = {}) {
   if (!response.ok) {
     const error = new Error(data?.error || `Request failed (${response.status})`);
     error.status = response.status;
+    error.field = data?.field;
     error.data = data;
     throw error;
   }
 
   return data;
+}
+
+export async function registerPlayer(payload, playerToken) {
+  const data = await request("/api/players/register", {
+    method: "POST",
+    headers: playerAuthorization(playerToken),
+    body: JSON.stringify(payload),
+  });
+  return data?.player || null;
 }
 
 export async function fetchPlayer(username) {
@@ -67,7 +81,9 @@ export async function savePlayer(profile) {
   if (!key) return null;
   const data = await request(`/api/players/${key}`, {
     method: "PUT",
+    headers: playerAuthorization(profile.playerToken),
     body: JSON.stringify({
+      playerId: profile.playerId,
       name: profile.name,
       unlockedBoard: profile.unlockedBoard,
       bestScore: profile.bestScore,
@@ -79,36 +95,52 @@ export async function savePlayer(profile) {
   return data?.player || null;
 }
 
-export async function deletePlayer(username) {
+export async function deletePlayer(username, { playerId, playerToken } = {}) {
   const key = encodeURIComponent(String(username || "").trim());
   if (!key) return false;
-  const data = await request(`/api/players/${key}`, { method: "DELETE" });
+  const data = await request(`/api/players/${key}`, {
+    method: "DELETE",
+    headers: playerAuthorization(playerToken),
+    body: JSON.stringify({ playerId }),
+  });
   return Boolean(data?.deleted);
 }
 
-export async function fetchLeaderboard(limit = 10) {
-  const data = await request(`/api/leaderboard?limit=${encodeURIComponent(String(limit))}`);
-  return Array.isArray(data?.players) ? data.players : [];
+export async function fetchLeaderboard(limit = 10, playerId = "") {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (playerId) params.set("playerId", playerId);
+  const data = await request(`/api/leaderboard?${params.toString()}`);
+  return {
+    entries: Array.isArray(data?.entries) ? data.entries : [],
+    playerEntry: data?.playerEntry || null,
+    limit: Number(data?.limit) || limit,
+    fetchedAt: data?.fetchedAt || null,
+  };
 }
 
 export function remoteToLocalProfile(player) {
   if (!player) return null;
   return {
     name: player.name,
+    playerId: player.playerId || "",
     bestScore: Number(player.bestScore) || 0,
     unlockedBoard: Math.max(1, Number(player.unlockedBoard) || 1),
     bestStars: Number(player.bestStars) || 0,
     tutorialSeen: Boolean(player.tutorialSeen),
     taskStars: {},
     boardStars: player.boardStars && typeof player.boardStars === "object" ? player.boardStars : {},
+    registered: Boolean(player.playerId),
   };
 }
 
-export function leaderboardToUi(players) {
-  return (players || []).map((player) => ({
-    name: player.name,
-    bestScore: Number(player.bestScore) || 0,
-    unlockedBoard: Number(player.unlockedBoard) || 1,
-    bestStars: Number(player.bestStars) || 0,
+export function leaderboardToUi(payload) {
+  const entries = payload?.entries || payload || [];
+  return entries.map((entry) => ({
+    rank: Number(entry.rank) || 0,
+    name: entry.name,
+    bestScore: Number(entry.bestScore) || 0,
+    unlockedBoard: Number(entry.unlockedBoard) || 1,
+    bestStars: Number(entry.bestStars) || 0,
+    isCurrentPlayer: Boolean(entry.isCurrentPlayer),
   }));
 }

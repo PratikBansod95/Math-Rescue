@@ -31,6 +31,7 @@ import {
   savePlayer,
   deletePlayer,
   fetchLeaderboard,
+  registerPlayer,
   remoteToLocalProfile,
   leaderboardToUi,
 } from "./api.js";
@@ -40,6 +41,8 @@ import {
   bestBoardRating,
   calcTaskStars,
 } from "./scoring.js";
+import { ensurePlayerIdentity } from "./playerIdentity.js";
+import { validateNickname } from "./nicknameValidation.js";
 
 const MAX_RETRIES = 2;
 
@@ -77,6 +80,14 @@ export function createGame({ mount }) {
         taskStarsEarned: 0,
         username: "",
         usernameKey: "",
+        playerId: "",
+        playerToken: "",
+        registered: false,
+        nicknameError: "",
+        nicknamePending: false,
+        nicknameValid: false,
+        playerRank: null,
+        menuLeaderboardOpen: false,
         profiles: {},
         profileMessage: "Welcome",
         settings,
@@ -148,6 +159,8 @@ export function createGame({ mount }) {
           onCloseHowTo,
           onOpenJourney,
           onCloseJourney,
+          onOpenLeaderboard,
+          onCloseLeaderboard,
           onComingSoon,
           onUsernameInput,
           onToggleSound,
@@ -199,6 +212,17 @@ export function createGame({ mount }) {
         state.storageReady = true;
 
         if (state.usernameKey) {
+          applyProfileToState(state.profiles[state.usernameKey] || emptyProfile());
+          const validation = validateNickname(state.username);
+          if (!validation.ok) {
+            state.phase = "nickname";
+            state.nicknameError = validation.message;
+            state.nicknameValid = false;
+            state.round = makeRound(state);
+            render();
+            return;
+          }
+          state.nicknameValid = true;
           await syncFromRemote();
           if (disposed) return;
           state.levelIndex = state.unlockedBoard;
@@ -226,19 +250,69 @@ export function createGame({ mount }) {
       }
 
       async function onConfirmNickname() {
-        if (state.phase !== "nickname") return;
-        if (!state.usernameKey) {
-          state.feedback = {
-            kind: "bad",
-            text: "Enter your name to continue.",
-            detail: "Use a different name for another saved profile.",
-          };
+        if (state.phase !== "nickname" || state.nicknamePending) return;
+        const validation = validateNickname(state.username);
+        if (!validation.ok) {
+          state.nicknameError = validation.message;
           render();
           return;
         }
+
+        const nickname = validation.nickname;
+        state.username = nickname;
+        state.usernameKey = normalizeUsername(nickname);
+        let profile = ensurePlayerIdentity(
+          state.profiles[state.usernameKey] || { name: nickname, ...emptyProfile() },
+        );
+        profile.name = nickname;
+        state.profiles[state.usernameKey] = profile;
+        applyProfileToState(profile);
+
+        state.nicknamePending = true;
+        state.nicknameError = "";
+        render();
+
+        try {
+          const player = await registerPlayer(
+            {
+              playerId: profile.playerId,
+              nickname,
+              localBestScore: profile.bestScore,
+              localUnlockedBoard: profile.unlockedBoard,
+              localBestStars: profile.bestStars,
+              localBoardStars: profile.boardStars,
+              localTutorialSeen: profile.tutorialSeen,
+            },
+            profile.playerToken,
+          );
+          if (player) {
+            applyRemotePlayer(player);
+            profile = state.profiles[state.usernameKey];
+          }
+          state.profiles[state.usernameKey] = {
+            ...profile,
+            registered: true,
+          };
+          state.registered = true;
+        } catch (error) {
+          if (error.status === 409 && error.field === "nickname") {
+            state.nicknameError = "That nickname is already taken. Try a different one.";
+          } else if (error.status === 0) {
+            state.nicknameError = "Offline — saved on this device only for now.";
+            state.profiles[state.usernameKey] = {
+              ...state.profiles[state.usernameKey],
+              name: nickname,
+            };
+          } else {
+            state.nicknameError = error.message || "Could not save your nickname right now.";
+          }
+          state.nicknamePending = false;
+          render();
+          if (error.status !== 0) return;
+        }
+
+        state.nicknamePending = false;
         resetTaskFlags();
-        await syncFromRemote();
-        if (disposed) return;
         state.levelIndex = state.unlockedBoard;
         state.puzzleVariant = 0;
         state.score = 0;
@@ -251,8 +325,38 @@ export function createGame({ mount }) {
         state.resume = null;
         goToMenu();
         persist();
+        await refreshLeaderboard(25);
         audio.unlockFromGesture();
         vibrate(12);
+      }
+
+      function onOpenLeaderboard() {
+        if (state.phase !== "menu") return;
+        state.menuLeaderboardOpen = true;
+        void refreshLeaderboard(25);
+        render();
+      }
+
+      function onCloseLeaderboard() {
+        state.menuLeaderboardOpen = false;
+        render();
+      }
+
+      function applyProfileToState(profile) {
+        state.bestScore = profile.bestScore;
+        state.unlockedBoard = profile.unlockedBoard;
+        state.boardStars = { ...(profile.boardStars || {}) };
+        state.bestStars = bestBoardRating(state.boardStars);
+        state.tutorialSeen = Boolean(profile.tutorialSeen);
+        state.levelIndex = profile.unlockedBoard;
+        state.playerId = profile.playerId || "";
+        state.playerToken = profile.playerToken || "";
+        state.registered = Boolean(profile.registered);
+      }
+
+      function currentProfile() {
+        if (!state.usernameKey) return null;
+        return state.profiles[state.usernameKey] || null;
       }
 
       function onChangeName() {
@@ -449,8 +553,12 @@ export function createGame({ mount }) {
 
         let cloudError = false;
         for (const key of profileKeys) {
+          const profile = state.profiles[key];
           try {
-            await deletePlayer(key);
+            await deletePlayer(key, {
+              playerId: profile?.playerId,
+              playerToken: profile?.playerToken,
+            });
           } catch (error) {
             if (error.status !== 404) cloudError = true;
           }
@@ -548,6 +656,10 @@ export function createGame({ mount }) {
         }
         if (state.menuJourneyOpen) {
           onCloseJourney();
+          return;
+        }
+        if (state.menuLeaderboardOpen) {
+          onCloseLeaderboard();
         }
       }
 
@@ -934,7 +1046,7 @@ export function createGame({ mount }) {
         audio.playBlip(660, { duration: 0.1, volume: 0.12 });
         audio.playBlip(990, { duration: 0.13, volume: 0.12 });
         persist();
-        refreshLeaderboard(5);
+        refreshLeaderboard(3);
       }
 
       function isPlaying() {
@@ -977,51 +1089,39 @@ export function createGame({ mount }) {
       function onUsernameInput(value) {
         if (!["loading", "nickname"].includes(state.phase)) return;
         applyUsername(value);
+        const validation = validateNickname(state.username);
+        state.nicknameValid = validation.ok;
+        state.nicknameError = validation.ok ? "" : validation.message;
         state.round = makeRound(state);
-        state.feedback = {
-          kind: state.usernameKey ? "neutral" : "bad",
-          text: state.usernameKey
-            ? `Welcome, ${state.username}.`
-            : "Enter a name to save progress.",
-          detail: state.usernameKey
-            ? `Level ${state.unlockedBoard} unlocked · Best ${state.bestScore}`
-            : "Progress stays on this device.",
-        };
         if (state.usernameKey) persist({ remote: false });
         render();
       }
 
       function applyUsername(value) {
-        const trimmed = value.trim().replace(/\s+/g, " ").slice(0, 24);
+        const trimmed = value.trim().replace(/\s+/g, " ").slice(0, 8);
         const key = normalizeUsername(trimmed);
         state.username = trimmed;
         state.usernameKey = key;
 
         if (!key) {
           const fresh = emptyProfile();
-          state.bestScore = fresh.bestScore;
-          state.unlockedBoard = fresh.unlockedBoard;
-          state.bestStars = fresh.bestStars;
-          state.tutorialSeen = false;
-          state.levelIndex = fresh.unlockedBoard;
+          applyProfileToState(fresh);
           state.boardStars = {};
           state.profileMessage = "Welcome";
+          state.nicknameValid = false;
+          state.nicknameError = "";
           return;
         }
 
-        const profile = state.profiles[key] || { name: trimmed, ...emptyProfile() };
+        let profile = ensurePlayerIdentity(state.profiles[key] || { name: trimmed, ...emptyProfile() });
         if (!state.profiles[key]) {
-          state.profiles[key] = {
-            name: trimmed,
-            ...emptyProfile(),
-          };
+          profile = ensurePlayerIdentity({ name: trimmed, ...emptyProfile() });
+          state.profiles[key] = profile;
+        } else {
+          profile = ensurePlayerIdentity(profile);
+          state.profiles[key] = profile;
         }
-        state.bestScore = profile.bestScore;
-        state.unlockedBoard = profile.unlockedBoard;
-        state.boardStars = { ...(profile.boardStars || {}) };
-        state.bestStars = bestBoardRating(state.boardStars);
-        state.tutorialSeen = Boolean(profile.tutorialSeen);
-        state.levelIndex = profile.unlockedBoard;
+        applyProfileToState(profile);
         state.profileMessage = "Welcome";
       }
 
@@ -1051,8 +1151,9 @@ export function createGame({ mount }) {
           persistSettings();
           return;
         }
-        const existing = state.profiles[state.usernameKey] || emptyProfile();
-        state.profiles[state.usernameKey] = {
+        const existing = ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile());
+        state.profiles[state.usernameKey] = ensurePlayerIdentity({
+          ...existing,
           name: state.username,
           bestScore: state.bestScore,
           unlockedBoard: state.unlockedBoard,
@@ -1063,7 +1164,10 @@ export function createGame({ mount }) {
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
           boardStars: { ...(existing.boardStars || {}), ...(state.boardStars || {}) },
-        };
+          playerId: state.playerId || existing.playerId,
+          playerToken: state.playerToken || existing.playerToken,
+          registered: state.registered || existing.registered,
+        });
         if (["playing", "review"].includes(state.phase)) {
           state.resume = buildResume();
         }
@@ -1100,7 +1204,8 @@ export function createGame({ mount }) {
         state.boardStars = boardStars;
         state.bestStars = bestBoardRating(boardStars);
         state.levelIndex = state.unlockedBoard;
-        state.profiles[state.usernameKey] = {
+        state.profiles[state.usernameKey] = ensurePlayerIdentity({
+          ...existing,
           name: remote.name || state.username,
           bestScore: state.bestScore,
           unlockedBoard: state.unlockedBoard,
@@ -1108,8 +1213,12 @@ export function createGame({ mount }) {
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
           boardStars,
-        };
+          playerId: remote.playerId || existing.playerId,
+          playerToken: existing.playerToken,
+          registered: Boolean(remote.playerId || existing.registered),
+        });
         if (remote.name) state.username = remote.name;
+        applyProfileToState(state.profiles[state.usernameKey]);
       }
 
       async function syncFromRemote() {
@@ -1136,6 +1245,8 @@ export function createGame({ mount }) {
         if (!profile) return;
         savePlayer({
           usernameKey: state.usernameKey,
+          playerId: profile.playerId,
+          playerToken: profile.playerToken,
           name: profile.name || state.username,
           unlockedBoard: profile.unlockedBoard,
           bestScore: profile.bestScore,
@@ -1152,11 +1263,13 @@ export function createGame({ mount }) {
       }
 
       async function refreshLeaderboard(limit = 10) {
+        const profile = currentProfile();
         try {
-          const players = await fetchLeaderboard(limit);
+          const payload = await fetchLeaderboard(limit, profile?.playerId || state.playerId || "");
           if (disposed) return;
-          if (players.length) {
-            state.leaderboard = leaderboardToUi(players);
+          if (payload.entries.length) {
+            state.leaderboard = leaderboardToUi(payload);
+            state.playerRank = payload.playerEntry;
             if (["menu", "finished"].includes(state.phase)) render();
             return;
           }
@@ -1164,9 +1277,17 @@ export function createGame({ mount }) {
           // fall through to local
         }
         if (disposed) return;
-        state.leaderboard = topProfilesByScore(state.profiles, limit).filter(
-          (entry) => (entry.bestScore || 0) > 0
-        );
+        state.playerRank = null;
+        state.leaderboard = topProfilesByScore(state.profiles, limit)
+          .filter((entry) => (entry.bestScore || 0) > 0)
+          .map((entry, index) => ({
+            rank: index + 1,
+            name: entry.name,
+            bestScore: entry.bestScore,
+            unlockedBoard: entry.unlockedBoard,
+            bestStars: entry.bestStars,
+            isCurrentPlayer: normalizeUsername(entry.name) === state.usernameKey,
+          }));
         if (["menu", "finished"].includes(state.phase)) render();
       }
 
