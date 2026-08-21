@@ -105,6 +105,7 @@ export function createGame({ mount }) {
         boardStars: {},
         menuSettingsOpen: false,
         menuHowToOpen: false,
+        menuJourneyOpen: false,
         menuToast: "",
         syncStatus: "idle",
         canResume: false,
@@ -133,11 +134,14 @@ export function createGame({ mount }) {
           onNewGame,
           onPlayFromMenu,
           onStartNewRun,
+          onSelectBoard,
           onOpenMenu,
           onOpenMenuSettings,
           onCloseMenuSettings,
           onOpenHowTo,
           onCloseHowTo,
+          onOpenJourney,
+          onCloseJourney,
           onComingSoon,
           onUsernameInput,
           onToggleSound,
@@ -255,7 +259,7 @@ export function createGame({ mount }) {
         render();
       }
 
-      function goToMenu() {
+      function goToMenu({ openJourney = false } = {}) {
         if (["playing", "review"].includes(state.phase)) {
           state.resume = buildResume();
         }
@@ -265,6 +269,7 @@ export function createGame({ mount }) {
         state.phase = "menu";
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
+        state.menuJourneyOpen = Boolean(openJourney);
         state.menuToast = "";
         state.showTutorial = false;
         state.awaitingStart = true;
@@ -296,10 +301,40 @@ export function createGame({ mount }) {
 
       function onPlayFromMenu() {
         if (state.phase !== "menu") return;
+        if (resumeIsValid(state.resume)) {
+          startBoard(state.resume.boardIndex, { resume: true });
+          return;
+        }
+        startBoard(state.unlockedBoard);
+      }
+
+      function onStartNewRun() {
+        if (state.phase !== "menu") return;
+        state.resume = null;
+        state.canResume = false;
+        startBoard(state.unlockedBoard);
+      }
+
+      function onSelectBoard(boardIndex) {
+        if (state.phase !== "menu") return;
+        const board = Math.floor(Number(boardIndex));
+        if (!Number.isFinite(board) || board < 1) return;
+        if (board > state.unlockedBoard) {
+          showMenuToast(`Clear level ${state.unlockedBoard} to unlock this one`);
+          return;
+        }
+        const resumeHere =
+          resumeIsValid(state.resume) && Number(state.resume.boardIndex) === board;
+        startBoard(board, { resume: resumeHere });
+      }
+
+      function startBoard(boardIndex, { resume = false } = {}) {
+        if (state.phase !== "menu") return;
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
+        state.menuJourneyOpen = false;
         state.phase = "playing";
-        const resuming = resumeIsValid(state.resume);
+        const resuming = Boolean(resume) && resumeIsValid(state.resume);
         if (resuming) {
           state.boardIndex = state.resume.boardIndex;
           state.taskIndex = state.resume.taskIndex;
@@ -308,7 +343,7 @@ export function createGame({ mount }) {
           state.showTutorial = false;
           state.tutorialStep = 0;
         } else {
-          state.boardIndex = state.unlockedBoard;
+          state.boardIndex = Math.max(1, boardIndex);
           state.taskIndex = 1;
           state.score = 0;
           state.runStars = 0;
@@ -337,15 +372,8 @@ export function createGame({ mount }) {
         vibrate(12);
       }
 
-      function onStartNewRun() {
-        if (state.phase !== "menu") return;
-        state.resume = null;
-        state.canResume = false;
-        onPlayFromMenu();
-      }
-
       function onNewGame() {
-        goToMenu();
+        goToMenu({ openJourney: true });
         persist();
       }
 
@@ -373,6 +401,19 @@ export function createGame({ mount }) {
         render();
       }
 
+      function onOpenJourney() {
+        if (state.phase !== "menu") return;
+        state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
+        state.menuJourneyOpen = true;
+        render();
+      }
+
+      function onCloseJourney() {
+        state.menuJourneyOpen = false;
+        render();
+      }
+
       function onEscape() {
         if (state.menuSettingsOpen) {
           onCloseMenuSettings();
@@ -380,11 +421,19 @@ export function createGame({ mount }) {
         }
         if (state.menuHowToOpen) {
           onCloseHowTo();
+          return;
+        }
+        if (state.menuJourneyOpen) {
+          onCloseJourney();
         }
       }
 
       function onComingSoon() {
-        state.menuToast = "Coming soon";
+        showMenuToast("Coming soon");
+      }
+
+      function showMenuToast(text) {
+        state.menuToast = text;
         render();
         window.clearTimeout(toastTimerId);
         toastTimerId = window.setTimeout(() => {

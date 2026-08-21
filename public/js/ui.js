@@ -52,6 +52,9 @@ export function createUI({ mount, handlers }) {
     menuPlayers: shell.querySelector("[data-menu-players]"),
     menuSettings: shell.querySelector("[data-menu-settings]"),
     menuHowTo: shell.querySelector("[data-menu-howto]"),
+    menuJourney: shell.querySelector("[data-menu-journey]"),
+    menuJourneyMount: shell.querySelector("[data-journey-mount]"),
+    menuPath: shell.querySelector("[data-menu-path]"),
     menuMute: shell.querySelector("[data-menu-mute]"),
     menuMuteLabel: shell.querySelector("[data-menu-mute-label]"),
     menuSettingsPlayer: shell.querySelector("[data-menu-settings-player]"),
@@ -147,6 +150,21 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-close-settings]"), "click", handlers.onCloseMenuSettings);
   on(shell.querySelector("[data-menu-open-howto]"), "click", handlers.onOpenHowTo);
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
+  on(shell.querySelector("[data-menu-open-journey]"), "click", handlers.onOpenJourney);
+  on(shell.querySelector("[data-menu-close-journey]"), "click", handlers.onCloseJourney);
+  on(els.menuJourneyMount, "click", (event) => {
+    const btn = event.target.closest("[data-select-board]");
+    if (!btn) return;
+    handlers.onSelectBoard(Number(btn.dataset.selectBoard));
+  });
+  on(els.menuPath, "click", (event) => {
+    const btn = event.target.closest("[data-select-board]");
+    if (btn) {
+      handlers.onSelectBoard(Number(btn.dataset.selectBoard));
+      return;
+    }
+    handlers.onOpenJourney?.();
+  });
   on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
   on(shell.querySelector("[data-menu-new-run]"), "click", handlers.onStartNewRun);
   on(window, "keydown", (event) => {
@@ -157,6 +175,9 @@ export function createUI({ mount, handlers }) {
   });
   on(els.menuHowTo, "click", (event) => {
     if (event.target === els.menuHowTo) handlers.onCloseHowTo();
+  });
+  on(els.menuJourney, "click", (event) => {
+    if (event.target === els.menuJourney) handlers.onCloseJourney();
   });
   on(els.menuMute, "click", handlers.onToggleSound);
   for (const btn of shell.querySelectorAll("[data-coming-soon]")) {
@@ -350,13 +371,15 @@ function template() {
         </button>
         <button class="menu-new-run" data-menu-new-run type="button" hidden>Start new board</button>
 
-        <button class="menu-journey" data-coming-soon type="button">
+        <div class="menu-path" data-menu-path aria-label="Level progress"></div>
+
+        <button class="menu-journey" data-menu-open-journey type="button">
           <span class="menu-journey__icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#e8f1ff"/><path d="M10 34l8-14 6 8 6-12 8 18H10Z" fill="#93c5fd"/><path d="M30 14v10l6-3-6-7Z" fill="#2563eb"/></svg>
           </span>
           <span class="menu-journey__copy">
             <strong>JOURNEY</strong>
-            <small>Progressive Levels</small>
+            <small>Candy-crush level map</small>
           </span>
           <span class="menu-journey__chev" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -447,6 +470,24 @@ function template() {
             </li>
           </ol>
           <button class="screen-btn screen-btn--primary" data-menu-close-howto type="button">Got it</button>
+        </div>
+      </div>
+
+      <div class="menu-journey-overlay" data-menu-journey hidden>
+        <div class="journey-shell" role="dialog" aria-modal="true" aria-labelledby="journey-title">
+          <header class="journey-top">
+            <button class="menu-icon-btn" data-menu-close-journey type="button" aria-label="Back to menu">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="journey-top__copy">
+              <p>Your path</p>
+              <h2 id="journey-title">Rescue Journey</h2>
+            </div>
+            <div class="journey-top__level" data-journey-hud-level>1</div>
+          </header>
+          <div class="journey-scroller">
+            <div class="journey-mount" data-journey-mount></div>
+          </div>
         </div>
       </div>
       <p class="menu-toast" data-menu-toast role="status" aria-live="polite" hidden>Coming soon</p>
@@ -665,7 +706,7 @@ function template() {
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
         <div class="local-board" data-result-board></div>
-        <button data-new-game type="button">Back to menu</button>
+        <button data-new-game type="button">See your path</button>
       </section>
     </div>
 
@@ -933,6 +974,11 @@ function updateMenuScreen(els, state) {
   if (els.menuHowTo) {
     els.menuHowTo.hidden = !state.menuHowToOpen;
   }
+  if (els.menuJourney) {
+    els.menuJourney.hidden = !state.menuJourneyOpen;
+  }
+  renderMenuPath(els.menuPath, state);
+  renderJourneyMap(els, state);
   if (els.menuToast) {
     const toast = state.menuToast || "";
     els.menuToast.hidden = !toast;
@@ -1101,3 +1147,203 @@ function countByKey(cards) {
   }
   return map;
 }
+
+const JOURNEY_WORLDS = [
+  { name: "Sandy Shore", blurb: "Warm-up boards" },
+  { name: "River Bend", blurb: "The chase speeds up" },
+  { name: "Storm Bay", blurb: "Trickier targets" },
+  { name: "Deep Current", blurb: "Sharper equations" },
+  { name: "Shark Tide", blurb: "Expert rescue" },
+  { name: "Coral Peak", blurb: "Legendary boards" },
+];
+
+function journeyLevelCount(unlockedBoard) {
+  const unlocked = Math.max(1, Number(unlockedBoard) || 1);
+  return Math.max(20, Math.ceil((unlocked + 8) / 5) * 5);
+}
+
+function journeyWorld(board) {
+  const index = Math.floor((Math.max(1, board) - 1) / 5);
+  const base = JOURNEY_WORLDS[index % JOURNEY_WORLDS.length];
+  const cycle = Math.floor(index / JOURNEY_WORLDS.length);
+  return {
+    name: cycle ? `${base.name} ${cycle + 1}` : base.name,
+    blurb: base.blurb,
+    start: index * 5 + 1,
+  };
+}
+
+function boardStatus(board, unlocked, stars) {
+  if (board < unlocked) return "done";
+  if (board === unlocked) return "current";
+  return "locked";
+}
+
+function renderMenuPath(container, state) {
+  if (!container) return;
+  const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
+  const start = Math.max(1, unlocked - 2);
+  const end = start + 4;
+  const starsMap = state.boardStars || {};
+  container.replaceChildren();
+  for (let board = start; board <= end; board += 1) {
+    container.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
+  }
+}
+
+function renderJourneyMap(els, state) {
+  const overlay = els.menuJourney;
+  const mount = els.menuJourneyMount;
+  if (!overlay || !mount) return;
+  const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
+  const hud = overlay.querySelector("[data-journey-hud-level]");
+  if (hud) hud.textContent = String(unlocked);
+
+  if (overlay.hidden) {
+    overlay.dataset.scrolled = "";
+    return;
+  }
+
+  const total = journeyLevelCount(unlocked);
+  const starsMap = state.boardStars || {};
+  const signature = `${unlocked}:${total}:${JSON.stringify(starsMap)}`;
+  if (mount.dataset.signature !== signature) {
+    mount.dataset.signature = signature;
+    mount.replaceChildren();
+    const trail = document.createElement("div");
+    trail.className = "journey-map";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "journey-map__path");
+    svg.setAttribute("aria-hidden", "true");
+    trail.append(svg);
+
+    const worldCount = total / 5;
+    for (let worldIndex = 0; worldIndex < worldCount; worldIndex += 1) {
+      const start = worldIndex * 5 + 1;
+      const world = journeyWorld(start);
+      const section = document.createElement("section");
+      section.className = "journey-world";
+      const head = document.createElement("header");
+      head.className = "journey-world__head";
+      head.innerHTML = `<p>${escapeHtml(world.blurb)}</p><h3>${escapeHtml(world.name)}</h3>`;
+      const row = document.createElement("div");
+      row.className = "journey-world__nodes";
+      for (let board = start + 4; board >= start; board -= 1) {
+        row.append(makeJourneyNode(board, unlocked, starsMap, { compact: false }));
+      }
+      section.append(head, row);
+      trail.append(section);
+    }
+    mount.append(trail);
+    window.requestAnimationFrame(() => drawJourneyPath(trail, unlocked));
+  } else {
+    window.requestAnimationFrame(() => drawJourneyPath(mount.querySelector(".journey-map"), unlocked));
+  }
+
+  if (overlay.dataset.scrolled !== signature) {
+    overlay.dataset.scrolled = signature;
+    window.requestAnimationFrame(() => {
+      const current = mount.querySelector("[data-journey-current]");
+      current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+}
+
+function makeJourneyNode(board, unlocked, starsMap, { compact }) {
+  const status = boardStatus(board, unlocked, starsMap);
+  const stars = Math.max(0, Math.min(3, Number(starsMap[board]) || Number(starsMap[String(board)]) || 0));
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `journey-node journey-node--${status}${compact ? " journey-node--compact" : ""}`;
+  button.dataset.selectBoard = String(board);
+  if (status === "current") button.dataset.journeyCurrent = "true";
+  button.setAttribute(
+    "aria-label",
+    status === "locked"
+      ? `Level ${board} locked`
+      : status === "current"
+        ? `Play level ${board}`
+        : `Replay level ${board}, ${stars} stars`
+  );
+
+  const badge = document.createElement("span");
+  badge.className = "journey-node__badge";
+  if (status === "locked") {
+    badge.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+  } else {
+    badge.textContent = String(board);
+  }
+
+  const starRow = document.createElement("span");
+  starRow.className = "journey-node__stars";
+  starRow.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 3; i += 1) {
+    const star = document.createElement("i");
+    if (status !== "locked" && i < (status === "current" ? Math.max(stars, 0) : stars)) {
+      star.className = "is-on";
+    }
+    starRow.append(star);
+  }
+
+  button.append(badge, starRow);
+  if (status === "current" && !compact) {
+    const pin = document.createElement("span");
+    pin.className = "journey-node__pin";
+    pin.innerHTML = `<img src="./assets/chase/cat-run-still.png?v=face-right1" alt="" />`;
+    button.append(pin);
+  }
+  return button;
+}
+
+function drawJourneyPath(map, unlocked) {
+  if (!map) return;
+  const svg = map.querySelector(".journey-map__path");
+  const nodes = [...map.querySelectorAll(".journey-node")].sort(
+    (a, b) => Number(a.dataset.selectBoard) - Number(b.dataset.selectBoard)
+  );
+  if (!svg || nodes.length < 2) return;
+  const bounds = map.getBoundingClientRect();
+  svg.setAttribute("viewBox", `0 0 ${Math.max(1, bounds.width)} ${Math.max(1, bounds.height)}`);
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("height", "100%");
+  const points = nodes.map((node) => {
+    const rect = node.querySelector(".journey-node__badge")?.getBoundingClientRect() || node.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2 - bounds.left,
+      y: rect.top + rect.height / 2 - bounds.top,
+      board: Number(node.dataset.selectBoard),
+    };
+  });
+  const d = points
+    .map((point, index) => {
+      if (index === 0) return `M ${point.x} ${point.y}`;
+      const prev = points[index - 1];
+      const cx = (prev.x + point.x) / 2;
+      return `C ${cx} ${prev.y}, ${cx} ${point.y}, ${point.x} ${point.y}`;
+    })
+    .join(" ");
+  svg.replaceChildren();
+  const doneCount = Math.max(0, unlocked - 1);
+  const donePoints = points.slice(0, Math.min(points.length, doneCount + 1));
+  const rest = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  rest.setAttribute("d", d);
+  rest.setAttribute("class", "journey-map__stroke journey-map__stroke--ahead");
+  svg.append(rest);
+  if (donePoints.length > 1) {
+    const done = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    done.setAttribute(
+      "d",
+      donePoints
+        .map((point, index) => {
+          if (index === 0) return `M ${point.x} ${point.y}`;
+          const prev = donePoints[index - 1];
+          const cx = (prev.x + point.x) / 2;
+          return `C ${cx} ${prev.y}, ${cx} ${point.y}, ${point.x} ${point.y}`;
+        })
+        .join(" ")
+    );
+    done.setAttribute("class", "journey-map__stroke journey-map__stroke--done");
+    svg.append(done);
+  }
+}
+
