@@ -104,6 +104,7 @@ export function createUI({ mount, handlers }) {
     nicknameError: shell.querySelector("[data-nickname-error]"),
     menuLeaderboard: shell.querySelector("[data-menu-leaderboard]"),
     menuLeaderboardList: shell.querySelector("[data-menu-leaderboard-list]"),
+    menuLeaderboardPodium: shell.querySelector("[data-menu-leaderboard-podium]"),
     menuLeaderboardRank: shell.querySelector("[data-menu-leaderboard-rank]"),
     resultsOverlay: shell.querySelector("[data-results]"),
     resultScore: shell.querySelector("[data-result-score]"),
@@ -206,7 +207,7 @@ export function createUI({ mount, handlers }) {
     if (leaderboardBackdropGuard) return;
     if (event.target === els.menuLeaderboard) handlers.onCloseLeaderboard?.();
   });
-  on(els.menuLeaderboard?.querySelector(".menu-leaderboard-card"), "click", (event) => {
+  on(els.menuLeaderboard?.querySelector(".league-panel"), "click", (event) => {
     event.stopPropagation();
   });
   on(els.menuJourneyMount, "click", (event) => {
@@ -459,12 +460,28 @@ function template() {
       </div>
 
       <div class="menu-leaderboard screen-overlay" data-menu-leaderboard hidden>
-        <div class="screen-card menu-leaderboard-card" role="dialog" aria-modal="true" aria-labelledby="menu-leaderboard-title">
-          <p class="menu-sheet__kicker">Global ranks</p>
-          <h2 id="menu-leaderboard-title">Rescue League</h2>
-          <p class="menu-leaderboard__rank" data-menu-leaderboard-rank hidden></p>
-          <div class="menu-leaderboard__list" data-menu-leaderboard-list></div>
-          <button class="screen-btn" data-menu-close-leaderboard type="button">Back</button>
+        <div class="league-panel screen-card" role="dialog" aria-modal="true" aria-labelledby="menu-leaderboard-title">
+          <header class="league-panel__hero">
+            <span class="league-panel__trophy" aria-hidden="true">🏆</span>
+            <div class="league-panel__titles">
+              <p class="league-panel__kicker">Global league</p>
+              <h2 id="menu-leaderboard-title">Rescue League</h2>
+            </div>
+          </header>
+          <div class="league-panel__you" data-menu-leaderboard-rank hidden>
+            <span class="league-panel__you-label">Your rank</span>
+            <strong class="league-panel__you-value"></strong>
+          </div>
+          <div class="league-panel__podium" data-menu-leaderboard-podium hidden></div>
+          <div class="league-panel__table" aria-label="Leaderboard standings">
+            <div class="league-panel__columns" data-menu-leaderboard-columns aria-hidden="true">
+              <span>#</span>
+              <span>Player</span>
+              <span>Score</span>
+            </div>
+            <div class="league-panel__list" data-menu-leaderboard-list></div>
+          </div>
+          <button class="screen-btn screen-btn--primary league-panel__back" data-menu-close-leaderboard type="button">Back to menu</button>
         </div>
       </div>
 
@@ -1075,21 +1092,9 @@ function renderMenuPlayers(container, list, usernameKey = "") {
     return;
   }
   players.forEach((entry) => {
-    const card = document.createElement("article");
-    const rank = Number(entry.rank) || 0;
-    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
-    card.className = `menu-player menu-player--${Math.min(rank, 3) || 1}`;
-    if (entry.isCurrentPlayer) card.classList.add("is-you");
-    const initials = playerInitials(entry.name);
-    card.innerHTML = `
-      <span class="menu-player__medal" aria-hidden="true">${medal}</span>
-      <span class="menu-player__avatar" aria-hidden="true">${initials}</span>
-      <span class="menu-player__meta">
-        <strong>${escapeHtml(entry.name || "Player")}${entry.isCurrentPlayer ? " · you" : ""}</strong>
-        <small>${Number(entry.bestScore || 0).toLocaleString()}</small>
-      </span>
-    `;
-    container.append(card);
+    const row = createLeagueRow(entry);
+    row.classList.add("league-row--menu");
+    container.append(row);
   });
 }
 
@@ -1138,38 +1143,117 @@ function updateNicknameOverlay(els, state) {
   }
 }
 
+function leagueAvatarColor(name) {
+  const palette = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#059669", "#0891b2", "#4f46e5", "#c026d3"];
+  let hash = 0;
+  for (let i = 0; i < String(name || "").length; i += 1) {
+    hash = (hash * 31 + String(name).charCodeAt(i)) >>> 0;
+  }
+  return palette[hash % palette.length];
+}
+
+function leagueRankMedal(rank) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return String(rank);
+}
+
+function createLeaguePodiumSlot(entry, place) {
+  const slot = document.createElement("article");
+  const isYou = entry.isCurrentPlayer;
+  const color = leagueAvatarColor(entry.name);
+  slot.className = `league-podium__slot league-podium__slot--${place}`;
+  if (isYou) slot.classList.add("is-you");
+  slot.innerHTML = `
+    <span class="league-podium__medal" aria-hidden="true">${leagueRankMedal(place)}</span>
+    <span class="league-podium__avatar" style="--avatar-color:${color}">${escapeHtml(playerInitials(entry.name))}</span>
+    <strong class="league-podium__name">${escapeHtml(entry.name || "Player")}</strong>
+    ${isYou ? '<span class="league-row__tag">YOU</span>' : ""}
+    <span class="league-podium__score">
+      <span class="league-row__score-val">${Number(entry.bestScore || 0).toLocaleString()}</span>
+      <span class="league-row__score-ico" aria-hidden="true">🏆</span>
+    </span>
+    <span class="league-podium__pedestal" aria-hidden="true"></span>
+  `;
+  return slot;
+}
+
+function createLeaguePodium(entries) {
+  const podium = document.createElement("div");
+  podium.className = "league-podium";
+  podium.setAttribute("aria-label", "Top three players");
+  const byRank = new Map(entries.map((entry) => [Number(entry.rank), entry]));
+  const second = byRank.get(2);
+  const first = byRank.get(1);
+  const third = byRank.get(3);
+  if (second) podium.append(createLeaguePodiumSlot(second, 2));
+  if (first) podium.append(createLeaguePodiumSlot(first, 1));
+  if (third) podium.append(createLeaguePodiumSlot(third, 3));
+  if (!second && !third && first) podium.classList.add("league-podium--solo");
+  return podium;
+}
+
 function updateLeaderboardOverlay(els, state) {
   if (!els.menuLeaderboardList) return;
   els.menuLeaderboardList.replaceChildren();
   const entries = (state.leaderboard || []).filter((entry) => (entry.bestScore || 0) > 0);
+  const topThree = entries.filter((entry) => {
+    const rank = Number(entry.rank);
+    return rank >= 1 && rank <= 3;
+  });
+  const rest = entries.filter((entry) => Number(entry.rank) > 3);
+
+  if (els.menuLeaderboardPodium) {
+    els.menuLeaderboardPodium.replaceChildren();
+    if (topThree.length > 0) {
+      els.menuLeaderboardPodium.append(createLeaguePodium(topThree));
+      els.menuLeaderboardPodium.hidden = false;
+    } else {
+      els.menuLeaderboardPodium.hidden = true;
+    }
+  }
+
   if (entries.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "menu-leaderboard__empty";
-    empty.textContent = "No scores yet. Clear a level to join the league.";
+    const empty = document.createElement("div");
+    empty.className = "league-panel__empty";
+    empty.innerHTML = `
+      <span class="league-panel__empty-icon" aria-hidden="true">🏅</span>
+      <p>No scores yet</p>
+      <small>Clear a level to join the league.</small>
+    `;
     els.menuLeaderboardList.append(empty);
   } else {
-    for (const entry of entries) {
+    for (const entry of rest) {
       els.menuLeaderboardList.append(createLeagueRow(entry));
     }
     if (state.playerRank && !entries.some((entry) => entry.isCurrentPlayer)) {
       const divider = document.createElement("div");
-      divider.className = "menu-leaderboard__divider";
+      divider.className = "league-panel__divider";
       divider.textContent = "Your rank";
       els.menuLeaderboardList.append(divider, createLeagueRow(state.playerRank, true));
     }
   }
+
+  const columns = els.menuLeaderboard?.querySelector("[data-menu-leaderboard-columns]");
+  const showPlayerOutside = state.playerRank && !entries.some((entry) => entry.isCurrentPlayer);
+  const showTable = entries.length === 0 || rest.length > 0 || showPlayerOutside;
+  const table = els.menuLeaderboard?.querySelector(".league-panel__table");
+  if (table) table.hidden = !showTable;
+  if (columns) columns.hidden = rest.length === 0;
+
   if (els.menuLeaderboardRank) {
-    const rank = state.playerRank?.rank;
+    const valueEl = els.menuLeaderboardRank.querySelector(".league-panel__you-value");
+    let rank = state.playerRank?.rank;
+    if (!rank && entries.some((entry) => entry.isCurrentPlayer)) {
+      rank = entries.find((entry) => entry.isCurrentPlayer)?.rank;
+    }
     if (rank) {
       els.menuLeaderboardRank.hidden = false;
-      els.menuLeaderboardRank.textContent = `You are #${rank} globally`;
-    } else if (entries.some((entry) => entry.isCurrentPlayer)) {
-      const yours = entries.find((entry) => entry.isCurrentPlayer);
-      els.menuLeaderboardRank.hidden = false;
-      els.menuLeaderboardRank.textContent = `You are #${yours.rank} globally`;
+      if (valueEl) valueEl.textContent = `#${rank}`;
     } else {
       els.menuLeaderboardRank.hidden = true;
-      els.menuLeaderboardRank.textContent = "";
+      if (valueEl) valueEl.textContent = "";
     }
   }
 }
@@ -1177,16 +1261,27 @@ function updateLeaderboardOverlay(els, state) {
 function createLeagueRow(entry, highlight = false) {
   const row = document.createElement("article");
   const rank = Number(entry.rank) || 0;
+  const isYou = highlight || entry.isCurrentPlayer;
+  const color = leagueAvatarColor(entry.name);
   row.className = "league-row";
-  if (highlight || entry.isCurrentPlayer) row.classList.add("is-you");
+  if (isYou) row.classList.add("is-you");
   if (rank === 1) row.classList.add("is-gold");
   if (rank === 2) row.classList.add("is-silver");
   if (rank === 3) row.classList.add("is-bronze");
+
   row.innerHTML = `
-    <span class="league-row__rank">${rank}.</span>
-    <span class="league-row__avatar">${escapeHtml(playerInitials(entry.name))}</span>
-    <span class="league-row__name">${escapeHtml(entry.name || "Player")}</span>
-    <span class="league-row__score">${Number(entry.bestScore || 0).toLocaleString()}</span>
+    <span class="league-row__medal" aria-label="Rank ${rank}">${leagueRankMedal(rank)}</span>
+    <span class="league-row__player">
+      <span class="league-row__avatar" style="--avatar-color:${color}">${escapeHtml(playerInitials(entry.name))}</span>
+      <span class="league-row__name-wrap">
+        <strong class="league-row__name">${escapeHtml(entry.name || "Player")}</strong>
+        ${isYou ? '<span class="league-row__tag">YOU</span>' : ""}
+      </span>
+    </span>
+    <span class="league-row__score">
+      <span class="league-row__score-val">${Number(entry.bestScore || 0).toLocaleString()}</span>
+      <span class="league-row__score-ico" aria-hidden="true">🏆</span>
+    </span>
   `;
   return row;
 }
