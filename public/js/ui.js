@@ -807,7 +807,7 @@ function template() {
         <h2 data-result-rank>Practice Explorer</h2>
         <p data-result-message>Try another run.</p>
         <small data-result-best>Best 0</small>
-        <button data-new-game type="button">See your path</button>
+        <button data-new-game type="button">Continue</button>
       </section>
     </div>
   `;

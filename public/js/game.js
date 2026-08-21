@@ -511,7 +511,13 @@ export function createGame({ mount }) {
       }
 
       function onNewGame() {
-        goToMenu({ openJourney: true });
+        const nextLevel = (state.levelIndex || 1) + 1;
+        state.phase = "menu";
+        state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
+        state.menuJourneyOpen = false;
+        state.menuLeaderboardOpen = false;
+        startLevel(nextLevel);
         persist();
       }
 
