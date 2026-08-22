@@ -13,6 +13,7 @@ import {
   deletePlayerByUsername,
   ValidationError,
 } from "./players.js";
+import { getDailyLeaderboard, submitDailyResult } from "./daily.js";
 import { getBearerToken } from "./playerAuth.js";
 
 dotenv.config();
@@ -82,6 +83,41 @@ async function handleApi(req, res, url) {
         return;
       }
       const { status, message } = publicError(error, "Failed to load leaderboard");
+      json(res, status, { error: message });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/daily" && req.method === "GET") {
+    try {
+      const payload = await getDailyLeaderboard(
+        url.searchParams.get("date") || "",
+        url.searchParams.get("limit") || 25,
+        url.searchParams.get("playerId") || "",
+      );
+      json(res, 200, payload);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        json(res, error.statusCode, { error: error.message, field: error.field });
+        return;
+      }
+      const { status, message } = publicError(error, "Failed to load daily leaderboard");
+      json(res, status, { error: message });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/daily/submit" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const payload = await submitDailyResult(body, getBearerToken(req));
+      json(res, 200, payload);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        json(res, error.statusCode, { error: error.message, field: error.field });
+        return;
+      }
+      const { status, message } = publicError(error, "Failed to submit daily result");
       json(res, status, { error: message });
     }
     return;

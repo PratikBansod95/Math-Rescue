@@ -15,3 +15,19 @@ CREATE TABLE IF NOT EXISTS players (
 
 CREATE INDEX IF NOT EXISTS players_best_score_idx ON players (best_score DESC);
 CREATE INDEX IF NOT EXISTS players_updated_at_idx ON players (updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS daily_results (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date_key TEXT NOT NULL,
+  player_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  username_key TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  daily_score INTEGER NOT NULL CHECK (daily_score >= 0),
+  stars INTEGER NOT NULL CHECK (stars >= 1 AND stars <= 3),
+  time_seconds INTEGER NOT NULL CHECK (time_seconds >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (date_key, player_id)
+);
+
+CREATE INDEX IF NOT EXISTS daily_results_date_score_idx
+  ON daily_results (date_key, daily_score DESC, time_seconds ASC);

@@ -4,6 +4,7 @@ import {
   DEFAULT_DIVISION_ID,
   DEFAULT_DIFFICULTY_ID,
   createRound,
+  createDailyRound,
   countUsedCards,
   evaluateSubmission,
   findAlternateSolutions,
@@ -31,9 +32,12 @@ import {
   savePlayer,
   deletePlayer,
   fetchLeaderboard,
+  fetchDailyLeaderboard,
+  submitDailyScore,
   registerPlayer,
   remoteToLocalProfile,
   leaderboardToUi,
+  dailyLeaderboardToUi,
 } from "./api.js";
 import {
   POINTS_CORRECT,
@@ -43,6 +47,18 @@ import {
 } from "./scoring.js";
 import { ensurePlayerIdentity } from "./playerIdentity.js";
 import { validateNickname } from "./nicknameValidation.js";
+import {
+  utcDateKey,
+  hasCompletedToday,
+  normalizeDaily,
+  advanceDailyStreak,
+  calcDailyScore,
+  calcDailyCareerBonus,
+  formatDailyCountdown,
+  msUntilNextDaily,
+  buildDailyShareText,
+  dailyPuzzleNumber,
+} from "./daily.js";
 
 const MAX_RETRIES = 2;
 
@@ -126,6 +142,19 @@ export function createGame({ mount }) {
         menuToast: "",
         syncStatus: "idle",
         canResume: false,
+        gameMode: "journey",
+        dailyDateKey: utcDateKey(),
+        dailyCompletedToday: false,
+        dailyStreak: 0,
+        dailyStreakShields: 0,
+        dailyBestStreak: 0,
+        dailyTodayResult: null,
+        dailyResult: null,
+        dailyLeaderboard: [],
+        dailyPlayerRank: null,
+        menuDailyOpen: false,
+        leagueTab: "career",
+        dailyElapsedSeconds: 0,
       };
 
       let timerIntervalId = null;
@@ -161,7 +190,12 @@ export function createGame({ mount }) {
           onCloseJourney,
           onOpenLeaderboard,
           onCloseLeaderboard,
-          onComingSoon,
+          onOpenDaily,
+          onCloseDaily,
+          onStartDaily,
+          onDailyContinue,
+          onDailyShare,
+          onLeagueTab,
           onUsernameInput,
           onToggleSound,
           onTutorialSkip,
@@ -331,10 +365,14 @@ export function createGame({ mount }) {
       }
 
       function onOpenLeaderboard() {
-        if (state.phase !== "menu") return;
+        if (state.phase !== "menu" && state.phase !== "daily_finished") return;
         state.menuLeaderboardOpen = true;
         render();
-        void refreshLeaderboard(25);
+        if (state.leagueTab === "daily") {
+          void refreshDailyLeaderboard(25);
+        } else {
+          void refreshLeaderboard(25);
+        }
       }
 
       function onCloseLeaderboard() {
@@ -352,6 +390,29 @@ export function createGame({ mount }) {
         state.playerId = profile.playerId || "";
         state.playerToken = profile.playerToken || "";
         state.registered = Boolean(profile.registered);
+        syncDailyFromProfile(profile);
+      }
+
+      function syncDailyFromProfile(profile = currentProfile()) {
+        const daily = normalizeDaily(profile?.daily);
+        const dateKey = utcDateKey();
+        state.dailyDateKey = dateKey;
+        state.dailyStreak = daily.streak;
+        state.dailyStreakShields = daily.streakShields;
+        state.dailyBestStreak = daily.bestStreak;
+        state.dailyTodayResult =
+          daily.todayResult?.dateKey === dateKey ? daily.todayResult : null;
+        state.dailyCompletedToday = hasCompletedToday(daily, dateKey);
+      }
+
+      function writeDailyToProfile(daily) {
+        if (!state.usernameKey) return;
+        const profile = ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile());
+        state.profiles[state.usernameKey] = {
+          ...profile,
+          daily: normalizeDaily(daily),
+        };
+        syncDailyFromProfile(state.profiles[state.usernameKey]);
       }
 
       function currentProfile() {
@@ -381,17 +442,20 @@ export function createGame({ mount }) {
       }
 
       function goToMenu({ openJourney = false } = {}) {
-        if (["playing", "review"].includes(state.phase)) {
+        if (["playing", "review"].includes(state.phase) && state.gameMode === "journey") {
           state.resume = buildResume();
         }
         stopPuzzleTimer();
         clearCatchTimeout();
         timerPausedRemaining = null;
         state.phase = "menu";
+        state.gameMode = "journey";
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
         state.menuJourneyOpen = Boolean(openJourney);
         state.menuLeaderboardOpen = false;
+        state.menuDailyOpen = false;
+        state.dailyResult = null;
         state.menuToast = "";
         state.showTutorial = false;
         state.awaitingStart = true;
@@ -403,6 +467,7 @@ export function createGame({ mount }) {
         state.correction = null;
         state.canResume = resumeIsValid(state.resume);
         state.levelIndex = state.unlockedBoard;
+        syncDailyFromProfile();
         state.leaderboard = topProfilesByScore(state.profiles, 3).filter(
           (entry) => (entry.bestScore || 0) > 0
         );
@@ -416,16 +481,32 @@ export function createGame({ mount }) {
       }
 
       async function onOpenMenu() {
-        if (!["playing", "review", "finished"].includes(state.phase)) return;
-        if (state.phase === "playing") {
+        if (!["playing", "review", "finished", "daily_finished"].includes(state.phase)) return;
+        if (state.phase === "daily_finished") {
+          onDailyContinue();
+          return;
+        }
+        if (state.phase === "playing" || state.phase === "review") {
           const ok = await askConfirm({
-            title: "Leave this puzzle?",
+            title: state.gameMode === "daily" ? "Leave Daily Rescue?" : "Leave this puzzle?",
             message:
-              "Your level progress is saved. You can continue later from the menu.",
+              state.gameMode === "daily"
+                ? "You only get one official daily run per day. Leaving now will forfeit today's attempt."
+                : "Your level progress is saved. You can continue later from the menu.",
             confirmLabel: "Yes, leave",
             cancelLabel: "No",
           });
           if (!ok) return;
+          if (state.gameMode === "daily") {
+            stopPuzzleTimer();
+            state.gameMode = "journey";
+            state.phase = "menu";
+            state.reviewOutcome = null;
+            state.correction = null;
+            goToMenu();
+            persist({ remote: false });
+            return;
+          }
         }
         goToMenu();
         persist();
@@ -667,11 +748,275 @@ export function createGame({ mount }) {
         }
         if (state.menuLeaderboardOpen) {
           onCloseLeaderboard();
+          return;
+        }
+        if (state.menuDailyOpen) {
+          onCloseDaily();
+          return;
+        }
+      }
+
+      function onOpenDaily() {
+        if (state.phase !== "menu") return;
+        state.menuDailyOpen = true;
+        render();
+      }
+
+      function onCloseDaily() {
+        state.menuDailyOpen = false;
+        render();
+      }
+
+      function onStartDaily() {
+        if (state.phase !== "menu") return;
+        if (state.dailyCompletedToday && state.dailyTodayResult) {
+          state.menuDailyOpen = false;
+          state.phase = "daily_finished";
+          state.dailyResult = buildDailyResultView(state.dailyTodayResult);
+          render();
+          void refreshDailyLeaderboard();
+          return;
+        }
+        state.menuDailyOpen = false;
+        state.gameMode = "daily";
+        state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
+        state.menuJourneyOpen = false;
+        state.phase = "playing";
+        state.reviewOutcome = null;
+        state.puzzleVariant = 0;
+        state.score = 0;
+        state.runStars = 0;
+        state.showTutorial = false;
+        state.tutorialStep = 0;
+        state.dailyDateKey = utcDateKey();
+        state.round = createDailyRound(state.dailyDateKey);
+        const config = state.round.dailyConfig || { timer: 75 };
+        state.divisionId = config.divisionId;
+        state.difficultyId = config.difficultyId;
+        state.division = getDivision(config.divisionId);
+        state.difficulty = getDifficulty(config.difficultyId);
+        resetTaskFlags();
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.correction = null;
+        state.resume = null;
+        state.canResume = false;
+        state.dailyElapsedSeconds = 0;
+        state.feedback = {
+          kind: "neutral",
+          text: "Daily Rescue — one puzzle for everyone today.",
+          detail: config.label || "Tap Start when ready.",
+        };
+        startDailyTimer(config.timer || 75);
+        render();
+        persist({ remote: false });
+        audio.unlockFromGesture();
+        vibrate(12);
+      }
+
+      function startDailyTimer(limit) {
+        stopPuzzleTimer();
+        clearCatchTimeout();
+        timerPausedRemaining = null;
+        state.timerExpired = false;
+        state.awaitingStart = true;
+        state.chasePose = "idle";
+        state.timerLimit = limit;
+        state.timeLeft = limit;
+        state.timerDeadline = 0;
+      }
+
+      function buildDailyResultView(todayResult) {
+        const dateKey = todayResult?.dateKey || state.dailyDateKey || utcDateKey();
+        return {
+          dateKey,
+          puzzleNumber: dailyPuzzleNumber(dateKey),
+          dailyScore: Number(todayResult?.dailyScore) || 0,
+          stars: Number(todayResult?.stars) || 1,
+          timeSeconds: Number(todayResult?.timeSeconds) || 0,
+          careerBonus: Number(todayResult?.careerBonus) || 0,
+          streak: state.dailyStreak,
+          rank: state.dailyPlayerRank?.rank || null,
+          shareText: buildDailyShareText({
+            dateKey,
+            stars: todayResult?.stars,
+            timeSeconds: todayResult?.timeSeconds,
+            streak: state.dailyStreak,
+            dailyScore: todayResult?.dailyScore,
+          }),
+          resetsIn: formatDailyCountdown(msUntilNextDaily()),
+        };
+      }
+
+      function finishDaily() {
+        stopPuzzleTimer();
+        const dateKey = state.dailyDateKey || utcDateKey();
+        const stars = state.taskStarsEarned || state.runStars || 1;
+        const secondsLeft = Math.max(0, Number(state.timeLeft) || 0);
+        const timeSeconds = Math.max(
+          0,
+          state.dailyElapsedSeconds || state.timerLimit - secondsLeft,
+        );
+        const profile = currentProfile();
+        const currentDaily = normalizeDaily(profile?.daily);
+        const { daily: streakDaily, usedShield, weekMilestone } = advanceDailyStreak(
+          currentDaily,
+          dateKey,
+        );
+        const dailyScore = calcDailyScore({
+          stars,
+          secondsLeft,
+          streak: streakDaily.streak,
+        });
+        const careerBonus = calcDailyCareerBonus({
+          stars,
+          weekMilestone,
+        });
+        const todayResult = {
+          dateKey,
+          dailyScore,
+          stars,
+          timeSeconds,
+          careerBonus,
+          submitted: false,
+        };
+        streakDaily.todayResult = todayResult;
+        writeDailyToProfile(streakDaily);
+        state.bestScore += careerBonus;
+        state.profiles[state.usernameKey] = {
+          ...ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile()),
+          bestScore: state.bestScore,
+          daily: streakDaily,
+        };
+        state.phase = "daily_finished";
+        state.gameMode = "journey";
+        state.reviewOutcome = null;
+        state.correction = null;
+        state.dailyResult = {
+          ...buildDailyResultView(todayResult),
+          usedShield,
+          weekMilestone,
+          perfect: stars >= 3,
+        };
+        state.feedback = {
+          kind: "good",
+          text: `Daily Rescue complete! +${careerBonus} career pts`,
+          detail: `Score ${dailyScore} · Streak ${streakDaily.streak}`,
+        };
+        render();
+        audio.playBlip(660, { duration: 0.1, volume: 0.12 });
+        audio.playBlip(990, { duration: 0.13, volume: 0.12 });
+        persist();
+        void submitDailyRun({
+          dateKey,
+          dailyScore,
+          stars,
+          timeSeconds,
+          dailyMeta: streakDaily,
+        });
+        void refreshDailyLeaderboard();
+        void refreshLeaderboard(3);
+      }
+
+      async function submitDailyRun({ dateKey, dailyScore, stars, timeSeconds, dailyMeta }) {
+        const profile = currentProfile();
+        if (!profile?.playerId || !profile?.playerToken) return;
+        try {
+          const payload = await submitDailyScore(
+            {
+              playerId: profile.playerId,
+              dateKey,
+              dailyScore,
+              stars,
+              timeSeconds,
+              dailyMeta,
+            },
+            profile.playerToken,
+          );
+          if (disposed) return;
+          if (payload?.entry) {
+            state.dailyPlayerRank = payload.entry;
+            if (state.dailyResult) state.dailyResult.rank = payload.entry.rank;
+          }
+          const nextDaily = normalizeDaily(state.profiles[state.usernameKey]?.daily);
+          if (nextDaily.todayResult?.dateKey === dateKey) {
+            nextDaily.todayResult = { ...nextDaily.todayResult, submitted: true };
+            writeDailyToProfile(nextDaily);
+          }
+          if (state.phase === "daily_finished") render();
+        } catch (error) {
+          if (disposed) return;
+          if (error.status !== 409) return;
+          const nextDaily = normalizeDaily(state.profiles[state.usernameKey]?.daily);
+          if (nextDaily.todayResult?.dateKey === dateKey) {
+            nextDaily.todayResult = { ...nextDaily.todayResult, submitted: true };
+            writeDailyToProfile(nextDaily);
+          }
+        }
+      }
+
+      async function refreshDailyLeaderboard(limit = 25) {
+        const profile = currentProfile();
+        const dateKey = state.dailyDateKey || utcDateKey();
+        try {
+          const payload = await fetchDailyLeaderboard(
+            dateKey,
+            limit,
+            profile?.playerId || state.playerId || "",
+          );
+          if (disposed) return;
+          state.dailyLeaderboard = dailyLeaderboardToUi(payload);
+          state.dailyPlayerRank = payload.playerEntry;
+          if (state.dailyResult && payload.playerEntry?.rank) {
+            state.dailyResult.rank = payload.playerEntry.rank;
+          }
+          if (["menu", "daily_finished"].includes(state.phase) || state.menuLeaderboardOpen) {
+            render();
+          }
+        } catch {
+          if (disposed) return;
+          state.dailyPlayerRank = null;
+          state.dailyLeaderboard = [];
+        }
+      }
+
+      function onDailyContinue() {
+        goToMenu();
+        persist();
+      }
+
+      async function onDailyShare() {
+        const text = state.dailyResult?.shareText || buildDailyShareText();
+        try {
+          if (navigator.share) {
+            await navigator.share({ text, title: "Daily Rescue" });
+            return;
+          }
+        } catch {
+          // fall through to clipboard
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          showMenuToast("Result copied!");
+        } catch {
+          showMenuToast("Could not share result");
+        }
+      }
+
+      function onLeagueTab(tab) {
+        state.leagueTab = tab === "daily" ? "daily" : "career";
+        render();
+        if (state.leagueTab === "daily") {
+          void refreshDailyLeaderboard();
+        } else {
+          void refreshLeaderboard(25);
         }
       }
 
       function onComingSoon() {
-        showMenuToast("Coming soon");
+        onOpenDaily();
       }
 
       function showMenuToast(text) {
@@ -785,6 +1130,7 @@ export function createGame({ mount }) {
         // Correct
         stopPuzzleTimer();
         state.chasePose = "safe";
+        state.dailyElapsedSeconds = Math.max(0, state.timerLimit - Math.max(0, state.timeLeft));
         const stars = calcTaskStars({
           firstTry: state.firstTry && state.attempts <= 1,
           usedNudge: state.usedNudge,
@@ -803,7 +1149,9 @@ export function createGame({ mount }) {
           text: state.correction.solutions?.length > 1
             ? "Correct! Brilliant solve — here are other paths."
             : "Correct! Brilliant solve!",
-          detail: `+${POINTS_CORRECT} · ★${stars} · Tap Next`,
+          detail: state.gameMode === "daily"
+            ? `★${stars} · Tap Next`
+            : `+${POINTS_CORRECT} · ★${stars} · Tap Next`,
         };
         if (state.showTutorial) {
           state.showTutorial = false;
@@ -823,7 +1171,11 @@ export function createGame({ mount }) {
         const correction = buildWrongCorrection(state.expression, result, state.round);
         state.phase = "review";
         state.reviewOutcome = "fail";
-        state.score = Math.max(0, state.score - POINTS_WRONG);
+        if (state.gameMode !== "daily") {
+          state.score = Math.max(0, state.score - POINTS_WRONG);
+        } else {
+          state.dailyElapsedSeconds = Math.max(state.timerLimit, state.dailyElapsedSeconds || 0);
+        }
         state.expression = correction.solution;
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
         state.taskStarsEarned = 1;
@@ -834,7 +1186,9 @@ export function createGame({ mount }) {
           text: state.timerExpired
             ? "Time’s up! The shark caught the cat. Here’s the solution."
             : result.reason || "Incorrect. Study the solution.",
-          detail: `−${POINTS_WRONG} points · New puzzle on Next`,
+          detail: state.gameMode === "daily"
+            ? "Tap Next to finish today's run"
+            : `−${POINTS_WRONG} points · New puzzle on Next`,
         };
         state.correction = correction;
         if (state.showTutorial && state.tutorialStep === 4) {
@@ -858,6 +1212,11 @@ export function createGame({ mount }) {
         state.timerExpired = false;
         state.awaitingStart = true;
         state.chasePose = "idle";
+        if (state.gameMode === "daily") {
+          const config = state.round?.dailyConfig;
+          startDailyTimer(config?.timer || 75);
+          return;
+        }
         state.timerLimit = TIMER_LIMITS[state.difficultyId] ?? TIMER_LIMITS.easy;
         state.timeLeft = state.timerLimit;
         state.timerDeadline = 0;
@@ -958,6 +1317,10 @@ export function createGame({ mount }) {
 
       function onHintOrNext() {
         if (state.phase === "review") {
+          if (state.gameMode === "daily") {
+            finishDaily();
+            return;
+          }
           if (state.reviewOutcome === "fail") {
             retryLevelWithNewPuzzle();
           } else {
@@ -1064,9 +1427,11 @@ export function createGame({ mount }) {
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
         state.hintLabel =
           state.phase === "review"
-            ? state.reviewOutcome === "fail"
-              ? "Try again"
-              : "Next"
+            ? state.gameMode === "daily"
+              ? "Finish"
+              : state.reviewOutcome === "fail"
+                ? "Try again"
+                : "Next"
             : "Nudge";
         ui.render(state, options);
       }
@@ -1133,7 +1498,7 @@ export function createGame({ mount }) {
       }
 
       function buildResume() {
-        if (!state.usernameKey) return null;
+        if (!state.usernameKey || state.gameMode === "daily") return null;
         if (!["playing", "review"].includes(state.phase)) return null;
         return {
           usernameKey: state.usernameKey,
@@ -1171,11 +1536,12 @@ export function createGame({ mount }) {
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
           boardStars: { ...(existing.boardStars || {}), ...(state.boardStars || {}) },
+          daily: normalizeDaily(existing.daily),
           playerId: state.playerId || existing.playerId,
           playerToken: state.playerToken || existing.playerToken,
           registered: state.registered || existing.registered,
         });
-        if (["playing", "review"].includes(state.phase)) {
+        if (["playing", "review"].includes(state.phase) && state.gameMode === "journey") {
           state.resume = buildResume();
         }
         saveState({

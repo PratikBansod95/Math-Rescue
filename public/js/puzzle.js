@@ -126,6 +126,121 @@ export function createRound({
   };
 }
 
+/** UTC weekday rotation for the shared daily puzzle. */
+export function getDailyConfig(dateKey) {
+  const parts = String(dateKey || "").split("-").map(Number);
+  const date = parts.length === 3 ? new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])) : new Date();
+  const dow = date.getUTCDay();
+  const configs = {
+    0: {
+      divisionId: "lower-secondary",
+      difficultyId: "normal",
+      level: 20,
+      timer: 75,
+      label: "Community day",
+    },
+    1: {
+      divisionId: "upper-primary",
+      difficultyId: "easy",
+      level: 6,
+      timer: 75,
+      label: "Warm-up rescue",
+    },
+    2: {
+      divisionId: "upper-primary",
+      difficultyId: "easy",
+      level: 7,
+      timer: 75,
+      label: "Warm-up rescue",
+    },
+    3: {
+      divisionId: "lower-secondary",
+      difficultyId: "normal",
+      level: 8,
+      timer: 75,
+      label: "Daily mix",
+    },
+    4: {
+      divisionId: "lower-secondary",
+      difficultyId: "normal",
+      level: 9,
+      timer: 75,
+      label: "Daily mix",
+    },
+    5: {
+      divisionId: "upper-primary",
+      difficultyId: "easy",
+      level: 10,
+      timer: 75,
+      label: "Special twist",
+    },
+    6: {
+      divisionId: "lower-secondary",
+      difficultyId: "medium",
+      level: 11,
+      timer: 60,
+      label: "Hard mode",
+    },
+  };
+  return configs[dow] || configs[1];
+}
+
+export function createDailyRound(dateKey) {
+  const config = getDailyConfig(dateKey);
+  const division = getDivision(config.divisionId);
+  const difficulty = getDifficulty(config.difficultyId);
+  const level = config.level;
+  seedRandom(hashDailySeed(dateKey, 0, config.divisionId, config.difficultyId));
+
+  const special = specialTypeForLevel(level, division);
+  if (special === "matching-target-cards") {
+    return {
+      ...createMatchingTargetRound(level, division, difficulty),
+      dailyConfig: config,
+      dateKey,
+    };
+  }
+  if (special === "all-target-with-fraction") {
+    return {
+      ...createAllTargetFractionRound(level, division, difficulty),
+      dailyConfig: config,
+      dateKey,
+    };
+  }
+
+  for (let attempt = 0; attempt < 180; attempt += 1) {
+    const cards = generateCards(division, difficulty, level, config.difficultyId);
+    if (cards.every((card) => card.key === cards[0].key)) continue;
+
+    const solutions = findIntegerTargets(cards, level, difficulty, config.difficultyId);
+    const pool = preferFriendlyTargets(solutions, level, config.difficultyId);
+    if (pool.length > 0) {
+      const picked = pickGentleSolution(pool);
+      return {
+        cards,
+        target: picked.value,
+        targetLabel: formatTarget(picked.value),
+        exampleSolution: picked.expression,
+        specialType: null,
+        note: `Daily Rescue · ${config.label}`,
+        dailyConfig: config,
+        dateKey,
+      };
+    }
+  }
+
+  return {
+    cards: makeCards([2, 4, 6, 8]),
+    target: 24,
+    targetLabel: "24",
+    exampleSolution: "((2 + 4) * (8 - 6))",
+    specialType: null,
+    note: `Daily Rescue · ${config.label}`,
+    dailyConfig: config,
+    dateKey,
+  };
+}
+
 export function countUsedCards(expression, cards) {
   if (!cards) return new Map();
   const parsed = tokenize(expression, cards);
@@ -653,6 +768,15 @@ function seedRandom(seed) {
 
 function hashSeed(levelIndex, puzzleVariant, divisionId, difficultyId) {
   const text = `${levelIndex}|v${puzzleVariant}|${divisionId}|${difficultyId}`;
+  return fnv1aHash(text);
+}
+
+export function hashDailySeed(dateKey, puzzleVariant, divisionId, difficultyId) {
+  const text = `daily|${dateKey}|v${puzzleVariant}|${divisionId}|${difficultyId}`;
+  return fnv1aHash(text);
+}
+
+function fnv1aHash(text) {
   let hash = 2166136261;
   for (let i = 0; i < text.length; i += 1) {
     hash ^= text.charCodeAt(i);

@@ -1,6 +1,7 @@
 import { bestBoardRating } from "./scoring.js";
 import { ensurePlayerIdentity } from "./playerIdentity.js";
 import { MAX_NICKNAME_LENGTH, normalizeNicknameKey } from "./nicknameValidation.js";
+import { emptyDailyState, normalizeDaily } from "./daily.js";
 
 const STORAGE_KEY = "math-rescue-v1";
 const LEGACY_KEYS = ["mathmaster-v2", "mathmaster-v1"];
@@ -21,6 +22,7 @@ export function emptyProfile() {
     taskStars: {},
     boardStars: {},
     registered: false,
+    daily: emptyDailyState(),
   });
 }
 
@@ -192,6 +194,7 @@ function normalizeProfiles(profiles) {
           ? value.taskStars
           : fresh.taskStars,
       boardStars,
+      daily: normalizeDaily(value.daily),
       playerId: value.playerId,
       playerToken: value.playerToken,
       registered: Boolean(value.registered),
