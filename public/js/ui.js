@@ -1119,7 +1119,7 @@ function updateMenuScreen(els, state) {
   if (els.menuGreeting) {
     if (state.username) {
       els.menuGreeting.hidden = false;
-      els.menuGreeting.textContent = `Hey, ${state.username} — ready to rescue?`;
+      els.menuGreeting.innerHTML = `<span class="menu-greeting__line">Hey, <span class="menu-greeting__name">${escapeHtml(state.username)}</span></span><span class="menu-greeting__prompt">Ready to rescue?</span>`;
     } else {
       els.menuGreeting.hidden = true;
       els.menuGreeting.textContent = "";

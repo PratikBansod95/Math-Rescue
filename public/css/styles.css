@@ -2929,7 +2929,7 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-hero--banner {
-  gap: 0;
+  gap: 0.85rem;
   padding-top: 0;
 }
 
@@ -3052,11 +3052,39 @@ button:disabled { cursor: not-allowed }
 .menu-ribbon span { position: relative; z-index: 1 }
 
 .menu-greeting {
-  margin: 0.05rem 0 0;
-  color: #4b6286;
-  font-size: 0.92rem;
+  margin: 0;
+  display: grid;
+  gap: 0.14rem;
+  justify-items: center;
+  width: min(100%, 20rem);
+  line-height: 1.2;
+  animation: menu-rise .55s .08s ease both
+}
+
+.menu-hero--banner .menu-greeting {
+  margin-bottom: 0.1rem;
+  padding-inline: 0.35rem;
+}
+
+.menu-greeting__line {
+  font-family: Fredoka, "Space Grotesk", Quicksand, sans-serif;
+  font-size: clamp(1.02rem, 4.4vw, 1.14rem);
   font-weight: 700;
+  color: #2f4368;
   letter-spacing: 0.01em
+}
+
+.menu-greeting__name {
+  color: #2563eb;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .75)
+}
+
+.menu-greeting__prompt {
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6f83a3
 }
 
 .menu-scene {
