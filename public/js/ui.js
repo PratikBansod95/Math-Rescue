@@ -193,7 +193,6 @@ export function createUI({ mount, handlers }) {
   });
   on(shell.querySelector("[data-menu-open-howto]"), "click", handlers.onOpenHowTo);
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
-  on(shell.querySelector("[data-menu-open-journey]"), "click", handlers.onOpenJourney);
   on(shell.querySelector("[data-menu-close-journey]"), "click", handlers.onCloseJourney);
   shell.querySelectorAll("[data-menu-open-leaderboard]").forEach((btn) => {
     on(btn, "click", (event) => {
@@ -245,12 +244,14 @@ export function createUI({ mount, handlers }) {
     handlers.onSelectBoard(Number(btn.dataset.selectBoard));
   });
   on(els.menuPath, "click", (event) => {
+    if (event.target.closest("[data-menu-open-journey]")) {
+      handlers.onOpenJourney?.();
+      return;
+    }
     const btn = event.target.closest("[data-select-board]");
     if (btn) {
       handlers.onSelectBoard(Number(btn.dataset.selectBoard));
-      return;
     }
-    handlers.onOpenJourney?.();
   });
   on(shell.querySelector("[data-menu-play]"), "click", handlers.onPlayFromMenu);
   on(window, "keydown", (event) => {
@@ -453,18 +454,6 @@ function template() {
         </button>
 
         <div class="menu-path" data-menu-path aria-label="Level progress"></div>
-
-        <button class="menu-journey" data-menu-open-journey type="button">
-          <span class="menu-journey__icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#e8f1ff"/><path d="M10 34l8-14 6 8 6-12 8 18H10Z" fill="#93c5fd"/><path d="M30 14v10l6-3-6-7Z" fill="#2563eb"/></svg>
-          </span>
-          <span class="menu-journey__copy">
-            <strong>JOURNEY</strong>
-          </span>
-          <span class="menu-journey__chev" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </button>
 
         <div class="menu-features">
           <button class="menu-feature menu-feature--daily" data-menu-open-daily type="button">
@@ -1707,13 +1696,38 @@ function boardStatus(board, unlocked, stars) {
 function renderMenuPath(container, state) {
   if (!container) return;
   const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
-  const start = Math.max(1, unlocked - 2);
-  const end = start + 4;
+  const end = unlocked + 6;
   const starsMap = state.boardStars || {};
+  const signature = `${unlocked}:${end}:${JSON.stringify(starsMap)}`;
+  if (container.dataset.signature === signature) return;
+  container.dataset.signature = signature;
   container.replaceChildren();
-  for (let board = start; board <= end; board += 1) {
-    container.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
+
+  const track = document.createElement("div");
+  track.className = "menu-path__track";
+
+  for (let board = 1; board <= end; board += 1) {
+    track.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
   }
+
+  const journeyBtn = document.createElement("button");
+  journeyBtn.type = "button";
+  journeyBtn.className = "menu-path__journey";
+  journeyBtn.setAttribute("data-menu-open-journey", "");
+  journeyBtn.setAttribute("aria-label", "Open full journey map");
+  journeyBtn.innerHTML = `
+    <span class="menu-path__journey-icon" aria-hidden="true">
+      <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#e8f1ff"/><path d="M10 34l8-14 6 8 6-12 8 18H10Z" fill="#93c5fd"/><path d="M30 14v10l6-3-6-7Z" fill="#2563eb"/></svg>
+    </span>
+    <span class="menu-path__journey-label">Journey</span>
+  `;
+  track.append(journeyBtn);
+  container.append(track);
+
+  window.requestAnimationFrame(() => {
+    const current = track.querySelector("[data-journey-current]") || journeyBtn;
+    current.scrollIntoView({ inline: "center", block: "nearest", behavior: "auto" });
+  });
 }
 
 function renderJourneyMap(els, state) {
