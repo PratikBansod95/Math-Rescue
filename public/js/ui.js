@@ -1696,9 +1696,10 @@ function boardStatus(board, unlocked, stars) {
 function renderMenuPath(container, state) {
   if (!container) return;
   const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
-  const end = unlocked + 6;
+  const start = Math.max(1, unlocked - 2);
+  const end = start + 3;
   const starsMap = state.boardStars || {};
-  const signature = `${unlocked}:${end}:${JSON.stringify(starsMap)}`;
+  const signature = `${start}:${end}:${unlocked}:${JSON.stringify(starsMap)}`;
   if (container.dataset.signature === signature) return;
   container.dataset.signature = signature;
   container.replaceChildren();
@@ -1706,7 +1707,7 @@ function renderMenuPath(container, state) {
   const track = document.createElement("div");
   track.className = "menu-path__track";
 
-  for (let board = 1; board <= end; board += 1) {
+  for (let board = start; board <= end; board += 1) {
     track.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
   }
 
