@@ -498,8 +498,7 @@ function template() {
           <h2 id="daily-panel-title">Daily Challenge <span data-daily-puzzle-num>#1</span></h2>
           <p class="daily-panel__flavor" data-daily-flavor>Today's challenge</p>
           <ul class="daily-panel__rules">
-            <li>One attempt per UTC day — harder than journey levels</li>
-            <li>Curated expert equations — same puzzle for everyone</li>
+            <li>One attempt per day — harder than journey levels</li>
             <li>Solve it for <strong>+5 career points</strong> added to your score</li>
           </ul>
           <button class="screen-btn screen-btn--primary" data-menu-start-daily type="button">Play today's challenge</button>
