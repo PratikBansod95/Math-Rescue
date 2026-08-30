@@ -535,7 +535,7 @@ export function createGame({ mount }) {
         startLevel(state.unlockedBoard);
       }
 
-      async function onSelectBoard(level) {
+      function onSelectBoard(level) {
         if (state.phase !== "menu") return;
         const picked = Math.floor(Number(level));
         if (!Number.isFinite(picked) || picked < 1) return;
@@ -546,14 +546,6 @@ export function createGame({ mount }) {
         const resumeHere =
           resumeIsValid(state.resume) && resumeLevel(state.resume) === picked;
         if (resumeIsValid(state.resume) && resumeLevel(state.resume) !== picked) {
-          const ok = await askConfirm({
-            title: "Switch levels?",
-            message: `Starting level ${picked} will discard your saved progress on level ${resumeLevel(state.resume)}.`,
-            confirmLabel: "Yes",
-            cancelLabel: "No",
-            danger: true,
-          });
-          if (!ok) return;
           state.resume = null;
           state.canResume = false;
         }
