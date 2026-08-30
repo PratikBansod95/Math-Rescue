@@ -11,7 +11,8 @@ import {
   emptyDailyState,
   buildDailyShareText,
 } from "../public/js/daily.js";
-import { createDailyRound, getDailyConfig, DAILY_CHALLENGE_CONFIG } from "../public/js/puzzle.js";
+import { createDailyRound } from "../public/js/dailyChallenges.js";
+import { getDailyConfig, DAILY_CHALLENGE_CONFIG } from "../public/js/puzzle.js";
 
 test("utcDateKey returns YYYY-MM-DD", () => {
   const key = utcDateKey(new Date(Date.UTC(2026, 7, 22, 15, 30)));
@@ -72,4 +73,14 @@ test("buildDailyShareText mentions Daily Challenge", () => {
 
 test("dailyPuzzleNumber increases over time", () => {
   assert.ok(dailyPuzzleNumber("2026-08-22") > dailyPuzzleNumber("2026-01-01"));
+});
+
+test("createDailyRound uses the separate tough challenge bank", async () => {
+  const { DAILY_CHALLENGE_BANK } = await import("../public/js/dailyChallenges.js");
+  const { evaluateSubmission } = await import("../public/js/puzzle.js");
+  assert.ok(DAILY_CHALLENGE_BANK.length >= 12);
+  const round = createDailyRound("2026-08-22");
+  const check = evaluateSubmission(round.exampleSolution, round);
+  assert.equal(check.ok, true, check.reason);
+  assert.match(round.note || "", /Daily Challenge/);
 });

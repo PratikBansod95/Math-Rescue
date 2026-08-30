@@ -141,62 +141,6 @@ export function getDailyConfig(dateKey) {
   return { ...DAILY_CHALLENGE_CONFIG };
 }
 
-export function createDailyRound(dateKey) {
-  const config = getDailyConfig(dateKey);
-  const division = getDivision(config.divisionId);
-  const difficulty = getDifficulty(config.difficultyId);
-  const level = config.level;
-  seedRandom(hashDailySeed(dateKey, 0, config.divisionId, config.difficultyId));
-
-  const special = specialTypeForLevel(level, division);
-  if (special === "matching-target-cards") {
-    return {
-      ...createMatchingTargetRound(level, division, difficulty),
-      dailyConfig: config,
-      dateKey,
-    };
-  }
-  if (special === "all-target-with-fraction") {
-    return {
-      ...createAllTargetFractionRound(level, division, difficulty),
-      dailyConfig: config,
-      dateKey,
-    };
-  }
-
-  for (let attempt = 0; attempt < 180; attempt += 1) {
-    const cards = generateCards(division, difficulty, level, config.difficultyId);
-    if (cards.every((card) => card.key === cards[0].key)) continue;
-
-    const solutions = findIntegerTargets(cards, level, difficulty, config.difficultyId);
-    const pool = preferFriendlyTargets(solutions, level, config.difficultyId);
-    if (pool.length > 0) {
-      const picked = pickGentleSolution(pool);
-      return {
-        cards,
-        target: picked.value,
-        targetLabel: formatTarget(picked.value),
-        exampleSolution: picked.expression,
-        specialType: null,
-        note: `Daily Challenge · ${config.label}`,
-        dailyConfig: config,
-        dateKey,
-      };
-    }
-  }
-
-  return {
-    cards: makeCards([2, 4, 6, 8]),
-    target: 24,
-    targetLabel: "24",
-    exampleSolution: "((2 + 4) * (8 - 6))",
-    specialType: null,
-    note: `Daily Challenge · ${config.label}`,
-    dailyConfig: config,
-    dateKey,
-  };
-}
-
 export function countUsedCards(expression, cards) {
   if (!cards) return new Map();
   const parsed = tokenize(expression, cards);
@@ -415,6 +359,69 @@ function pickGentleSolution(pool) {
   const sorted = [...pool].sort((a, b) => (a.cost || 0) - (b.cost || 0));
   const top = sorted.slice(0, Math.min(4, sorted.length));
   return top[randomInt(0, top.length - 1)];
+}
+
+function pickHardestSolution(pool) {
+  if (!pool.length) return null;
+  const sorted = [...pool].sort((a, b) => (b.cost || 0) - (a.cost || 0) || b.value - a.value);
+  return sorted[0];
+}
+
+export function createRoundFromSpec({
+  cards: cardValues,
+  target,
+  exampleSolution,
+  note = "",
+  dailyConfig = null,
+  dateKey = "",
+}) {
+  const cards = makeCards(cardValues);
+  return {
+    cards,
+    target,
+    targetLabel: formatTarget(target),
+    exampleSolution,
+    specialType: null,
+    note,
+    dailyConfig,
+    dateKey,
+  };
+}
+
+/** Procedural tough puzzle for the daily bank generator (not used in live daily picks). */
+export function createToughProceduralRound(seed) {
+  seedRandom(seed >>> 0);
+  const division = getDivision("upper-secondary");
+  const difficulty = getDifficulty("olympic");
+  const level = 18 + (seed % 4);
+
+  for (let attempt = 0; attempt < 320; attempt += 1) {
+    const cards = generateCards(division, difficulty, level, "olympic");
+    if (cards.every((card) => card.key === cards[0].key)) continue;
+    const hasFraction = cards.some((card) => card.denominator > 1);
+    if (!hasFraction && attempt % 3 !== 0) continue;
+
+    const solutions = findIntegerTargets(cards, level, difficulty, "olympic");
+    if (!solutions.length) continue;
+
+    const picked = pickHardestSolution(solutions);
+    if (!picked || (picked.cost || 0) < 22) continue;
+    if (picked.value <= 0 || picked.value > 120) continue;
+
+    return {
+      cards,
+      target: picked.value,
+      targetLabel: formatTarget(picked.value),
+      exampleSolution: picked.expression,
+      specialType: null,
+    };
+  }
+
+  return createRoundFromSpec({
+    cards: [2, 3, 5, { numerator: 3, denominator: 4 }],
+    target: 11,
+    exampleSolution: "((5 + 3/4) * 2 - 3)",
+  });
 }
 
 function expressionCost(expression) {

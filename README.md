@@ -7,7 +7,7 @@ Card equation puzzle — match the target with four number cards before the shar
 ## Features
 
 - **Journey mode** — level-based progression with stars, hints, and a journey map
-- **Daily Challenge** — one expert puzzle per UTC day; solve it for **+5 career points**
+- **Daily Challenge** — separate tough puzzle bank (72+ expert equations); solve for **+5 career points**
 - **Rescue League** — global career ranks
 - **Cloud sync** — progress saved to Neon Postgres when online; offline play via localStorage
 
@@ -45,6 +45,15 @@ npm run dev
 ```bash
 npm test
 ```
+
+**Regenerate Daily Challenge puzzle bank** (procedural tough generator; optional AI assist):
+
+```bash
+npm run daily:generate
+OPENAI_API_KEY=sk-... npm run daily:generate -- --ai=10
+```
+
+Daily puzzles live in `public/js/data/daily-challenges.data.js` — separate from journey levels. The app picks one puzzle per UTC day from this bank (same puzzle for everyone that day). AI is used offline in the generator script, not at runtime in the browser.
 
 ## Neon setup
 

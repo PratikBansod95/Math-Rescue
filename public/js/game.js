@@ -4,7 +4,6 @@ import {
   DEFAULT_DIVISION_ID,
   DEFAULT_DIFFICULTY_ID,
   createRound,
-  createDailyRound,
   countUsedCards,
   evaluateSubmission,
   findAlternateSolutions,
@@ -15,6 +14,7 @@ import {
   displayExpression,
   formatNumber,
 } from "./puzzle.js";
+import { createDailyRound } from "./dailyChallenges.js";
 import { createUI } from "./ui.js";
 import { createConfirmDialog } from "./confirm.js";
 import { createAudio } from "./audio.js";
