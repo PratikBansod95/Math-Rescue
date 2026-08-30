@@ -66,6 +66,7 @@ export function createUI({ mount, handlers }) {
     menuMuteLabel: shell.querySelector("[data-menu-mute-label]"),
     menuSettingsPlayer: shell.querySelector("[data-menu-settings-player]"),
     menuSettingsSync: shell.querySelector("[data-menu-settings-sync]"),
+    menuGreeting: shell.querySelector("[data-menu-greeting]"),
     menuToast: shell.querySelector("[data-menu-toast]"),
     streakValue: shell.querySelector("[data-streak]"),
     streakSegs: shell.querySelectorAll("[data-streak-seg]"),
@@ -429,6 +430,7 @@ function template() {
             </span>
           </h1>
           <p class="menu-ribbon menu-ribbon--sr"><span>SOLVE • RESCUE • LEVEL UP</span></p>
+          <p class="menu-greeting" data-menu-greeting hidden></p>
           <div class="menu-scene" aria-hidden="true">
             <div class="menu-scene__frame">
               <img class="menu-scene__bg" src="./assets/chase/scene.png?v=belt-v2" alt="" />
@@ -1114,6 +1116,15 @@ function updateMenuScreen(els, state) {
     };
     els.menuSettingsSync.textContent =
       syncLabels[state.syncStatus] || syncLabels.idle;
+  }
+  if (els.menuGreeting) {
+    if (state.username) {
+      els.menuGreeting.hidden = false;
+      els.menuGreeting.textContent = `Hey, ${state.username} — ready to rescue?`;
+    } else {
+      els.menuGreeting.hidden = true;
+      els.menuGreeting.textContent = "";
+    }
   }
   const dailyFeature = els.menuScreen?.querySelector(".menu-feature--daily");
   if (dailyFeature) {
