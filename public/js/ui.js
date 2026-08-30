@@ -400,8 +400,8 @@ function template() {
           </button>
         </header>
 
-        <div class="menu-hero">
-          <h1 class="menu-logo" aria-label="Math Rescue">
+        <div class="menu-hero menu-hero--banner">
+          <h1 class="menu-logo menu-logo--sr" aria-label="Math Rescue">
             <svg class="menu-logo__svg" viewBox="0 0 420 168" role="img" aria-hidden="true">
               <defs>
                 <linearGradient id="menuLogoMath" x1="0" y1="0" x2="0" y2="1">
@@ -430,7 +430,7 @@ function template() {
               <span class="menu-logo__rescue">RESCUE</span>
             </span>
           </h1>
-          <p class="menu-ribbon"><span>SOLVE • RESCUE • LEVEL UP</span></p>
+          <p class="menu-ribbon menu-ribbon--sr"><span>SOLVE • RESCUE • LEVEL UP</span></p>
           <p class="menu-greeting" data-menu-greeting hidden></p>
           <div class="menu-scene" aria-hidden="true">
             <div class="menu-scene__frame">
@@ -460,22 +460,32 @@ function template() {
             <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
-            <strong>DAILY CHALLENGE</strong>
-            <small data-menu-daily-status>Play today</small>
+            <span class="menu-feature__copy">
+              <strong>DAILY CHALLENGE</strong>
+              <small data-menu-daily-status>Play today</small>
+            </span>
+            <span class="menu-feature__chev" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </button>
           <button class="menu-feature" data-menu-open-howto type="button">
             <span class="menu-feature__icon menu-feature__icon--howto" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#2563eb" stroke-width="2"/><path d="M12 10.5v6M12 7.5h.01" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round"/></svg>
             </span>
-            <strong>HOW TO PLAY</strong>
-            <small>Quick guide</small>
+            <span class="menu-feature__copy">
+              <strong>HOW TO PLAY</strong>
+              <small>Quick guide</small>
+            </span>
+            <span class="menu-feature__chev" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </button>
         </div>
 
         <section class="menu-top-players" aria-label="Top players">
           <div class="menu-top-players__head">
             <h2>TOP PLAYERS</h2>
-            <button class="menu-top-players__more" data-menu-open-leaderboard type="button">See ranks</button>
+            <button class="menu-top-players__more" data-menu-open-leaderboard type="button">See ranks &gt;</button>
           </div>
           <p class="menu-daily-streak" data-menu-daily-streak hidden></p>
           <div class="menu-players" data-menu-players></div>
@@ -1711,6 +1721,11 @@ function renderMenuPath(container, state) {
     track.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
   }
 
+  const divider = document.createElement("span");
+  divider.className = "menu-path__divider";
+  divider.setAttribute("aria-hidden", "true");
+  track.append(divider);
+
   const journeyBtn = document.createElement("button");
   journeyBtn.type = "button";
   journeyBtn.className = "menu-path__journey";
@@ -1724,11 +1739,6 @@ function renderMenuPath(container, state) {
   `;
   track.append(journeyBtn);
   container.append(track);
-
-  window.requestAnimationFrame(() => {
-    const current = track.querySelector("[data-journey-current]") || journeyBtn;
-    current.scrollIntoView({ inline: "center", block: "nearest", behavior: "auto" });
-  });
 }
 
 function renderJourneyMap(els, state) {
