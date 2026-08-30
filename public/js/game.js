@@ -352,7 +352,7 @@ export function createGame({ mount }) {
         state.resume = null;
         goToMenu();
         persist();
-        await refreshLeaderboard(25);
+        await refreshLeaderboard(LEADERBOARD_PANEL_LIMIT);
         audio.unlockFromGesture();
         vibrate(12);
       }
@@ -361,7 +361,7 @@ export function createGame({ mount }) {
         if (state.phase !== "menu" && state.phase !== "daily_finished") return;
         state.menuLeaderboardOpen = true;
         render();
-        void refreshLeaderboard(25);
+        void refreshLeaderboard(LEADERBOARD_PANEL_LIMIT);
       }
 
       function onCloseLeaderboard() {
