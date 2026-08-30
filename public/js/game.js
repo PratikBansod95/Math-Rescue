@@ -58,6 +58,7 @@ import {
 } from "./daily.js";
 
 const MAX_RETRIES = 2;
+const LEADERBOARD_PANEL_LIMIT = 100;
 
 const TIMER_LIMITS = {
   easy: 90,

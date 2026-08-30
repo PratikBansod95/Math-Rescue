@@ -528,7 +528,7 @@ function template() {
               <span>Player</span>
               <span>Score</span>
             </div>
-            <div class="league-panel__list" data-menu-leaderboard-list></div>
+            <div class="league-panel__list" data-menu-leaderboard-list tabindex="0" aria-label="Leaderboard rankings"></div>
           </div>
           <button class="screen-btn screen-btn--primary league-panel__back" data-menu-close-leaderboard type="button">Back to menu</button>
         </div>
