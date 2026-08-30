@@ -1784,7 +1784,7 @@ function renderJourneyMap(els, state) {
       <div class="journey-horizon__badge" aria-hidden="true">∞</div>
       <p class="journey-horizon__kicker">Rescue Brain</p>
       <h3 class="journey-horizon__title">Endless rescue ahead</h3>
-      <p class="journey-horizon__copy">Levels never run out. Clear puzzles to push forward — Rescue Brain crafts fresh challenges tuned to your skill.</p>
+      <p class="journey-horizon__copy">Clear puzzles to push forward — Rescue Brain crafts fresh challenges tuned to your skill.</p>
     `;
     trail.append(horizon);
 
