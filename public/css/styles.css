@@ -3106,20 +3106,83 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-path {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.35rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 0.55rem 0.45rem 0.7rem;
   border-radius: 1.2rem;
   background:
     linear-gradient(180deg, rgba(255,255,255,.88), rgba(219, 234, 254, .72));
   border: 1.5px solid #dbeafe;
   box-shadow: 0 10px 22px rgba(26, 43, 74, .08);
-  touch-action: manipulation;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+
+.menu-path::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-path__track {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.55rem;
+  min-width: min-content;
+  padding: 0 0.2rem;
 }
 
 .menu-path .journey-node--compact {
+  flex: none;
   min-height: 0;
+}
+
+.menu-path__journey {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 0.28rem;
+  width: 4.1rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-path__journey-icon {
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #ffffff, #eff6ff);
+  border: 2px solid #93c5fd;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, .9),
+    0 4px 0 #60a5fa;
+}
+
+.menu-path__journey-icon svg {
+  width: 1.85rem;
+  height: 1.85rem;
+  display: block;
+}
+
+.menu-path__journey-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #2563eb;
+  line-height: 1.1;
+}
+
+.menu-path__journey:active .menu-path__journey-icon {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, .9),
+    0 2px 0 #60a5fa;
 }
 
 .menu-play {
