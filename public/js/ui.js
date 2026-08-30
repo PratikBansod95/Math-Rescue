@@ -110,6 +110,7 @@ export function createUI({ mount, handlers }) {
     menuLeaderboardPodium: shell.querySelector("[data-menu-leaderboard-podium]"),
     menuLeaderboardRank: shell.querySelector("[data-menu-leaderboard-rank]"),
     menuDaily: shell.querySelector("[data-menu-daily]"),
+    menuPractice: shell.querySelector("[data-menu-practice]"),
     menuDailyStatus: shell.querySelector("[data-menu-daily-status]"),
     menuDailyStreak: shell.querySelector("[data-menu-daily-streak]"),
     dailyResultOverlay: shell.querySelector("[data-daily-result]"),
@@ -218,6 +219,7 @@ export function createUI({ mount, handlers }) {
     event.stopPropagation();
   });
   on(shell.querySelector("[data-menu-open-daily]"), "click", handlers.onOpenDaily);
+  on(shell.querySelector("[data-menu-open-practice]"), "click", handlers.onOpenPractice);
   on(shell.querySelector("[data-menu-close-daily]"), "click", (event) => {
     event.stopPropagation();
     handlers.onCloseDaily?.();
@@ -225,6 +227,20 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-start-daily]"), "click", (event) => {
     event.stopPropagation();
     handlers.onStartDaily?.();
+  });
+  on(shell.querySelector("[data-menu-close-practice]"), "click", (event) => {
+    event.stopPropagation();
+    handlers.onClosePractice?.();
+  });
+  on(shell.querySelector("[data-menu-start-practice]"), "click", (event) => {
+    event.stopPropagation();
+    handlers.onStartPractice?.();
+  });
+  on(els.menuPractice, "click", (event) => {
+    if (event.target === els.menuPractice) handlers.onClosePractice?.();
+  });
+  on(els.menuPractice?.querySelector(".practice-panel"), "click", (event) => {
+    event.stopPropagation();
   });
   on(els.menuDaily, "click", (event) => {
     if (event.target === els.menuDaily) handlers.onCloseDaily?.();
@@ -290,7 +306,11 @@ export function createUI({ mount, handlers }) {
       });
 
       els.levelLabel.textContent =
-        state.gameMode === "daily" ? "DAILY CHALLENGE" : `LEVEL ${state.levelIndex}`;
+        state.gameMode === "daily"
+          ? "DAILY CHALLENGE"
+          : state.gameMode === "practice"
+            ? "PRACTICE"
+            : `LEVEL ${state.levelIndex}`;
       renderLevelTrack(els.levelTrack, state);
 
       els.coins.textContent = String(state.gameMode === "daily" ? state.bestScore : state.score);
@@ -303,7 +323,9 @@ export function createUI({ mount, handlers }) {
       els.boardMeta.textContent =
         state.gameMode === "daily"
           ? state.round?.dailyConfig?.label || "Daily puzzle"
-          : `Level ${state.levelIndex}`;
+          : state.gameMode === "practice"
+            ? state.brainMessage || "Rescue Brain training"
+            : `Level ${state.levelIndex}`;
 
       els.muteButton.classList.toggle("is-muted", !state.soundOn);
       els.muteButton.setAttribute("aria-label", state.soundOn ? "Mute sound" : "Unmute sound");
@@ -463,6 +485,19 @@ function template() {
           </span>
         </button>
 
+        <button class="menu-journey" data-menu-open-practice type="button">
+          <span class="menu-journey__icon menu-journey__icon--brain" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#f3e8ff"/><path d="M16 28c0-6 3-10 8-10s8 4 8 10" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round"/><path d="M18 20c1-4 4-6 6-6s5 2 6 6M14 24c-2 1-3 3-3 5M34 24c2 1 3 3 3 5" fill="none" stroke="#7c3aed" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="menu-journey__copy">
+            <strong>PRACTICE</strong>
+            <small data-menu-practice-status>Rescue Brain · unique puzzles</small>
+          </span>
+          <span class="menu-journey__chev" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+
         <div class="menu-features">
           <button class="menu-feature menu-feature--daily" data-menu-open-daily type="button">
             <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
@@ -488,6 +523,21 @@ function template() {
           <p class="menu-daily-streak" data-menu-daily-streak hidden></p>
           <div class="menu-players" data-menu-players></div>
         </section>
+      </div>
+
+      <div class="menu-practice screen-overlay" data-menu-practice hidden>
+        <div class="practice-panel screen-card" role="dialog" aria-modal="true" aria-labelledby="practice-panel-title">
+          <p class="practice-panel__kicker">Rescue Brain · your personal puzzle AI</p>
+          <h2 id="practice-panel-title">Practice mode</h2>
+          <p class="practice-panel__status" data-menu-practice-brain>Brain skill 12 · warming up</p>
+          <ul class="practice-panel__rules">
+            <li>Unlimited unique equations tuned to your skill</li>
+            <li>Gets harder when you win · easier when you struggle</li>
+            <li>Journey retries are also tuned by Rescue Brain</li>
+          </ul>
+          <button class="screen-btn screen-btn--primary" data-menu-start-practice type="button">Start training</button>
+          <button class="screen-btn screen-btn--ghost" data-menu-close-practice type="button">Back</button>
+        </div>
       </div>
 
       <div class="menu-daily screen-overlay" data-menu-daily hidden>
@@ -1143,6 +1193,18 @@ function updateMenuScreen(els, state) {
   }
   if (els.menuDaily) {
     els.menuDaily.hidden = !state.menuDailyOpen;
+  }
+  if (els.menuPractice) {
+    els.menuPractice.hidden = !state.menuPracticeOpen;
+  }
+  const practiceStatus = els.menuScreen?.querySelector("[data-menu-practice-status]");
+  if (practiceStatus) {
+    practiceStatus.textContent = `Skill ${state.brainSkill || 12} · Rescue Brain`;
+  }
+  const practiceBrain = els.menuPractice?.querySelector("[data-menu-practice-brain]");
+  if (practiceBrain) {
+    practiceBrain.textContent =
+      state.brainMessage || `Brain skill ${state.brainSkill || 12} · training ready`;
   }
   if (els.menuSettings) {
     els.menuSettings.hidden = !state.menuSettingsOpen;

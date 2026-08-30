@@ -4,6 +4,7 @@ import {
   DEFAULT_DIVISION_ID,
   DEFAULT_DIFFICULTY_ID,
   createRound,
+  createAdaptiveRound,
   countUsedCards,
   evaluateSubmission,
   findAlternateSolutions,
@@ -15,6 +16,13 @@ import {
   formatNumber,
 } from "./puzzle.js";
 import { createDailyRound } from "./dailyChallenges.js";
+import {
+  normalizeBrain,
+  planNextPuzzle,
+  recordBrainRun,
+  brainStatusText,
+  computeSkill,
+} from "./gameBrain.js";
 import { createUI } from "./ui.js";
 import { createConfirmDialog } from "./confirm.js";
 import { createAudio } from "./audio.js";
@@ -144,6 +152,9 @@ export function createGame({ mount }) {
         dailyTodayResult: null,
         dailyResult: null,
         menuDailyOpen: false,
+        menuPracticeOpen: false,
+        brainSkill: 12,
+        brainMessage: "",
         dailyElapsedSeconds: 0,
       };
 
@@ -183,6 +194,9 @@ export function createGame({ mount }) {
           onOpenDaily,
           onCloseDaily,
           onStartDaily,
+          onOpenPractice,
+          onClosePractice,
+          onStartPractice,
           onDailyContinue,
           onDailyShare,
           onUsernameInput,
@@ -376,6 +390,47 @@ export function createGame({ mount }) {
         state.playerToken = profile.playerToken || "";
         state.registered = Boolean(profile.registered);
         syncDailyFromProfile(profile);
+        syncBrainFromProfile(profile);
+      }
+
+      function syncBrainFromProfile(profile = currentProfile()) {
+        const brain = normalizeBrain(profile?.brain);
+        state.brainSkill = computeSkill(profile || {}, brain);
+        state.brainMessage = brain.lastMessage || brainStatusText(brain, profile || {});
+      }
+
+      function getBrain() {
+        return normalizeBrain(currentProfile()?.brain);
+      }
+
+      function writeBrainToProfile(brain) {
+        if (!state.usernameKey) return;
+        const profile = ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile());
+        state.profiles[state.usernameKey] = {
+          ...profile,
+          brain: normalizeBrain(brain),
+        };
+        syncBrainFromProfile(state.profiles[state.usernameKey]);
+      }
+
+      function recordBrainRunToProfile(run) {
+        const profile = currentProfile() || emptyProfile();
+        const brain = recordBrainRun(getBrain(), { ...run, at: Date.now() }, profile);
+        writeBrainToProfile(brain);
+      }
+
+      function applyBrainRound(plan) {
+        state.brainPlan = plan;
+        state.brainMessage = plan.message;
+        state.divisionId = plan.divisionId;
+        state.difficultyId = plan.difficultyId;
+        state.division = getDivision(plan.divisionId);
+        state.difficulty = getDifficulty(plan.difficultyId);
+        if (state.gameMode === "practice") {
+          state.levelIndex = plan.levelIndex;
+        }
+        state.puzzleVariant = plan.puzzleVariant;
+        state.round = createAdaptiveRound(plan);
       }
 
       function syncDailyFromProfile(profile = currentProfile()) {
@@ -437,6 +492,7 @@ export function createGame({ mount }) {
         state.menuJourneyOpen = Boolean(openJourney);
         state.menuLeaderboardOpen = false;
         state.menuDailyOpen = false;
+        state.menuPracticeOpen = false;
         state.dailyResult = null;
         state.menuToast = "";
         state.showTutorial = false;
@@ -450,6 +506,7 @@ export function createGame({ mount }) {
         state.canResume = resumeIsValid(state.resume);
         state.levelIndex = state.unlockedBoard;
         syncDailyFromProfile();
+        syncBrainFromProfile();
         state.leaderboard = topProfilesByScore(state.profiles, 3).filter(
           (entry) => (entry.bestScore || 0) > 0
         );
@@ -470,11 +527,18 @@ export function createGame({ mount }) {
         }
         if (state.phase === "playing" || state.phase === "review") {
           const ok = await askConfirm({
-            title: state.gameMode === "daily" ? "Leave Daily Challenge?" : "Leave this puzzle?",
+            title:
+              state.gameMode === "daily"
+                ? "Leave Daily Challenge?"
+                : state.gameMode === "practice"
+                  ? "Leave Practice?"
+                  : "Leave this puzzle?",
             message:
               state.gameMode === "daily"
                 ? "You only get one official daily attempt per day. Leaving now will forfeit today's challenge."
-                : "Your level progress is saved. You can continue later from the menu.",
+                : state.gameMode === "practice"
+                  ? "Rescue Brain remembers your skill — you can train again anytime."
+                  : "Your level progress is saved. You can continue later from the menu.",
             confirmLabel: "Yes, leave",
             cancelLabel: "No",
           });
@@ -736,6 +800,10 @@ export function createGame({ mount }) {
           onCloseDaily();
           return;
         }
+        if (state.menuPracticeOpen) {
+          onClosePractice();
+          return;
+        }
       }
 
       function onOpenDaily() {
@@ -747,6 +815,62 @@ export function createGame({ mount }) {
       function onCloseDaily() {
         state.menuDailyOpen = false;
         render();
+      }
+
+      function onOpenPractice() {
+        if (state.phase !== "menu") return;
+        syncBrainFromProfile();
+        state.menuPracticeOpen = true;
+        render();
+      }
+
+      function onClosePractice() {
+        state.menuPracticeOpen = false;
+        render();
+      }
+
+      function beginPracticeRound() {
+        const profile = currentProfile() || emptyProfile();
+        const plan = planNextPuzzle(profile, getBrain(), {
+          mode: "practice",
+          reason: "practice",
+          levelIndex: profile.unlockedBoard || 1,
+        });
+        applyBrainRound(plan);
+        resetTaskFlags();
+        state.expression = "";
+        state.usedCounts = new Map();
+        state.result = null;
+        state.correction = null;
+        state.resume = null;
+        state.canResume = false;
+        state.reviewOutcome = null;
+        state.feedback = {
+          kind: "neutral",
+          text: "Rescue Brain training — unique puzzle ready.",
+          detail: plan.message,
+        };
+        startPuzzleTimer();
+        render();
+        persist({ remote: false });
+      }
+
+      function onStartPractice() {
+        if (state.phase !== "menu") return;
+        state.menuPracticeOpen = false;
+        state.gameMode = "practice";
+        state.menuSettingsOpen = false;
+        state.menuHowToOpen = false;
+        state.menuJourneyOpen = false;
+        state.menuDailyOpen = false;
+        state.phase = "playing";
+        state.showTutorial = false;
+        state.tutorialStep = 0;
+        state.score = 0;
+        state.runStars = 0;
+        beginPracticeRound();
+        audio.unlockFromGesture();
+        vibrate(12);
       }
 
       function onStartDaily() {
@@ -1083,8 +1207,10 @@ export function createGame({ mount }) {
         const correction = buildWrongCorrection(state.expression, result, state.round);
         state.phase = "review";
         state.reviewOutcome = "fail";
-        if (state.gameMode !== "daily") {
+        if (state.gameMode !== "daily" && state.gameMode !== "practice") {
           state.score = Math.max(0, state.score - POINTS_WRONG);
+        } else if (state.gameMode === "practice") {
+          state.score = Math.max(0, state.score - Math.floor(POINTS_WRONG / 2));
         } else {
           state.dailyElapsedSeconds = Math.max(state.timerLimit, state.dailyElapsedSeconds || 0);
         }
@@ -1100,9 +1226,22 @@ export function createGame({ mount }) {
             : result.reason || "Incorrect. Study the solution.",
           detail: state.gameMode === "daily"
             ? "Tap Next to finish today's challenge"
-            : `−${POINTS_WRONG} points · New puzzle on Next`,
+            : state.gameMode === "practice"
+              ? "Tap Next for a new Rescue Brain puzzle"
+              : `−${POINTS_WRONG} points · New puzzle on Next`,
         };
         state.correction = correction;
+        if (state.gameMode !== "daily") {
+          recordBrainRunToProfile({
+            mode: state.gameMode === "practice" ? "practice" : "journey",
+            levelIndex: state.levelIndex,
+            ok: false,
+            stars: 1,
+            secondsLeft: Math.max(0, Number(state.timeLeft) || 0),
+            usedHint: state.usedNudge,
+            retriesUsed: Math.max(0, MAX_RETRIES - (state.retriesLeft || 0)),
+          });
+        }
         if (state.showTutorial && state.tutorialStep === 4) {
           state.showTutorial = false;
           state.tutorialSeen = true;
@@ -1235,6 +1374,17 @@ export function createGame({ mount }) {
           }
           if (state.reviewOutcome === "fail") {
             retryLevelWithNewPuzzle();
+          } else if (state.gameMode === "practice") {
+            recordBrainRunToProfile({
+              mode: "practice",
+              levelIndex: state.levelIndex,
+              ok: true,
+              stars: state.taskStarsEarned || state.runStars || 2,
+              secondsLeft: Math.max(0, Number(state.timeLeft) || 0),
+              usedHint: state.usedNudge,
+              retriesUsed: Math.max(0, MAX_RETRIES - (state.retriesLeft || 0)),
+            });
+            beginPracticeRound();
           } else {
             finishLevel();
           }
@@ -1265,7 +1415,13 @@ export function createGame({ mount }) {
       }
 
       function retryLevelWithNewPuzzle() {
-        state.puzzleVariant = (state.puzzleVariant || 0) + 1;
+        const profile = currentProfile() || emptyProfile();
+        const plan = planNextPuzzle(profile, getBrain(), {
+          mode: state.gameMode === "practice" ? "practice" : "journey",
+          reason: "retry",
+          levelIndex: state.levelIndex,
+        });
+        state.puzzleVariant = plan.puzzleVariant;
         state.phase = "playing";
         state.reviewOutcome = null;
         state.expression = "";
@@ -1274,13 +1430,15 @@ export function createGame({ mount }) {
         state.runStars = 0;
         state.taskStarsEarned = 0;
         resetTaskFlags();
-        state.round = makeRound(state);
+        applyBrainRound(plan);
         state.feedback = {
           kind: "neutral",
-          text: "New puzzle — try again!",
-          detail: "",
+          text: state.gameMode === "practice" ? "New training puzzle ready." : "New puzzle — try again!",
+          detail: plan.message,
         };
-        state.resume = buildResume();
+        if (state.gameMode === "journey") {
+          state.resume = buildResume();
+        }
         startPuzzleTimer();
         render();
         persist();
@@ -1288,6 +1446,15 @@ export function createGame({ mount }) {
 
       function finishLevel() {
         stopPuzzleTimer();
+        recordBrainRunToProfile({
+          mode: "journey",
+          levelIndex: state.levelIndex,
+          ok: true,
+          stars: state.taskStarsEarned || state.runStars || 2,
+          secondsLeft: Math.max(0, Number(state.timeLeft) || 0),
+          usedHint: state.usedNudge,
+          retriesUsed: Math.max(0, MAX_RETRIES - (state.retriesLeft || 0)),
+        });
         state.phase = "finished";
         const finishedLevel = state.levelIndex;
         const earned = state.taskStarsEarned || state.runStars || 1;
@@ -1343,7 +1510,9 @@ export function createGame({ mount }) {
               ? "Finish"
               : state.reviewOutcome === "fail"
                 ? "Try again"
-                : "Next"
+                : state.gameMode === "practice"
+                  ? "Next puzzle"
+                  : "Next"
             : "Hint";
         ui.render(state, options);
       }
@@ -1410,7 +1579,9 @@ export function createGame({ mount }) {
       }
 
       function buildResume() {
-        if (!state.usernameKey || state.gameMode === "daily") return null;
+        if (!state.usernameKey || state.gameMode === "daily" || state.gameMode === "practice") {
+          return null;
+        }
         if (!["playing", "review"].includes(state.phase)) return null;
         return {
           usernameKey: state.usernameKey,

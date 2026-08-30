@@ -141,6 +141,77 @@ export function getDailyConfig(dateKey) {
   return { ...DAILY_CHALLENGE_CONFIG };
 }
 
+/** Game Brain — adaptive puzzle generation (unique seed + difficulty tuning). */
+export function createAdaptiveRound({
+  levelIndex = 5,
+  puzzleVariant = 0,
+  divisionId = DEFAULT_DIVISION_ID,
+  difficultyId = DEFAULT_DIFFICULTY_ID,
+  pickStyle = "balanced",
+  seed = 0,
+} = {}) {
+  const level = Math.max(1, Math.floor(Number(levelIndex) || 1));
+  const variant = Math.max(0, Math.floor(Number(puzzleVariant) || 0));
+  const division = getDivision(divisionId);
+  const difficulty = getDifficulty(difficultyId);
+  seedRandom(seed || hashSeed(level, variant, divisionId, difficultyId));
+
+  const special = specialTypeForLevel(level, division);
+  if (special === "matching-target-cards") {
+    return {
+      ...createMatchingTargetRound(level, division, difficulty),
+      brainTag: pickStyle,
+    };
+  }
+  if (special === "all-target-with-fraction") {
+    return {
+      ...createAllTargetFractionRound(level, division, difficulty),
+      brainTag: pickStyle,
+    };
+  }
+
+  for (let attempt = 0; attempt < 220; attempt += 1) {
+    const cards = generateCards(division, difficulty, level, difficultyId);
+    if (cards.every((card) => card.key === cards[0].key)) continue;
+
+    const solutions = findIntegerTargets(cards, level, difficulty, difficultyId);
+    let pool = solutions;
+    if (pickStyle === "gentle") {
+      pool = preferFriendlyTargets(solutions, level, difficultyId);
+      if (!pool.length) pool = solutions;
+    }
+    if (!pool.length) continue;
+
+    const picked =
+      pickStyle === "tough"
+        ? pickHardestSolution(pool)
+        : pickStyle === "gentle"
+          ? pickGentleSolution(pool)
+          : pickBalancedSolution(pool);
+    if (!picked) continue;
+
+    return {
+      cards,
+      target: picked.value,
+      targetLabel: formatTarget(picked.value),
+      exampleSolution: picked.expression,
+      specialType: null,
+      note: "Rescue Brain puzzle",
+      brainTag: pickStyle,
+    };
+  }
+
+  return {
+    cards: makeCards([2, 4, 6, 8]),
+    target: 24,
+    targetLabel: "24",
+    exampleSolution: "((2 + 4) * (8 - 6))",
+    specialType: null,
+    note: "Rescue Brain puzzle",
+    brainTag: pickStyle,
+  };
+}
+
 export function countUsedCards(expression, cards) {
   if (!cards) return new Map();
   const parsed = tokenize(expression, cards);
@@ -365,6 +436,12 @@ function pickHardestSolution(pool) {
   if (!pool.length) return null;
   const sorted = [...pool].sort((a, b) => (b.cost || 0) - (a.cost || 0) || b.value - a.value);
   return sorted[0];
+}
+
+function pickBalancedSolution(pool) {
+  if (!pool.length) return null;
+  const sorted = [...pool].sort((a, b) => (a.cost || 0) - (b.cost || 0));
+  return sorted[Math.floor(sorted.length / 2)] || sorted[0];
 }
 
 export function createRoundFromSpec({
@@ -729,7 +806,7 @@ function seedRandom(seed) {
   rngState = (seed >>> 0) || 0x9e3779b9;
 }
 
-function hashSeed(levelIndex, puzzleVariant, divisionId, difficultyId) {
+export function hashSeed(levelIndex, puzzleVariant, divisionId, difficultyId) {
   const text = `${levelIndex}|v${puzzleVariant}|${divisionId}|${difficultyId}`;
   return fnv1aHash(text);
 }
