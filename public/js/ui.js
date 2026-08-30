@@ -195,14 +195,16 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-menu-close-howto]"), "click", handlers.onCloseHowTo);
   on(shell.querySelector("[data-menu-open-journey]"), "click", handlers.onOpenJourney);
   on(shell.querySelector("[data-menu-close-journey]"), "click", handlers.onCloseJourney);
-  on(shell.querySelector("[data-menu-open-leaderboard]"), "click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    leaderboardBackdropGuard = true;
-    handlers.onOpenLeaderboard?.();
-    requestAnimationFrame(() => {
+  shell.querySelectorAll("[data-menu-open-leaderboard]").forEach((btn) => {
+    on(btn, "click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      leaderboardBackdropGuard = true;
+      handlers.onOpenLeaderboard?.();
       requestAnimationFrame(() => {
-        leaderboardBackdropGuard = false;
+        requestAnimationFrame(() => {
+          leaderboardBackdropGuard = false;
+        });
       });
     });
   });
@@ -389,12 +391,12 @@ function template() {
             <span class="menu-hud__level-tag">Level</span>
             <strong class="menu-hud__level-num" data-menu-level>1</strong>
           </div>
-          <div class="menu-hud__score" title="Total score">
+          <button class="menu-hud__score" data-menu-open-leaderboard type="button" aria-label="Open Rescue League leaderboard" title="Rescue League">
             <span class="menu-hud__score-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#fbbf24"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
             </span>
             <strong class="menu-hud__score-val" data-menu-coins>0</strong>
-          </div>
+          </button>
         </header>
 
         <div class="menu-hero">
@@ -458,7 +460,7 @@ function template() {
           </span>
           <span class="menu-journey__copy">
             <strong>JOURNEY</strong>
-            <small>Level map</small>
+            <small>Endless level path</small>
           </span>
           <span class="menu-journey__chev" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -616,6 +618,7 @@ function template() {
             <div class="journey-top__copy">
               <p>Your path</p>
               <h2 id="journey-title">Rescue Journey</h2>
+              <p class="journey-top__brain" data-journey-brain-status>No level cap — keep rescuing</p>
             </div>
             <div class="journey-top__level" data-journey-hud-level>1</div>
           </header>
@@ -1651,19 +1654,43 @@ const JOURNEY_WORLDS = [
   { name: "Coral Peak", blurb: "Legendary levels" },
 ];
 
-function journeyLevelCount(unlockedBoard) {
+const JOURNEY_BRAIN_WORLDS = [
+  { name: "Brain Reef", blurb: "Rescue Brain · adaptive route" },
+  { name: "Cipher Current", blurb: "Unique puzzles ahead" },
+  { name: "Logic Depths", blurb: "Skill-tuned challenges" },
+  { name: "Open Waters", blurb: "Endless rescue path" },
+];
+
+/** Levels shown behind the player (sliding window for long runs). */
+const JOURNEY_HISTORY = 10;
+/** Locked levels rendered ahead of the current level. */
+const JOURNEY_LOOKAHEAD = 45;
+/** Far-ahead locked nodes switch to brain styling. */
+const JOURNEY_HORIZON_OFFSET = 8;
+
+function journeyMapRange(unlockedBoard) {
   const unlocked = Math.max(1, Number(unlockedBoard) || 1);
-  return Math.max(20, Math.ceil((unlocked + 8) / 5) * 5);
+  const start = Math.max(1, unlocked - JOURNEY_HISTORY);
+  const end = Math.ceil((unlocked + JOURNEY_LOOKAHEAD) / 5) * 5;
+  return { start, end, unlocked };
+}
+
+function journeyLevelCount(unlockedBoard) {
+  return journeyMapRange(unlockedBoard).end;
 }
 
 function journeyWorld(board) {
   const index = Math.floor((Math.max(1, board) - 1) / 5);
-  const base = JOURNEY_WORLDS[index % JOURNEY_WORLDS.length];
-  const cycle = Math.floor(index / JOURNEY_WORLDS.length);
+  const isBrain = index >= JOURNEY_WORLDS.length;
+  const pool = isBrain ? JOURNEY_BRAIN_WORLDS : JOURNEY_WORLDS;
+  const poolIndex = isBrain ? index - JOURNEY_WORLDS.length : index;
+  const base = pool[poolIndex % pool.length];
+  const cycle = Math.floor(poolIndex / pool.length);
   return {
     name: cycle ? `${base.name} ${cycle + 1}` : base.name,
     blurb: base.blurb,
     start: index * 5 + 1,
+    isBrain,
   };
 }
 
@@ -1694,18 +1721,25 @@ function renderJourneyMap(els, state) {
   const overlay = els.menuJourney;
   const mount = els.menuJourneyMount;
   if (!overlay || !mount) return;
-  const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
+  const { start, end, unlocked } = journeyMapRange(state.unlockedBoard);
   const hud = overlay.querySelector("[data-journey-hud-level]");
   if (hud) hud.textContent = String(unlocked);
+  const brainStatus = overlay.querySelector("[data-journey-brain-status]");
+  if (brainStatus) {
+    const skill = Number(state.brainSkill) || 12;
+    brainStatus.textContent =
+      skill >= 60
+        ? `Rescue Brain · skill ${skill} · endless path ahead`
+        : "No level cap — Rescue Brain charts what's next";
+  }
 
   if (overlay.hidden) {
     overlay.dataset.scrolled = "";
     return;
   }
 
-  const total = journeyLevelCount(unlocked);
   const starsMap = state.boardStars || {};
-  const signature = `${unlocked}:${total}:${JSON.stringify(starsMap)}`;
+  const signature = `${start}:${end}:${unlocked}:${JSON.stringify(starsMap)}`;
   if (mount.dataset.signature !== signature) {
     mount.dataset.signature = signature;
     mount.replaceChildren();
@@ -1716,27 +1750,50 @@ function renderJourneyMap(els, state) {
     svg.setAttribute("aria-hidden", "true");
     trail.append(svg);
 
-    const worldCount = total / 5;
-    for (let worldIndex = 0; worldIndex < worldCount; worldIndex += 1) {
-      const start = worldIndex * 5 + 1;
-      const world = journeyWorld(start);
+    const firstWorld = Math.floor((start - 1) / 5);
+    const lastWorld = Math.floor((end - 1) / 5);
+    for (let worldIndex = firstWorld; worldIndex <= lastWorld; worldIndex += 1) {
+      const worldStart = worldIndex * 5 + 1;
+      const worldEnd = worldStart + 4;
+      const sectionStart = Math.max(worldStart, start);
+      const sectionEnd = Math.min(worldEnd, end);
+      const world = journeyWorld(worldStart);
       const section = document.createElement("section");
-      section.className = "journey-world";
+      section.className = `journey-world${world.isBrain ? " journey-world--brain" : ""}`;
       const head = document.createElement("header");
       head.className = "journey-world__head";
       head.innerHTML = `<p>${escapeHtml(world.blurb)}</p><h3>${escapeHtml(world.name)}</h3>`;
       const row = document.createElement("div");
       row.className = "journey-world__nodes";
-      for (let board = start + 4; board >= start; board -= 1) {
-        row.append(makeJourneyNode(board, unlocked, starsMap, { compact: false }));
+      for (let board = sectionEnd; board >= sectionStart; board -= 1) {
+        row.append(
+          makeJourneyNode(board, unlocked, starsMap, {
+            compact: false,
+            horizon: board > unlocked + JOURNEY_HORIZON_OFFSET,
+          }),
+        );
       }
       section.append(head, row);
       trail.append(section);
     }
+
+    const horizon = document.createElement("section");
+    horizon.className = "journey-horizon";
+    horizon.setAttribute("aria-label", "Endless path ahead");
+    horizon.innerHTML = `
+      <div class="journey-horizon__badge" aria-hidden="true">∞</div>
+      <p class="journey-horizon__kicker">Rescue Brain</p>
+      <h3 class="journey-horizon__title">Endless rescue ahead</h3>
+      <p class="journey-horizon__copy">Levels never run out. Clear puzzles to push forward — Rescue Brain crafts fresh challenges tuned to your skill.</p>
+    `;
+    trail.append(horizon);
+
     mount.append(trail);
-    window.requestAnimationFrame(() => drawJourneyPath(trail, unlocked));
+    window.requestAnimationFrame(() => drawJourneyPath(trail, unlocked, start));
   } else {
-    window.requestAnimationFrame(() => drawJourneyPath(mount.querySelector(".journey-map"), unlocked));
+    window.requestAnimationFrame(() =>
+      drawJourneyPath(mount.querySelector(".journey-map"), unlocked, start),
+    );
   }
 
   if (overlay.dataset.scrolled !== signature) {
@@ -1748,18 +1805,22 @@ function renderJourneyMap(els, state) {
   }
 }
 
-function makeJourneyNode(board, unlocked, starsMap, { compact }) {
+function makeJourneyNode(board, unlocked, starsMap, { compact, horizon = false }) {
   const status = boardStatus(board, unlocked, starsMap);
   const stars = Math.max(0, Math.min(3, Number(starsMap[board]) || Number(starsMap[String(board)]) || 0));
   const button = document.createElement("button");
   button.type = "button";
-  button.className = `journey-node journey-node--${status}${compact ? " journey-node--compact" : ""}`;
+  button.className = `journey-node journey-node--${status}${compact ? " journey-node--compact" : ""}${
+    horizon && status === "locked" ? " journey-node--horizon" : ""
+  }`;
   button.dataset.selectBoard = String(board);
   if (status === "current") button.dataset.journeyCurrent = "true";
   button.setAttribute(
     "aria-label",
     status === "locked"
-      ? `Level ${board} locked`
+      ? horizon
+        ? `Level ${board} ahead — Rescue Brain puzzle`
+        : `Level ${board} locked`
       : status === "current"
         ? `Play level ${board}`
         : `Replay level ${board}, ${stars} stars`
@@ -1768,7 +1829,11 @@ function makeJourneyNode(board, unlocked, starsMap, { compact }) {
   const badge = document.createElement("span");
   badge.className = "journey-node__badge";
   if (status === "locked") {
-    badge.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+    if (horizon) {
+      badge.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c-3 2-5 5-5 8a5 5 0 0 0 10 0c0-3-2-6-5-8Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 14c1 2 2 3 3 3s2-1 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+    } else {
+      badge.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+    }
   } else {
     badge.textContent = String(board);
   }
@@ -1794,7 +1859,7 @@ function makeJourneyNode(board, unlocked, starsMap, { compact }) {
   return button;
 }
 
-function drawJourneyPath(map, unlocked) {
+function drawJourneyPath(map, unlocked, rangeStart = 1) {
   if (!map) return;
   const svg = map.querySelector(".journey-map__path");
   const nodes = [...map.querySelectorAll(".journey-node")].sort(
@@ -1822,7 +1887,7 @@ function drawJourneyPath(map, unlocked) {
     })
     .join(" ");
   svg.replaceChildren();
-  const doneCount = Math.max(0, unlocked - 1);
+  const doneCount = Math.max(0, unlocked - rangeStart);
   const donePoints = points.slice(0, Math.min(points.length, doneCount + 1));
   const rest = document.createElementNS("http://www.w3.org/2000/svg", "path");
   rest.setAttribute("d", d);
