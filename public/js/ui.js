@@ -429,7 +429,6 @@ function template() {
               <span class="menu-logo__rescue">RESCUE</span>
             </span>
           </h1>
-          <p class="menu-ribbon menu-ribbon--sr"><span>SOLVE • RESCUE • LEVEL UP</span></p>
           <p class="menu-greeting" data-menu-greeting hidden></p>
           <div class="menu-scene" aria-hidden="true">
             <div class="menu-scene__frame">
