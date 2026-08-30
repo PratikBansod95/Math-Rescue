@@ -1702,17 +1702,35 @@ function renderMenuPath(container, state) {
   container.dataset.signature = signature;
   container.replaceChildren();
 
+  const head = document.createElement("header");
+  head.className = "menu-path__head";
+  head.innerHTML = `
+    <div class="menu-path__head-copy">
+      <span class="menu-path__kicker">Your path</span>
+      <span class="menu-path__title">Level progress</span>
+    </div>
+    <span class="menu-path__chip">Lv ${unlocked}</span>
+  `;
+
   const track = document.createElement("div");
   track.className = "menu-path__track";
 
+  const levelsWrap = document.createElement("div");
+  levelsWrap.className = "menu-path__levels";
+  const progress =
+    end > start ? Math.min(100, Math.max(12, ((unlocked - start + 0.5) / (end - start + 1)) * 100)) : 100;
+  levelsWrap.style.setProperty("--path-progress", `${progress}%`);
+
   for (let board = start; board <= end; board += 1) {
-    track.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
+    levelsWrap.append(makeJourneyNode(board, unlocked, starsMap, { compact: true }));
   }
+
+  const aside = document.createElement("div");
+  aside.className = "menu-path__aside";
 
   const divider = document.createElement("span");
   divider.className = "menu-path__divider";
   divider.setAttribute("aria-hidden", "true");
-  track.append(divider);
 
   const journeyBtn = document.createElement("button");
   journeyBtn.type = "button";
@@ -1720,13 +1738,16 @@ function renderMenuPath(container, state) {
   journeyBtn.setAttribute("data-menu-open-journey", "");
   journeyBtn.setAttribute("aria-label", "Open full journey map");
   journeyBtn.innerHTML = `
+    <span class="menu-path__journey-glow" aria-hidden="true"></span>
     <span class="menu-path__journey-icon" aria-hidden="true">
       <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#e8f1ff"/><path d="M10 34l8-14 6 8 6-12 8 18H10Z" fill="#93c5fd"/><path d="M30 14v10l6-3-6-7Z" fill="#2563eb"/></svg>
     </span>
     <span class="menu-path__journey-label">Journey</span>
   `;
-  track.append(journeyBtn);
-  container.append(track);
+
+  aside.append(divider, journeyBtn);
+  track.append(levelsWrap, aside);
+  container.append(head, track);
 }
 
 function renderJourneyMap(els, state) {
@@ -1862,6 +1883,12 @@ function makeJourneyNode(board, unlocked, starsMap, { compact, horizon = false }
   }
 
   button.append(badge, starRow);
+  if (status === "current" && compact) {
+    const tag = document.createElement("span");
+    tag.className = "journey-node__tag";
+    tag.textContent = "Now";
+    button.append(tag);
+  }
   if (status === "current" && !compact) {
     const pin = document.createElement("span");
     pin.className = "journey-node__pin";
