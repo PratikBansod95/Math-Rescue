@@ -110,7 +110,6 @@ export function createUI({ mount, handlers }) {
     menuLeaderboardPodium: shell.querySelector("[data-menu-leaderboard-podium]"),
     menuLeaderboardRank: shell.querySelector("[data-menu-leaderboard-rank]"),
     menuDaily: shell.querySelector("[data-menu-daily]"),
-    menuDailyStatus: shell.querySelector("[data-menu-daily-status]"),
     menuDailyStreak: shell.querySelector("[data-menu-daily-streak]"),
     dailyResultOverlay: shell.querySelector("[data-daily-result]"),
     resultsOverlay: shell.querySelector("[data-results]"),
@@ -462,7 +461,6 @@ function template() {
             </span>
             <span class="menu-feature__copy">
               <strong>DAILY CHALLENGE</strong>
-              <small data-menu-daily-status>Play today</small>
             </span>
             <span class="menu-feature__chev" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1127,16 +1125,6 @@ function updateMenuScreen(els, state) {
     } else {
       els.menuGreeting.hidden = true;
       els.menuGreeting.textContent = "";
-    }
-  }
-  if (els.menuDailyStatus) {
-    if (state.dailyCompletedToday) {
-      const resetIn = formatDailyCountdown(msUntilNextDaily());
-      els.menuDailyStatus.textContent = state.dailyTodayResult
-        ? `Done · resets in ${resetIn}`
-        : `Locked · resets in ${resetIn}`;
-    } else {
-      els.menuDailyStatus.textContent = "Play today";
     }
   }
   const dailyFeature = els.menuScreen?.querySelector(".menu-feature--daily");
