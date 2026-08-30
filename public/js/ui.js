@@ -472,7 +472,6 @@ function template() {
             </span>
             <span class="menu-feature__copy">
               <strong>HOW TO PLAY</strong>
-              <small>Quick guide</small>
             </span>
             <span class="menu-feature__chev" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
