@@ -133,7 +133,6 @@ export async function submitDailyResult(body = {}, rawToken = "") {
     throw new ValidationError("Player credentials are invalid.", undefined, 401);
   }
 
-  const sql = getSql();
   const existing = await sql`
     SELECT id
     FROM daily_results

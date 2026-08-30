@@ -1403,11 +1403,6 @@ function updateLeaderboardOverlay(els, state) {
   }
 
   const entries = (state.leaderboard || []).filter((entry) => (entry.bestScore || 0) > 0);
-  const columns = els.menuLeaderboard?.querySelector("[data-menu-leaderboard-columns]");
-  if (columns) {
-    const spans = columns.querySelectorAll("span");
-    if (spans[2]) spans[2].textContent = "Score";
-  }
   const topThree = entries.filter((entry) => {
     const rank = Number(entry.rank);
     return rank >= 1 && rank <= 3;
@@ -1450,7 +1445,11 @@ function updateLeaderboardOverlay(els, state) {
   const showTable = entries.length === 0 || rest.length > 0 || showPlayerOutside;
   const table = els.menuLeaderboard?.querySelector(".league-panel__table");
   if (table) table.hidden = !showTable;
-  if (columns) columns.hidden = rest.length === 0;
+  if (columns) {
+    const spans = columns.querySelectorAll("span");
+    if (spans[2]) spans[2].textContent = "Score";
+    columns.hidden = rest.length === 0;
+  }
 
   if (els.menuLeaderboardRank) {
     const valueEl = els.menuLeaderboardRank.querySelector(".league-panel__you-value");
