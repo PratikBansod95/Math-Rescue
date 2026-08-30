@@ -1,7 +1,7 @@
-import { applyCors, json, publicError, readJsonBody } from "../server/db.js";
-import { submitDailyResult } from "../server/daily.js";
-import { getBearerToken } from "../server/playerAuth.js";
-import { ValidationError } from "../server/validation.js";
+import { applyCors, json, publicError, readJsonBody } from "../../server/db.js";
+import { submitDailyResult } from "../../server/daily.js";
+import { getBearerToken } from "../../server/playerAuth.js";
+import { ValidationError } from "../../server/validation.js";
 
 export default async function handler(req, res) {
   applyCors(res, "POST,OPTIONS");

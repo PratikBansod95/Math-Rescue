@@ -4028,6 +4028,27 @@ button:disabled { cursor: not-allowed }
   font-weight: 700
 }
 
+.menu-settings__sync {
+  margin: 0.35rem 0 0.85rem;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.menu-settings__legal {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.menu-settings__legal a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.menu-settings__legal a:hover {
+  text-decoration: underline;
+}
+
 .menu-settings__rows {
   display: grid;
   gap: 0.55rem

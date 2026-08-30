@@ -6,10 +6,12 @@ import {
   calcDailyCareerBonus,
   advanceDailyStreak,
   hasCompletedToday,
+  markDailyAttempted,
   dailyPuzzleNumber,
   normalizeDaily,
+  emptyDailyState,
 } from "../public/js/daily.js";
-import { createDailyRound, getDailyConfig } from "../public/js/puzzle.js";
+import { createDailyRound, getDailyConfig, DAILY_CHALLENGE_CONFIG } from "../public/js/puzzle.js";
 
 test("utcDateKey returns YYYY-MM-DD", () => {
   const key = utcDateKey(new Date(Date.UTC(2026, 7, 22, 15, 30)));
@@ -32,12 +34,14 @@ test("createDailyRound changes across dates", () => {
   assert.notEqual(a.target, b.target);
 });
 
-test("getDailyConfig rotates by weekday", () => {
+test("getDailyConfig always uses the expert challenge", () => {
   const sat = getDailyConfig("2026-08-22");
   const sun = getDailyConfig("2026-08-23");
-  assert.equal(sat.label, "Hard mode");
+  assert.deepEqual(sat, DAILY_CHALLENGE_CONFIG);
+  assert.deepEqual(sun, DAILY_CHALLENGE_CONFIG);
+  assert.equal(sat.label, "Expert rescue");
   assert.equal(sat.timer, 60);
-  assert.equal(sun.label, "Community day");
+  assert.equal(sat.difficultyId, "medium");
 });
 
 test("calcDailyScore awards time, stars, and streak", () => {
@@ -57,13 +61,19 @@ test("advanceDailyStreak increments on consecutive days", () => {
   assert.equal(second.daily.streak, 2);
 });
 
-test("hasCompletedToday reads profile daily state", () => {
+test("hasCompletedToday locks after any attempt today", () => {
   const daily = normalizeDaily({
-    lastPlayedDate: "2026-08-22",
-    todayResult: { dateKey: "2026-08-22", submitted: true },
+    attemptedDate: "2026-08-22",
   });
   assert.equal(hasCompletedToday(daily, "2026-08-22"), true);
   assert.equal(hasCompletedToday(daily, "2026-08-23"), false);
+});
+
+test("markDailyAttempted records the UTC date once", () => {
+  const first = markDailyAttempted(emptyDailyState(), "2026-08-22");
+  assert.equal(first.attemptedDate, "2026-08-22");
+  const second = markDailyAttempted(first, "2026-08-22");
+  assert.equal(second.attemptedDate, "2026-08-22");
 });
 
 test("dailyPuzzleNumber increases over time", () => {

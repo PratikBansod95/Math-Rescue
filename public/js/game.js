@@ -50,6 +50,7 @@ import { validateNickname } from "./nicknameValidation.js";
 import {
   utcDateKey,
   hasCompletedToday,
+  markDailyAttempted,
   normalizeDaily,
   advanceDailyStreak,
   calcDailyScore,
@@ -504,7 +505,7 @@ export function createGame({ mount }) {
             state.reviewOutcome = null;
             state.correction = null;
             goToMenu();
-            persist({ remote: false });
+            persist();
             return;
           }
         }
@@ -769,12 +770,21 @@ export function createGame({ mount }) {
 
       function onStartDaily() {
         if (state.phase !== "menu") return;
-        if (state.dailyCompletedToday && state.dailyTodayResult) {
+        syncDailyFromProfile();
+        if (state.dailyCompletedToday) {
+          if (state.dailyTodayResult) {
+            state.menuDailyOpen = false;
+            state.phase = "daily_finished";
+            state.dailyResult = buildDailyResultView(state.dailyTodayResult);
+            render();
+            void refreshDailyLeaderboard();
+            return;
+          }
           state.menuDailyOpen = false;
-          state.phase = "daily_finished";
-          state.dailyResult = buildDailyResultView(state.dailyTodayResult);
+          showMenuToast(
+            `Daily Rescue locked · resets in ${formatDailyCountdown(msUntilNextDaily())}`,
+          );
           render();
-          void refreshDailyLeaderboard();
           return;
         }
         state.menuDailyOpen = false;
@@ -790,6 +800,11 @@ export function createGame({ mount }) {
         state.showTutorial = false;
         state.tutorialStep = 0;
         state.dailyDateKey = utcDateKey();
+        const attemptedDaily = markDailyAttempted(
+          normalizeDaily(currentProfile()?.daily),
+          state.dailyDateKey,
+        );
+        writeDailyToProfile(attemptedDaily);
         state.round = createDailyRound(state.dailyDateKey);
         const config = state.round.dailyConfig || { timer: 75 };
         state.divisionId = config.divisionId;
@@ -1334,7 +1349,7 @@ export function createGame({ mount }) {
           state.feedback = {
             kind: "skip",
             text: buildPuzzleNudge(state.round).text,
-            detail: "Nudge already used on this puzzle.",
+            detail: "Hint already used on this puzzle.",
           };
           render();
           return;
@@ -1432,7 +1447,7 @@ export function createGame({ mount }) {
               : state.reviewOutcome === "fail"
                 ? "Try again"
                 : "Next"
-            : "Nudge";
+            : "Hint";
         ui.render(state, options);
       }
 
@@ -1803,7 +1818,7 @@ function buildPuzzleNudge(round) {
   if (match) {
     const op = opMap[match[2]] || match[2];
     return {
-      text: `Nudge: try ${match[1]} ${op} ${match[3]} first.`,
+      text: `Hint: try ${match[1]} ${op} ${match[3]} first.`,
       detail: cards
         ? `Cards on board: ${cards} · Target ${target}`
         : `Aim for ${target}`,
@@ -1811,7 +1826,7 @@ function buildPuzzleNudge(round) {
   }
 
   return {
-    text: `Nudge: combine cards toward ${target}.`,
+    text: `Hint: combine cards toward ${target}.`,
     detail: cards ? `Cards on board: ${cards}` : "Try a different grouping with ( ).",
   };
 }

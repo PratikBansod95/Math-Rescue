@@ -51,6 +51,7 @@ export function formatDailyCountdown(ms = msUntilNextDaily()) {
 
 export function emptyDailyState() {
   return {
+    attemptedDate: "",
     lastPlayedDate: "",
     streak: 0,
     bestStreak: 0,
@@ -67,6 +68,7 @@ export function normalizeDaily(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return base;
   const todayResult = value.todayResult;
   return {
+    attemptedDate: typeof value.attemptedDate === "string" ? value.attemptedDate : "",
     lastPlayedDate: typeof value.lastPlayedDate === "string" ? value.lastPlayedDate : "",
     streak: Number.isFinite(Number(value.streak)) ? Math.max(0, Number(value.streak)) : 0,
     bestStreak: Number.isFinite(Number(value.bestStreak)) ? Math.max(0, Number(value.bestStreak)) : 0,
@@ -96,8 +98,15 @@ export function normalizeDaily(value) {
 
 export function hasCompletedToday(daily, dateKey = utcDateKey()) {
   const normalized = normalizeDaily(daily);
+  if (normalized.attemptedDate === dateKey) return true;
   if (normalized.lastPlayedDate === dateKey) return true;
-  return normalized.todayResult?.dateKey === dateKey && normalized.todayResult?.submitted;
+  return normalized.todayResult?.dateKey === dateKey;
+}
+
+export function markDailyAttempted(daily, dateKey = utcDateKey()) {
+  const current = normalizeDaily(daily);
+  if (current.attemptedDate === dateKey) return current;
+  return { ...current, attemptedDate: dateKey };
 }
 
 export function calcDailyScore({ stars = 1, secondsLeft = 0, streak = 0 } = {}) {

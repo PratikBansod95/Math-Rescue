@@ -126,63 +126,19 @@ export function createRound({
   };
 }
 
-/** UTC weekday rotation for the shared daily puzzle. */
+/** Shared daily puzzle — always the toughest challenge; date only seeds the board. */
+export const DAILY_CHALLENGE_CONFIG = {
+  divisionId: "lower-secondary",
+  difficultyId: "medium",
+  level: 11,
+  timer: 60,
+  label: "Expert rescue",
+};
+
+/** UTC date seeds the shared daily puzzle (same board for everyone each day). */
 export function getDailyConfig(dateKey) {
-  const parts = String(dateKey || "").split("-").map(Number);
-  const date = parts.length === 3 ? new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])) : new Date();
-  const dow = date.getUTCDay();
-  const configs = {
-    0: {
-      divisionId: "lower-secondary",
-      difficultyId: "normal",
-      level: 20,
-      timer: 75,
-      label: "Community day",
-    },
-    1: {
-      divisionId: "upper-primary",
-      difficultyId: "easy",
-      level: 6,
-      timer: 75,
-      label: "Warm-up rescue",
-    },
-    2: {
-      divisionId: "upper-primary",
-      difficultyId: "easy",
-      level: 7,
-      timer: 75,
-      label: "Warm-up rescue",
-    },
-    3: {
-      divisionId: "lower-secondary",
-      difficultyId: "normal",
-      level: 8,
-      timer: 75,
-      label: "Daily mix",
-    },
-    4: {
-      divisionId: "lower-secondary",
-      difficultyId: "normal",
-      level: 9,
-      timer: 75,
-      label: "Daily mix",
-    },
-    5: {
-      divisionId: "upper-primary",
-      difficultyId: "easy",
-      level: 10,
-      timer: 75,
-      label: "Special twist",
-    },
-    6: {
-      divisionId: "lower-secondary",
-      difficultyId: "medium",
-      level: 11,
-      timer: 60,
-      label: "Hard mode",
-    },
-  };
-  return configs[dow] || configs[1];
+  void dateKey;
+  return { ...DAILY_CHALLENGE_CONFIG };
 }
 
 export function createDailyRound(dateKey) {

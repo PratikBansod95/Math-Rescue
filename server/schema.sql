@@ -9,12 +9,17 @@ CREATE TABLE IF NOT EXISTS players (
   board_stars JSONB NOT NULL DEFAULT '{}'::jsonb,
   tutorial_seen BOOLEAN NOT NULL DEFAULT false,
   auth_token_hash TEXT,
+  daily_meta JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS players_best_score_idx ON players (best_score DESC);
 CREATE INDEX IF NOT EXISTS players_updated_at_idx ON players (updated_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS players_auth_token_hash_idx
+  ON players (auth_token_hash)
+  WHERE auth_token_hash IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS daily_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

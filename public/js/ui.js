@@ -65,6 +65,7 @@ export function createUI({ mount, handlers }) {
     menuMute: shell.querySelector("[data-menu-mute]"),
     menuMuteLabel: shell.querySelector("[data-menu-mute-label]"),
     menuSettingsPlayer: shell.querySelector("[data-menu-settings-player]"),
+    menuSettingsSync: shell.querySelector("[data-menu-settings-sync]"),
     menuGreeting: shell.querySelector("[data-menu-greeting]"),
     menuToast: shell.querySelector("[data-menu-toast]"),
     streakValue: shell.querySelector("[data-streak]"),
@@ -499,9 +500,9 @@ function template() {
           <h2 id="daily-panel-title">Daily Rescue <span data-daily-puzzle-num>#1</span></h2>
           <p class="daily-panel__flavor" data-daily-flavor>Today's rescue</p>
           <ul class="daily-panel__rules">
-            <li>One official run per UTC day</li>
+            <li>One attempt per UTC day — win or lose, then locked 24h</li>
+            <li>Everyone gets the same expert puzzle</li>
             <li>Earn streak, daily score, and up to +15 career pts</li>
-            <li>Compete on Today's Rescuers board</li>
           </ul>
           <div class="daily-panel__streak" data-daily-streak-row>
             <span class="daily-panel__streak-label">Rescue streak</span>
@@ -547,6 +548,7 @@ function template() {
           <p class="menu-sheet__kicker">Options</p>
           <h2 id="menu-settings-title">Settings</h2>
           <p class="menu-settings__player" data-menu-settings-player>Player</p>
+          <p class="menu-settings__sync" data-menu-settings-sync>Cloud sync checking…</p>
           <div class="menu-settings__rows">
             <button class="menu-settings__row" data-menu-mute type="button">
               <span class="menu-settings__row-ico" aria-hidden="true">
@@ -567,6 +569,9 @@ function template() {
               </span>
             </button>
           </div>
+          <p class="menu-settings__legal">
+            <a href="./privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+          </p>
           <button class="screen-btn screen-btn--ghost" data-menu-close-settings type="button">Close</button>
         </div>
       </div>
@@ -810,7 +815,7 @@ function template() {
         </button>
         <button class="btn-hint" data-hint type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8.5 14.5c-1.8-1.2-3-3.2-3-5.4A6.5 6.5 0 0 1 18.5 9c0 2.2-1.2 4.2-3 5.4L15 17H9l-.5-2.5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span data-hint-label>Nudge</span>
+          <span data-hint-label>Hint</span>
         </button>
       </div>
     </footer>
@@ -1076,7 +1081,7 @@ function updateControls(els, state) {
     review
       ? false
       : !playing || Boolean(state.usedNudge);
-  els.hintLabel.textContent = state.hintLabel || (review ? "Next" : "Nudge");
+  els.hintLabel.textContent = state.hintLabel || (review ? "Next" : "Hint");
 
   for (const button of els.operatorPad.querySelectorAll("button")) {
     button.disabled = !playing;
@@ -1117,6 +1122,15 @@ function updateMenuScreen(els, state) {
   if (els.menuSettingsPlayer) {
     els.menuSettingsPlayer.textContent = state.username || "Player";
   }
+  if (els.menuSettingsSync) {
+    const syncLabels = {
+      idle: "Cloud sync — not signed in yet",
+      ok: "Cloud sync — saved online",
+      offline: "Cloud sync — offline (playing locally)",
+    };
+    els.menuSettingsSync.textContent =
+      syncLabels[state.syncStatus] || syncLabels.idle;
+  }
   if (els.menuGreeting) {
     if (state.username) {
       els.menuGreeting.hidden = false;
@@ -1130,7 +1144,10 @@ function updateMenuScreen(els, state) {
   }
   if (els.menuDailyStatus) {
     if (state.dailyCompletedToday) {
-      els.menuDailyStatus.textContent = `Done · resets in ${formatDailyCountdown(msUntilNextDaily())}`;
+      const resetIn = formatDailyCountdown(msUntilNextDaily());
+      els.menuDailyStatus.textContent = state.dailyTodayResult
+        ? `Done · resets in ${resetIn}`
+        : `Locked · resets in ${resetIn}`;
     } else {
       els.menuDailyStatus.textContent = "Play today";
     }
@@ -1304,9 +1321,15 @@ function updateDailyModal(els, state) {
   if (flavor) flavor.textContent = config.label || "Today's rescue";
   if (streakValue) streakValue.textContent = String(state.dailyStreak || 0);
   if (startBtn) {
-    startBtn.textContent = state.dailyCompletedToday
-      ? "View today's result"
-      : "Play today's rescue";
+    const lockedWithoutResult = state.dailyCompletedToday && !state.dailyTodayResult;
+    startBtn.disabled = lockedWithoutResult;
+    if (state.dailyCompletedToday) {
+      startBtn.textContent = state.dailyTodayResult
+        ? "View today's result"
+        : `Locked · ${formatDailyCountdown(msUntilNextDaily())}`;
+    } else {
+      startBtn.textContent = "Play today's rescue";
+    }
   }
 }
 
