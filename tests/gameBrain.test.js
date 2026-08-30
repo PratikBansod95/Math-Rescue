@@ -7,6 +7,8 @@ import {
   planNextPuzzle,
   recordBrainRun,
   skillBand,
+  usesBrainForJourney,
+  JOURNEY_BUILTIN_VARIANTS,
 } from "../public/js/gameBrain.js";
 import { createAdaptiveRound, evaluateSubmission } from "../public/js/puzzle.js";
 
@@ -35,7 +37,6 @@ test("planNextPuzzle eases journey retries after fails", () => {
     sampleProfile,
   );
   const plan = planNextPuzzle(sampleProfile, brain, {
-    mode: "journey",
     reason: "retry",
     levelIndex: 5,
   });
@@ -43,16 +44,31 @@ test("planNextPuzzle eases journey retries after fails", () => {
   assert.ok(plan.levelIndex <= 5);
 });
 
-test("practice plans produce valid unique puzzles", () => {
+test("usesBrainForJourney after built-in variants are exhausted", () => {
+  assert.equal(JOURNEY_BUILTIN_VARIANTS, 3);
+  assert.equal(usesBrainForJourney(0), false);
+  assert.equal(usesBrainForJourney(2), false);
+  assert.equal(usesBrainForJourney(3), true);
+});
+
+test("adaptive plans produce valid unique puzzles", () => {
   const brain = normalizeBrain({ uniqueSeed: 42 });
-  const planA = planNextPuzzle(sampleProfile, brain, { mode: "practice", reason: "practice" });
-  const planB = planNextPuzzle(sampleProfile, recordBrainRun(brain, {
-    mode: "practice",
-    levelIndex: planA.levelIndex,
-    ok: true,
-    stars: 3,
-    secondsLeft: 20,
-  }, sampleProfile), { mode: "practice", reason: "practice" });
+  const planA = planNextPuzzle(sampleProfile, brain, { reason: "adaptive", levelIndex: 5 });
+  const planB = planNextPuzzle(
+    sampleProfile,
+    recordBrainRun(
+      brain,
+      {
+        mode: "journey",
+        levelIndex: planA.levelIndex,
+        ok: true,
+        stars: 3,
+        secondsLeft: 20,
+      },
+      sampleProfile,
+    ),
+    { reason: "adaptive", levelIndex: 5 },
+  );
 
   const roundA = createAdaptiveRound(planA);
   const roundB = createAdaptiveRound(planB);

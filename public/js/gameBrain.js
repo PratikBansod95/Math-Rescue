@@ -7,14 +7,14 @@
 import { DIVISIONS, DIFFICULTIES, hashSeed } from "./puzzle.js";
 
 const MAX_RECENT_RUNS = 24;
-const DIFFICULTY_IDS = DIFFICULTIES.map((d) => d.id);
 const DIVISION_IDS = DIVISIONS.map((d) => d.id);
+
+/** Built-in procedural puzzles per journey level (variants 0 … N-1); then Rescue Brain takes over. */
+export const JOURNEY_BUILTIN_VARIANTS = 3;
 
 export function emptyBrainState() {
   return {
     skill: 12,
-    practiceSolved: 0,
-    practiceStreak: 0,
     uniqueSeed: 1,
     recentRuns: [],
     lastMessage: "",
@@ -32,8 +32,6 @@ export function normalizeBrain(value) {
     : [];
   return {
     skill: clampSkill(value.skill ?? base.skill),
-    practiceSolved: Math.max(0, Number(value.practiceSolved) || 0),
-    practiceStreak: Math.max(0, Number(value.practiceStreak) || 0),
     uniqueSeed: Math.max(1, Number(value.uniqueSeed) || 1),
     recentRuns,
     lastMessage: typeof value.lastMessage === "string" ? value.lastMessage : "",
@@ -42,7 +40,7 @@ export function normalizeBrain(value) {
 
 function normalizeRun(run) {
   return {
-    mode: run.mode === "practice" ? "practice" : "journey",
+    mode: "journey",
     levelIndex: Math.max(1, Number(run.levelIndex) || 1),
     ok: Boolean(run.ok),
     stars: Math.max(1, Math.min(3, Number(run.stars) || 1)),
@@ -120,42 +118,39 @@ export function skillToDivision(skill) {
   return DIVISION_IDS[2];
 }
 
+export function usesBrainForJourney(puzzleVariant = 0) {
+  return Math.max(0, Number(puzzleVariant) || 0) >= JOURNEY_BUILTIN_VARIANTS;
+}
+
 function recentFailsOnLevel(brain, levelIndex) {
   return brain.recentRuns
     .slice(-6)
-    .filter((run) => run.mode === "journey" && run.levelIndex === levelIndex && !run.ok).length;
-}
-
-function recentPracticeTrend(brain) {
-  const practice = brain.recentRuns.filter((run) => run.mode === "practice").slice(-5);
-  if (!practice.length) return 0;
-  const wins = practice.filter((run) => run.ok).length;
-  return wins - (practice.length - wins);
+    .filter((run) => run.levelIndex === levelIndex && !run.ok).length;
 }
 
 export function planNextPuzzle(profile = {}, brain = emptyBrainState(), context = {}) {
   const normalized = normalizeBrain(brain);
   const skill = computeSkill(profile, normalized);
-  const mode = context.mode === "practice" ? "practice" : "journey";
-  const reason = context.reason || (mode === "practice" ? "practice" : "play");
+  const reason = context.reason || "play";
   const journeyLevel = Math.max(1, Number(context.levelIndex) || profile.unlockedBoard || 1);
 
   let levelIndex = journeyLevel;
   let pickStyle = "balanced";
   let message = "Rescue Brain picked a puzzle for you.";
 
-  if (mode === "practice") {
+  if (reason === "adaptive") {
     levelIndex = skillToLevel(skill, profile.unlockedBoard || 1);
-    const trend = recentPracticeTrend(normalized);
-    if (trend >= 2) {
-      pickStyle = "tough";
-      message = "You're on a roll — cranking up the challenge.";
-    } else if (trend <= -1) {
+    const fails = recentFailsOnLevel(normalized, journeyLevel);
+    if (fails >= 2) {
       pickStyle = "gentle";
-      message = "Let's rebuild confidence with a cleaner puzzle.";
+      levelIndex = Math.max(1, journeyLevel - 1);
+      message = "Rescue Brain eased the challenge so you can break through.";
+    } else if (skill >= 70) {
+      pickStyle = "tough";
+      message = "Rescue Brain cooked up a tougher unique puzzle for you.";
     } else {
       pickStyle = "balanced";
-      message = `Training at ${skillBand(skill)} pace.`;
+      message = "Rescue Brain generated a fresh puzzle at your pace.";
     }
   } else if (reason === "retry") {
     const fails = recentFailsOnLevel(normalized, journeyLevel);
@@ -171,15 +166,14 @@ export function planNextPuzzle(profile = {}, brain = emptyBrainState(), context 
   }
 
   const divisionId = skillToDivision(skill);
-  const difficultyId =
-    mode === "practice" ? skillToDifficulty(skill) : skillToDifficulty(Math.min(skill, journeyLevel * 5));
+  const difficultyId = skillToDifficulty(Math.min(skill, journeyLevel * 5 + 10));
 
   const uniqueSeed = normalized.uniqueSeed;
-  const puzzleVariant = uniqueSeed + journeyLevel * 17 + (mode === "practice" ? 9000 : 0);
+  const puzzleVariant = uniqueSeed + journeyLevel * 17;
   const seed = hashSeed(levelIndex, puzzleVariant, divisionId, difficultyId) ^ uniqueSeed;
 
   return {
-    mode,
+    mode: "journey",
     reason,
     skill,
     band: skillBand(skill),
@@ -199,36 +193,15 @@ export function recordBrainRun(brain, run, profile = {}) {
   const entry = normalizeRun(run);
   next.recentRuns = [...next.recentRuns, entry].slice(-MAX_RECENT_RUNS);
   next.skill = computeSkill(profile, next);
-
-  if (entry.mode === "practice" && entry.ok) {
-    next.practiceSolved += 1;
-    next.practiceStreak += 1;
-  } else if (entry.mode === "practice") {
-    next.practiceStreak = 0;
-  }
-
   next.uniqueSeed += 1;
   next.lastMessage = entry.ok
-    ? entry.mode === "practice"
-      ? "Nice solve — preparing the next unique puzzle."
-      : "Good work — skill updated."
-    : entry.mode === "practice"
-      ? "Tough one — next puzzle will meet you where you are."
-      : "Retry tuned to help you crack this level.";
-
+    ? "Good work — Rescue Brain updated your skill."
+    : "Retry tuned to help you crack this level.";
   return next;
 }
 
 export function brainStatusText(brain, profile = {}) {
   const normalized = normalizeBrain(brain);
   const skill = computeSkill(profile, normalized);
-  const band = skillBand(skill);
-  const parts = [`Brain skill ${skill} · ${band}`];
-  if (normalized.practiceSolved > 0) {
-    parts.push(`${normalized.practiceSolved} practice clears`);
-  }
-  if (normalized.practiceStreak > 1) {
-    parts.push(`${normalized.practiceStreak} streak`);
-  }
-  return parts.join(" · ");
+  return `Brain skill ${skill} · ${skillBand(skill)}`;
 }

@@ -7,7 +7,7 @@ Card equation puzzle — match the target with four number cards before the shar
 ## Features
 
 - **Journey mode** — level-based progression with stars, hints, and a journey map
-- **Rescue Brain** — built-in adaptive AI: tracks skill, generates unique practice puzzles, tunes journey retries
+- **Rescue Brain** — built-in adaptive AI: tracks skill, generates unique journey puzzles after built-in variants are exhausted, tunes retries
 - **Rescue League** — global career ranks
 - **Cloud sync** — progress saved to Neon Postgres when online; offline play via localStorage
 
