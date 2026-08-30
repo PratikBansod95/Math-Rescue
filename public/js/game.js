@@ -32,12 +32,9 @@ import {
   savePlayer,
   deletePlayer,
   fetchLeaderboard,
-  fetchDailyLeaderboard,
-  submitDailyScore,
   registerPlayer,
   remoteToLocalProfile,
   leaderboardToUi,
-  dailyLeaderboardToUi,
 } from "./api.js";
 import {
   POINTS_CORRECT,
@@ -52,8 +49,6 @@ import {
   hasCompletedToday,
   markDailyAttempted,
   normalizeDaily,
-  advanceDailyStreak,
-  calcDailyScore,
   calcDailyCareerBonus,
   formatDailyCountdown,
   msUntilNextDaily,
@@ -146,15 +141,9 @@ export function createGame({ mount }) {
         gameMode: "journey",
         dailyDateKey: utcDateKey(),
         dailyCompletedToday: false,
-        dailyStreak: 0,
-        dailyStreakShields: 0,
-        dailyBestStreak: 0,
         dailyTodayResult: null,
         dailyResult: null,
-        dailyLeaderboard: [],
-        dailyPlayerRank: null,
         menuDailyOpen: false,
-        leagueTab: "career",
         dailyElapsedSeconds: 0,
       };
 
@@ -196,7 +185,6 @@ export function createGame({ mount }) {
           onStartDaily,
           onDailyContinue,
           onDailyShare,
-          onLeagueTab,
           onUsernameInput,
           onToggleSound,
           onTutorialSkip,
@@ -369,11 +357,7 @@ export function createGame({ mount }) {
         if (state.phase !== "menu" && state.phase !== "daily_finished") return;
         state.menuLeaderboardOpen = true;
         render();
-        if (state.leagueTab === "daily") {
-          void refreshDailyLeaderboard(25);
-        } else {
-          void refreshLeaderboard(25);
-        }
+        void refreshLeaderboard(25);
       }
 
       function onCloseLeaderboard() {
@@ -398,9 +382,6 @@ export function createGame({ mount }) {
         const daily = normalizeDaily(profile?.daily);
         const dateKey = utcDateKey();
         state.dailyDateKey = dateKey;
-        state.dailyStreak = daily.streak;
-        state.dailyStreakShields = daily.streakShields;
-        state.dailyBestStreak = daily.bestStreak;
         state.dailyTodayResult =
           daily.todayResult?.dateKey === dateKey ? daily.todayResult : null;
         state.dailyCompletedToday = hasCompletedToday(daily, dateKey);
@@ -489,10 +470,10 @@ export function createGame({ mount }) {
         }
         if (state.phase === "playing" || state.phase === "review") {
           const ok = await askConfirm({
-            title: state.gameMode === "daily" ? "Leave Daily Rescue?" : "Leave this puzzle?",
+            title: state.gameMode === "daily" ? "Leave Daily Challenge?" : "Leave this puzzle?",
             message:
               state.gameMode === "daily"
-                ? "You only get one official daily run per day. Leaving now will forfeit today's attempt."
+                ? "You only get one official daily attempt per day. Leaving now will forfeit today's challenge."
                 : "Your level progress is saved. You can continue later from the menu.",
             confirmLabel: "Yes, leave",
             cancelLabel: "No",
@@ -777,12 +758,11 @@ export function createGame({ mount }) {
             state.phase = "daily_finished";
             state.dailyResult = buildDailyResultView(state.dailyTodayResult);
             render();
-            void refreshDailyLeaderboard();
             return;
           }
           state.menuDailyOpen = false;
           showMenuToast(
-            `Daily Rescue locked · resets in ${formatDailyCountdown(msUntilNextDaily())}`,
+            `Daily Challenge locked · resets in ${formatDailyCountdown(msUntilNextDaily())}`,
           );
           render();
           return;
@@ -821,8 +801,8 @@ export function createGame({ mount }) {
         state.dailyElapsedSeconds = 0;
         state.feedback = {
           kind: "neutral",
-          text: "Daily Rescue — one puzzle for everyone today.",
-          detail: config.label || "Tap Start when ready.",
+          text: "Daily Challenge — one expert puzzle for everyone today.",
+          detail: config.label || "Solve it for +5 career points.",
         };
         startDailyTimer(config.timer || 75);
         render();
@@ -845,21 +825,22 @@ export function createGame({ mount }) {
 
       function buildDailyResultView(todayResult) {
         const dateKey = todayResult?.dateKey || state.dailyDateKey || utcDateKey();
+        const succeeded = Boolean(todayResult?.succeeded);
+        const careerBonus = Number(todayResult?.careerBonus) || 0;
         return {
           dateKey,
           puzzleNumber: dailyPuzzleNumber(dateKey),
-          dailyScore: Number(todayResult?.dailyScore) || 0,
           stars: Number(todayResult?.stars) || 1,
           timeSeconds: Number(todayResult?.timeSeconds) || 0,
-          careerBonus: Number(todayResult?.careerBonus) || 0,
-          streak: state.dailyStreak,
-          rank: state.dailyPlayerRank?.rank || null,
+          careerBonus,
+          succeeded,
+          totalScore: state.bestScore,
           shareText: buildDailyShareText({
             dateKey,
             stars: todayResult?.stars,
             timeSeconds: todayResult?.timeSeconds,
-            streak: state.dailyStreak,
-            dailyScore: todayResult?.dailyScore,
+            succeeded,
+            careerBonus,
           }),
           resetsIn: formatDailyCountdown(msUntilNextDaily()),
         };
@@ -867,6 +848,7 @@ export function createGame({ mount }) {
 
       function finishDaily() {
         stopPuzzleTimer();
+        const succeeded = state.reviewOutcome === "success";
         const dateKey = state.dailyDateKey || utcDateKey();
         const stars = state.taskStarsEarned || state.runStars || 1;
         const secondsLeft = Math.max(0, Number(state.timeLeft) || 0);
@@ -874,127 +856,52 @@ export function createGame({ mount }) {
           0,
           state.dailyElapsedSeconds || state.timerLimit - secondsLeft,
         );
+        const careerBonus = calcDailyCareerBonus(succeeded);
         const profile = currentProfile();
         const currentDaily = normalizeDaily(profile?.daily);
-        const { daily: streakDaily, usedShield, weekMilestone } = advanceDailyStreak(
-          currentDaily,
-          dateKey,
-        );
-        const dailyScore = calcDailyScore({
-          stars,
-          secondsLeft,
-          streak: streakDaily.streak,
-        });
-        const careerBonus = calcDailyCareerBonus({
-          stars,
-          weekMilestone,
-        });
         const todayResult = {
           dateKey,
-          dailyScore,
           stars,
           timeSeconds,
           careerBonus,
-          submitted: false,
+          succeeded,
         };
-        streakDaily.todayResult = todayResult;
-        writeDailyToProfile(streakDaily);
-        state.bestScore += careerBonus;
+        const nextDaily = {
+          ...markDailyAttempted(currentDaily, dateKey),
+          todayResult,
+        };
+        writeDailyToProfile(nextDaily);
+        if (careerBonus > 0) {
+          state.bestScore += careerBonus;
+        }
         state.profiles[state.usernameKey] = {
           ...ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile()),
           bestScore: state.bestScore,
-          daily: streakDaily,
+          daily: nextDaily,
         };
         state.phase = "daily_finished";
         state.gameMode = "journey";
         state.reviewOutcome = null;
         state.correction = null;
-        state.dailyResult = {
-          ...buildDailyResultView(todayResult),
-          usedShield,
-          weekMilestone,
-          perfect: stars >= 3,
-        };
-        state.feedback = {
-          kind: "good",
-          text: `Daily Rescue complete! +${careerBonus} career pts`,
-          detail: `Score ${dailyScore} · Streak ${streakDaily.streak}`,
-        };
+        state.dailyResult = buildDailyResultView(todayResult);
+        state.feedback = succeeded
+          ? {
+              kind: "good",
+              text: `Daily Challenge complete! +${careerBonus} career pts`,
+              detail: `Total score ${state.bestScore}`,
+            }
+          : {
+              kind: "bad",
+              text: "Daily Challenge over",
+              detail: "No bonus this time — try again tomorrow.",
+            };
         render();
-        audio.playBlip(660, { duration: 0.1, volume: 0.12 });
-        audio.playBlip(990, { duration: 0.13, volume: 0.12 });
+        if (succeeded) {
+          audio.playBlip(660, { duration: 0.1, volume: 0.12 });
+          audio.playBlip(990, { duration: 0.13, volume: 0.12 });
+        }
         persist();
-        void submitDailyRun({
-          dateKey,
-          dailyScore,
-          stars,
-          timeSeconds,
-          dailyMeta: streakDaily,
-        });
-        void refreshDailyLeaderboard();
         void refreshLeaderboard(3);
-      }
-
-      async function submitDailyRun({ dateKey, dailyScore, stars, timeSeconds, dailyMeta }) {
-        const profile = currentProfile();
-        if (!profile?.playerId || !profile?.playerToken) return;
-        try {
-          const payload = await submitDailyScore(
-            {
-              playerId: profile.playerId,
-              dateKey,
-              dailyScore,
-              stars,
-              timeSeconds,
-              dailyMeta,
-            },
-            profile.playerToken,
-          );
-          if (disposed) return;
-          if (payload?.entry) {
-            state.dailyPlayerRank = payload.entry;
-            if (state.dailyResult) state.dailyResult.rank = payload.entry.rank;
-          }
-          const nextDaily = normalizeDaily(state.profiles[state.usernameKey]?.daily);
-          if (nextDaily.todayResult?.dateKey === dateKey) {
-            nextDaily.todayResult = { ...nextDaily.todayResult, submitted: true };
-            writeDailyToProfile(nextDaily);
-          }
-          if (state.phase === "daily_finished") render();
-        } catch (error) {
-          if (disposed) return;
-          if (error.status !== 409) return;
-          const nextDaily = normalizeDaily(state.profiles[state.usernameKey]?.daily);
-          if (nextDaily.todayResult?.dateKey === dateKey) {
-            nextDaily.todayResult = { ...nextDaily.todayResult, submitted: true };
-            writeDailyToProfile(nextDaily);
-          }
-        }
-      }
-
-      async function refreshDailyLeaderboard(limit = 25) {
-        const profile = currentProfile();
-        const dateKey = state.dailyDateKey || utcDateKey();
-        try {
-          const payload = await fetchDailyLeaderboard(
-            dateKey,
-            limit,
-            profile?.playerId || state.playerId || "",
-          );
-          if (disposed) return;
-          state.dailyLeaderboard = dailyLeaderboardToUi(payload);
-          state.dailyPlayerRank = payload.playerEntry;
-          if (state.dailyResult && payload.playerEntry?.rank) {
-            state.dailyResult.rank = payload.playerEntry.rank;
-          }
-          if (["menu", "daily_finished"].includes(state.phase) || state.menuLeaderboardOpen) {
-            render();
-          }
-        } catch {
-          if (disposed) return;
-          state.dailyPlayerRank = null;
-          state.dailyLeaderboard = [];
-        }
       }
 
       function onDailyContinue() {
@@ -1006,7 +913,7 @@ export function createGame({ mount }) {
         const text = state.dailyResult?.shareText || buildDailyShareText();
         try {
           if (navigator.share) {
-            await navigator.share({ text, title: "Daily Rescue" });
+            await navigator.share({ text, title: "Daily Challenge" });
             return;
           }
         } catch {
@@ -1017,16 +924,6 @@ export function createGame({ mount }) {
           showMenuToast("Result copied!");
         } catch {
           showMenuToast("Could not share result");
-        }
-      }
-
-      function onLeagueTab(tab) {
-        state.leagueTab = tab === "daily" ? "daily" : "career";
-        render();
-        if (state.leagueTab === "daily") {
-          void refreshDailyLeaderboard();
-        } else {
-          void refreshLeaderboard(25);
         }
       }
 
@@ -1202,7 +1099,7 @@ export function createGame({ mount }) {
             ? "Time’s up! The shark caught the cat. Here’s the solution."
             : result.reason || "Incorrect. Study the solution.",
           detail: state.gameMode === "daily"
-            ? "Tap Next to finish today's run"
+            ? "Tap Next to finish today's challenge"
             : `−${POINTS_WRONG} points · New puzzle on Next`,
         };
         state.correction = correction;

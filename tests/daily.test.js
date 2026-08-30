@@ -2,14 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   utcDateKey,
-  calcDailyScore,
   calcDailyCareerBonus,
-  advanceDailyStreak,
+  DAILY_CAREER_BONUS,
   hasCompletedToday,
   markDailyAttempted,
   dailyPuzzleNumber,
   normalizeDaily,
   emptyDailyState,
+  buildDailyShareText,
 } from "../public/js/daily.js";
 import { createDailyRound, getDailyConfig, DAILY_CHALLENGE_CONFIG } from "../public/js/puzzle.js";
 
@@ -39,26 +39,14 @@ test("getDailyConfig always uses the expert challenge", () => {
   const sun = getDailyConfig("2026-08-23");
   assert.deepEqual(sat, DAILY_CHALLENGE_CONFIG);
   assert.deepEqual(sun, DAILY_CHALLENGE_CONFIG);
-  assert.equal(sat.label, "Expert rescue");
+  assert.equal(sat.label, "Expert challenge");
   assert.equal(sat.timer, 60);
   assert.equal(sat.difficultyId, "medium");
 });
 
-test("calcDailyScore awards time, stars, and streak", () => {
-  const score = calcDailyScore({ stars: 3, secondsLeft: 40, streak: 5 });
-  assert.equal(score, 50 + 20 + 20 + 10);
-});
-
-test("calcDailyCareerBonus caps at 15 per day", () => {
-  const bonus = calcDailyCareerBonus({ stars: 3, weekMilestone: true });
-  assert.equal(bonus, 15);
-});
-
-test("advanceDailyStreak increments on consecutive days", () => {
-  const first = advanceDailyStreak({ lastPlayedDate: "", streak: 0 }, "2026-08-21");
-  assert.equal(first.daily.streak, 1);
-  const second = advanceDailyStreak(first.daily, "2026-08-22");
-  assert.equal(second.daily.streak, 2);
+test("calcDailyCareerBonus awards 5 only on success", () => {
+  assert.equal(calcDailyCareerBonus(true), DAILY_CAREER_BONUS);
+  assert.equal(calcDailyCareerBonus(false), 0);
 });
 
 test("hasCompletedToday locks after any attempt today", () => {
@@ -74,6 +62,12 @@ test("markDailyAttempted records the UTC date once", () => {
   assert.equal(first.attemptedDate, "2026-08-22");
   const second = markDailyAttempted(first, "2026-08-22");
   assert.equal(second.attemptedDate, "2026-08-22");
+});
+
+test("buildDailyShareText mentions Daily Challenge", () => {
+  const text = buildDailyShareText({ succeeded: true, careerBonus: 5, stars: 3, timeSeconds: 42 });
+  assert.match(text, /Daily Challenge/);
+  assert.match(text, /\+5 career pts/);
 });
 
 test("dailyPuzzleNumber increases over time", () => {

@@ -235,12 +235,8 @@ export function createUI({ mount, handlers }) {
   on(shell.querySelector("[data-daily-continue]"), "click", handlers.onDailyContinue);
   on(shell.querySelector("[data-daily-share]"), "click", handlers.onDailyShare);
   on(shell.querySelector("[data-daily-open-ranks]"), "click", () => {
-    handlers.onLeagueTab?.("daily");
     handlers.onOpenLeaderboard?.();
   });
-  for (const tab of shell.querySelectorAll("[data-league-tab]")) {
-    on(tab, "click", () => handlers.onLeagueTab?.(tab.dataset.leagueTab));
-  }
   on(els.menuJourneyMount, "click", (event) => {
     const btn = event.target.closest("[data-select-board]");
     if (!btn) return;
@@ -294,7 +290,7 @@ export function createUI({ mount, handlers }) {
       });
 
       els.levelLabel.textContent =
-        state.gameMode === "daily" ? "DAILY RESCUE" : `LEVEL ${state.levelIndex}`;
+        state.gameMode === "daily" ? "DAILY CHALLENGE" : `LEVEL ${state.levelIndex}`;
       renderLevelTrack(els.levelTrack, state);
 
       els.coins.textContent = String(state.gameMode === "daily" ? state.bestScore : state.score);
@@ -472,7 +468,7 @@ function template() {
             <span class="menu-feature__icon menu-feature__icon--daily" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
-            <strong>DAILY RESCUE</strong>
+            <strong>DAILY CHALLENGE</strong>
             <small data-menu-daily-status>Play today</small>
           </button>
           <button class="menu-feature" data-menu-open-howto type="button">
@@ -497,18 +493,14 @@ function template() {
       <div class="menu-daily screen-overlay" data-menu-daily hidden>
         <div class="daily-panel screen-card" role="dialog" aria-modal="true" aria-labelledby="daily-panel-title">
           <p class="daily-panel__kicker">One puzzle · Everyone plays the same one</p>
-          <h2 id="daily-panel-title">Daily Rescue <span data-daily-puzzle-num>#1</span></h2>
-          <p class="daily-panel__flavor" data-daily-flavor>Today's rescue</p>
+          <h2 id="daily-panel-title">Daily Challenge <span data-daily-puzzle-num>#1</span></h2>
+          <p class="daily-panel__flavor" data-daily-flavor>Today's challenge</p>
           <ul class="daily-panel__rules">
-            <li>One attempt per UTC day — win or lose, then locked 24h</li>
+            <li>One attempt per UTC day — harder than journey levels</li>
             <li>Everyone gets the same expert puzzle</li>
-            <li>Earn streak, daily score, and up to +15 career pts</li>
+            <li>Solve it for <strong>+5 career points</strong> added to your score</li>
           </ul>
-          <div class="daily-panel__streak" data-daily-streak-row>
-            <span class="daily-panel__streak-label">Rescue streak</span>
-            <strong class="daily-panel__streak-value" data-daily-streak-value>0</strong>
-          </div>
-          <button class="screen-btn screen-btn--primary" data-menu-start-daily type="button">Play today's rescue</button>
+          <button class="screen-btn screen-btn--primary" data-menu-start-daily type="button">Play today's challenge</button>
           <button class="screen-btn screen-btn--ghost" data-menu-close-daily type="button">Back</button>
         </div>
       </div>
@@ -522,10 +514,6 @@ function template() {
               <h2 id="menu-leaderboard-title">Rescue League</h2>
             </div>
           </header>
-          <div class="league-panel__tabs" role="tablist" aria-label="Leaderboard type">
-            <button class="league-panel__tab is-active" data-league-tab="career" type="button" role="tab">Career</button>
-            <button class="league-panel__tab" data-league-tab="daily" type="button" role="tab">Today</button>
-          </div>
           <div class="league-panel__you" data-menu-leaderboard-rank hidden>
             <span class="league-panel__you-label">Your rank</span>
             <strong class="league-panel__you-value"></strong>
@@ -874,16 +862,15 @@ function template() {
     </div>
 
     <div class="daily-result screen-overlay" data-daily-result hidden>
-      <section class="daily-result-card screen-card" aria-label="Daily Rescue result">
-        <span class="daily-result__kicker">Daily Rescue complete</span>
-        <strong class="daily-result__score" data-daily-result-score>0</strong>
+      <section class="daily-result-card screen-card" aria-label="Daily Challenge result">
+        <span class="daily-result__kicker" data-daily-result-kicker>Challenge complete</span>
+        <strong class="daily-result__score" data-daily-result-score>+5</strong>
         <p class="daily-result__stars" data-daily-result-stars>★★★</p>
-        <p class="daily-result__meta" data-daily-result-meta>Streak 1 · +10 career pts</p>
-        <p class="daily-result__rank" data-daily-result-rank hidden></p>
-        <p class="daily-result__reset" data-daily-result-reset>Next rescue in 6h</p>
+        <p class="daily-result__meta" data-daily-result-meta>+5 career pts · Total 40</p>
+        <p class="daily-result__reset" data-daily-result-reset>Next challenge in 6h</p>
         <div class="daily-result__actions">
           <button class="screen-btn screen-btn--primary" data-daily-share type="button">Share result</button>
-          <button class="screen-btn" data-daily-open-ranks type="button">Today's ranks</button>
+          <button class="screen-btn" data-daily-open-ranks type="button">View league</button>
           <button class="screen-btn screen-btn--ghost" data-daily-continue type="button">Back to menu</button>
         </div>
       </section>
@@ -1134,9 +1121,7 @@ function updateMenuScreen(els, state) {
   if (els.menuGreeting) {
     if (state.username) {
       els.menuGreeting.hidden = false;
-      const streak =
-        state.dailyStreak > 0 ? ` · 🔥 ${state.dailyStreak}-day streak` : "";
-      els.menuGreeting.textContent = `Hey, ${state.username} — ready to rescue?${streak}`;
+      els.menuGreeting.textContent = `Hey, ${state.username} — ready to rescue?`;
     } else {
       els.menuGreeting.hidden = true;
       els.menuGreeting.textContent = "";
@@ -1150,15 +1135,6 @@ function updateMenuScreen(els, state) {
         : `Locked · resets in ${resetIn}`;
     } else {
       els.menuDailyStatus.textContent = "Play today";
-    }
-  }
-  if (els.menuDailyStreak) {
-    if (state.dailyStreak > 0) {
-      els.menuDailyStreak.hidden = false;
-      els.menuDailyStreak.textContent = `🔥 Rescue streak: ${state.dailyStreak} day${state.dailyStreak === 1 ? "" : "s"}`;
-    } else {
-      els.menuDailyStreak.hidden = true;
-      els.menuDailyStreak.textContent = "";
     }
   }
   const dailyFeature = els.menuScreen?.querySelector(".menu-feature--daily");
@@ -1315,11 +1291,9 @@ function updateDailyModal(els, state) {
   const config = getDailyConfig(dateKey);
   const puzzleNum = els.menuDaily.querySelector("[data-daily-puzzle-num]");
   const flavor = els.menuDaily.querySelector("[data-daily-flavor]");
-  const streakValue = els.menuDaily.querySelector("[data-daily-streak-value]");
   const startBtn = els.menuDaily.querySelector("[data-menu-start-daily]");
   if (puzzleNum) puzzleNum.textContent = `#${dailyPuzzleNumber(dateKey)}`;
-  if (flavor) flavor.textContent = config.label || "Today's rescue";
-  if (streakValue) streakValue.textContent = String(state.dailyStreak || 0);
+  if (flavor) flavor.textContent = config.label || "Today's challenge";
   if (startBtn) {
     const lockedWithoutResult = state.dailyCompletedToday && !state.dailyTodayResult;
     startBtn.disabled = lockedWithoutResult;
@@ -1328,7 +1302,7 @@ function updateDailyModal(els, state) {
         ? "View today's result"
         : `Locked · ${formatDailyCountdown(msUntilNextDaily())}`;
     } else {
-      startBtn.textContent = "Play today's rescue";
+      startBtn.textContent = "Play today's challenge";
     }
   }
 }
@@ -1339,91 +1313,39 @@ function updateDailyResult(els, state) {
   els.dailyResultOverlay.hidden = !show;
   if (!show) return;
   const result = state.dailyResult;
+  const kickerEl = els.dailyResultOverlay.querySelector("[data-daily-result-kicker]");
   const scoreEl = els.dailyResultOverlay.querySelector("[data-daily-result-score]");
   const starsEl = els.dailyResultOverlay.querySelector("[data-daily-result-stars]");
   const metaEl = els.dailyResultOverlay.querySelector("[data-daily-result-meta]");
-  const rankEl = els.dailyResultOverlay.querySelector("[data-daily-result-rank]");
   const resetEl = els.dailyResultOverlay.querySelector("[data-daily-result-reset]");
-  if (scoreEl) scoreEl.textContent = String(result.dailyScore || 0);
+  const succeeded = Boolean(result.succeeded);
+  if (kickerEl) {
+    kickerEl.textContent = succeeded ? "Challenge complete" : "Challenge over";
+  }
+  if (scoreEl) {
+    scoreEl.textContent = succeeded ? `+${result.careerBonus || 5}` : "+0";
+  }
   if (starsEl) {
     const stars = Math.max(1, Math.min(3, Number(result.stars) || 1));
     starsEl.textContent = `${"★".repeat(stars)}${"☆".repeat(3 - stars)}`;
   }
   if (metaEl) {
     const bits = [
-      `Streak ${result.streak || 0}`,
-      `+${result.careerBonus || 0} career pts`,
+      succeeded ? `+${result.careerBonus || 0} career pts` : "No bonus",
+      `Total score ${result.totalScore ?? ""}`.trim(),
       `${result.timeSeconds || 0}s`,
-    ];
-    if (result.perfect) bits.push("Perfect Rescue");
-    if (result.weekMilestone) bits.push("Week Warrior bonus");
+    ].filter(Boolean);
     metaEl.textContent = bits.join(" · ");
   }
-  if (rankEl) {
-    if (result.rank) {
-      rankEl.hidden = false;
-      rankEl.textContent = `You are #${result.rank} today`;
-    } else {
-      rankEl.hidden = true;
-      rankEl.textContent = "";
-    }
-  }
   if (resetEl) {
-    resetEl.textContent = `Next rescue in ${result.resetsIn || formatDailyCountdown()}`;
+    resetEl.textContent = `Next challenge in ${result.resetsIn || formatDailyCountdown()}`;
   }
 }
 
 function updateLeaderboardOverlay(els, state) {
   if (!els.menuLeaderboardList) return;
 
-  const isDaily = state.leagueTab === "daily";
-  const tabs = els.menuLeaderboard?.querySelectorAll("[data-league-tab]");
-  tabs?.forEach((tab) => {
-    tab.classList.toggle("is-active", tab.dataset.leagueTab === state.leagueTab);
-  });
-
-  const heroKicker = els.menuLeaderboard?.querySelector(".league-panel__kicker");
-  const heroTitle = els.menuLeaderboard?.querySelector("#menu-leaderboard-title");
-  if (heroKicker) heroKicker.textContent = isDaily ? "UTC day board" : "Global league";
-  if (heroTitle) heroTitle.textContent = isDaily ? "Today's Rescuers" : "Rescue League";
-
   els.menuLeaderboardList.replaceChildren();
-
-  if (isDaily) {
-    if (els.menuLeaderboardPodium) els.menuLeaderboardPodium.hidden = true;
-    if (els.menuLeaderboardRank) els.menuLeaderboardRank.hidden = true;
-    const table = els.menuLeaderboard?.querySelector(".league-panel__table");
-    if (table) table.hidden = false;
-    const columns = els.menuLeaderboard?.querySelector("[data-menu-leaderboard-columns]");
-    if (columns) {
-      columns.hidden = false;
-      const spans = columns.querySelectorAll("span");
-      if (spans[2]) spans[2].textContent = "Daily";
-    }
-
-    const entries = (state.dailyLeaderboard || []).filter((entry) => (entry.dailyScore || 0) > 0);
-    if (entries.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "league-panel__empty";
-      empty.innerHTML = `
-        <span class="league-panel__empty-icon" aria-hidden="true">🏅</span>
-        <p>No daily scores yet</p>
-        <small>Be the first to finish today's Daily Rescue.</small>
-      `;
-      els.menuLeaderboardList.append(empty);
-    } else {
-      for (const entry of entries) {
-        els.menuLeaderboardList.append(createDailyLeagueRow(entry));
-      }
-      if (state.dailyPlayerRank && !entries.some((entry) => entry.isCurrentPlayer)) {
-        const divider = document.createElement("div");
-        divider.className = "league-panel__divider";
-        divider.textContent = "Your rank";
-        els.menuLeaderboardList.append(divider, createDailyLeagueRow(state.dailyPlayerRank, true));
-      }
-    }
-    return;
-  }
 
   const entries = (state.leaderboard || []).filter((entry) => (entry.bestScore || 0) > 0);
   const topThree = entries.filter((entry) => {
@@ -1513,34 +1435,6 @@ function createLeagueRow(entry, highlight = false) {
     <span class="league-row__score">
       <span class="league-row__score-val">${Number(entry.bestScore || 0).toLocaleString()}</span>
       <span class="league-row__score-ico" aria-hidden="true">🏆</span>
-    </span>
-  `;
-  return row;
-}
-
-function createDailyLeagueRow(entry, highlight = false) {
-  const row = document.createElement("article");
-  const rank = Number(entry.rank) || 0;
-  const isYou = highlight || entry.isCurrentPlayer;
-  const color = leagueAvatarColor(entry.name);
-  row.className = "league-row";
-  if (isYou) row.classList.add("is-you");
-  if (rank === 1) row.classList.add("is-gold");
-  if (rank === 2) row.classList.add("is-silver");
-  if (rank === 3) row.classList.add("is-bronze");
-
-  row.innerHTML = `
-    <span class="league-row__medal" aria-label="Rank ${rank}">${leagueRankMedal(rank)}</span>
-    <span class="league-row__player">
-      <span class="league-row__avatar" style="--avatar-color:${color}">${escapeHtml(playerInitials(entry.name))}</span>
-      <span class="league-row__name-wrap">
-        <strong class="league-row__name">${escapeHtml(entry.name || "Player")}</strong>
-        ${isYou ? '<span class="league-row__tag">YOU</span>' : ""}
-      </span>
-    </span>
-    <span class="league-row__score">
-      <span class="league-row__score-val">${Number(entry.dailyScore || 0).toLocaleString()}</span>
-      <span class="league-row__score-ico" aria-hidden="true">★${Number(entry.stars) || 1}</span>
     </span>
   `;
   return row;

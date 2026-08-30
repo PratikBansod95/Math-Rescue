@@ -7,8 +7,8 @@ Card equation puzzle — match the target with four number cards before the shar
 ## Features
 
 - **Journey mode** — level-based progression with stars, hints, and a journey map
-- **Daily Rescue** — one expert puzzle per UTC day, streaks, and today's leaderboard
-- **Rescue League** — global career ranks and daily ranks
+- **Daily Challenge** — one expert puzzle per UTC day; solve it for **+5 career points**
+- **Rescue League** — global career ranks
 - **Cloud sync** — progress saved to Neon Postgres when online; offline play via localStorage
 
 ## Local development
@@ -74,8 +74,8 @@ DATABASE_URL="your-production-neon-url" npm run db:migrate
 | `/api/players/:username` | GET | Fetch player profile |
 | `/api/players/:username` | PUT | Save progress (Bearer token required) |
 | `/api/players/:username` | DELETE | Delete player (Bearer token required) |
-| `/api/daily` | GET | Today's daily leaderboard (`?date=YYYY-MM-DD&limit=25&playerId=`) |
-| `/api/daily/submit` | POST | Submit daily score (Bearer token required) |
+
+The game keeps a localStorage cache and syncs progress to Neon when online. Leaderboard / Top Players read from Neon when available.
 
 ## Architecture
 
@@ -93,4 +93,4 @@ See [public/privacy.html](public/privacy.html) (also at `/privacy.html` when dep
 - Identity is username-only for MVP (no passwords); each device stores a bearer token
 - Progress merges never go backwards (`unlocked_board`, scores, stars)
 - Offline play works from localStorage; sync runs when online
-- Daily Rescue locks for 24 hours (UTC) after one attempt, win or lose
+- Daily Challenge locks for 24 hours (UTC) after one attempt; **+5 career points** only on a successful solve

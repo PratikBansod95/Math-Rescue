@@ -118,29 +118,6 @@ export async function fetchLeaderboard(limit = 10, playerId = "") {
   };
 }
 
-export async function fetchDailyLeaderboard(dateKey, limit = 25, playerId = "") {
-  const params = new URLSearchParams({ limit: String(limit) });
-  if (dateKey) params.set("date", dateKey);
-  if (playerId) params.set("playerId", playerId);
-  const data = await request(`/api/daily?${params.toString()}`);
-  return {
-    dateKey: data?.dateKey || dateKey,
-    entries: Array.isArray(data?.entries) ? data.entries : [],
-    playerEntry: data?.playerEntry || null,
-    limit: Number(data?.limit) || limit,
-    fetchedAt: data?.fetchedAt || null,
-  };
-}
-
-export async function submitDailyScore(payload, playerToken) {
-  const data = await request("/api/daily/submit", {
-    method: "POST",
-    headers: playerAuthorization(playerToken),
-    body: JSON.stringify(payload),
-  });
-  return data || null;
-}
-
 export function remoteToLocalProfile(player) {
   if (!player) return null;
   return {
@@ -164,18 +141,6 @@ export function leaderboardToUi(payload) {
     bestScore: Number(entry.bestScore) || 0,
     unlockedBoard: Number(entry.unlockedBoard) || 1,
     bestStars: Number(entry.bestStars) || 0,
-    isCurrentPlayer: Boolean(entry.isCurrentPlayer),
-  }));
-}
-
-export function dailyLeaderboardToUi(payload) {
-  const entries = payload?.entries || payload || [];
-  return entries.map((entry) => ({
-    rank: Number(entry.rank) || 0,
-    name: entry.name,
-    dailyScore: Number(entry.dailyScore) || 0,
-    stars: Number(entry.stars) || 1,
-    timeSeconds: Number(entry.timeSeconds) || 0,
     isCurrentPlayer: Boolean(entry.isCurrentPlayer),
   }));
 }

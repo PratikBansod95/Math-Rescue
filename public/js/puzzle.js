@@ -132,7 +132,7 @@ export const DAILY_CHALLENGE_CONFIG = {
   difficultyId: "medium",
   level: 11,
   timer: 60,
-  label: "Expert rescue",
+  label: "Expert challenge",
 };
 
 /** UTC date seeds the shared daily puzzle (same board for everyone each day). */
@@ -178,7 +178,7 @@ export function createDailyRound(dateKey) {
         targetLabel: formatTarget(picked.value),
         exampleSolution: picked.expression,
         specialType: null,
-        note: `Daily Rescue · ${config.label}`,
+        note: `Daily Challenge · ${config.label}`,
         dailyConfig: config,
         dateKey,
       };
@@ -191,7 +191,7 @@ export function createDailyRound(dateKey) {
     targetLabel: "24",
     exampleSolution: "((2 + 4) * (8 - 6))",
     specialType: null,
-    note: `Daily Rescue · ${config.label}`,
+    note: `Daily Challenge · ${config.label}`,
     dailyConfig: config,
     dateKey,
   };
