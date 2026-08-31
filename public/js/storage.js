@@ -18,6 +18,7 @@ export function emptyProfile() {
   return ensurePlayerIdentity({
     bestScore: 0,
     coins: 0,
+    freeHintUsed: false,
     unlockedBoard: 1,
     bestStars: 0,
     tutorialSeen: false,
@@ -188,6 +189,7 @@ function normalizeProfiles(profiles) {
           : key,
       bestScore: Number.isFinite(value.bestScore) ? Math.max(0, value.bestScore) : 0,
       coins: Number.isFinite(value.coins) ? Math.max(0, value.coins) : 0,
+      freeHintUsed: Boolean(value.freeHintUsed),
       unlockedBoard: Number.isFinite(value.unlockedBoard)
         ? Math.max(1, value.unlockedBoard)
         : 1,

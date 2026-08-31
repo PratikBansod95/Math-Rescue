@@ -103,6 +103,30 @@ test("saveState round-trips coin updates after level rewards", () => {
   assert.equal(after.profiles[player].bestScore, 40);
 });
 
+test("freeHintUsed persists per user after first free hint", () => {
+  const player = normalizeUsername("rookie");
+  saveState({
+    profiles: {
+      [player]: { ...emptyProfile(), name: "rookie", freeHintUsed: false },
+    },
+    lastUsername: "rookie",
+    settings: { sound: true },
+    resume: null,
+  });
+
+  const loaded = loadState();
+  loaded.profiles[player].freeHintUsed = true;
+  saveState({
+    profiles: loaded.profiles,
+    lastUsername: "rookie",
+    settings: loaded.settings,
+    resume: null,
+  });
+
+  const after = loadState();
+  assert.equal(after.profiles[player].freeHintUsed, true);
+});
+
 test("clearAllState removes saved coin balances", () => {
   const player = normalizeUsername("resetme");
   saveState({

@@ -92,6 +92,7 @@ export function createGame({ mount }) {
         score: 0,
         bestScore: 0,
         coins: 0,
+        freeHintUsed: false,
         coinsEarnedThisLevel: 0,
         bestStars: 0,
         runStars: 0,
@@ -376,6 +377,7 @@ export function createGame({ mount }) {
       function applyProfileToState(profile) {
         state.bestScore = profile.bestScore;
         state.coins = profile.coins || 0;
+        state.freeHintUsed = Boolean(profile.freeHintUsed);
         state.unlockedBoard = profile.unlockedBoard;
         state.boardStars = { ...(profile.boardStars || {}) };
         state.bestStars = bestBoardRating(state.boardStars);
@@ -677,6 +679,7 @@ export function createGame({ mount }) {
         state.usernameKey = "";
         state.bestScore = 0;
         state.coins = 0;
+        state.freeHintUsed = false;
         state.coinsEarnedThisLevel = 0;
         state.unlockedBoard = 1;
         state.bestStars = 0;
@@ -1296,7 +1299,9 @@ export function createGame({ mount }) {
           return;
         }
 
-        if ((state.coins || 0) < HINT_COST) {
+        const isFreeHint = !state.freeHintUsed;
+
+        if (!isFreeHint && (state.coins || 0) < HINT_COST) {
           state.feedback = {
             kind: "bad",
             text: "Not enough coins",
@@ -1306,15 +1311,29 @@ export function createGame({ mount }) {
           return;
         }
 
-        const confirmed = await askConfirm({
-          title: "Use a hint?",
-          message: `This hint costs ${HINT_COST} coins. You have ${state.coins} coins.`,
-          confirmLabel: "Yes",
-          cancelLabel: "No",
-        });
+        const confirmed = await askConfirm(
+          isFreeHint
+            ? {
+                title: "Your first hint is free!",
+                message:
+                  "This is your first free hint — no coins needed. After this, hints cost 10 coins each.",
+                confirmLabel: "Use free hint",
+                cancelLabel: "No",
+              }
+            : {
+                title: "Use a hint?",
+                message: `This hint costs ${HINT_COST} coins. You have ${state.coins} coins.`,
+                confirmLabel: "Yes",
+                cancelLabel: "No",
+              },
+        );
         if (!confirmed || disposed) return;
 
-        state.coins -= HINT_COST;
+        if (isFreeHint) {
+          state.freeHintUsed = true;
+        } else {
+          state.coins -= HINT_COST;
+        }
         state.usedNudge = true;
         state.firstTry = false;
         const nudge = buildPuzzleNudge(state.round);
@@ -1526,6 +1545,7 @@ export function createGame({ mount }) {
           name: state.username,
           bestScore: state.bestScore,
           coins: Math.max(0, state.coins || 0),
+          freeHintUsed: Boolean(state.freeHintUsed),
           unlockedBoard: state.unlockedBoard,
           bestStars: bestBoardRating({
             ...(existing.boardStars || {}),
@@ -1576,11 +1596,13 @@ export function createGame({ mount }) {
         state.bestStars = bestBoardRating(boardStars);
         state.levelIndex = state.unlockedBoard;
         const coins = Math.max(0, Number(existing.coins) || 0, Number(state.coins) || 0);
+        const freeHintUsed = Boolean(existing.freeHintUsed || state.freeHintUsed);
         state.profiles[state.usernameKey] = ensurePlayerIdentity({
           ...existing,
           name: remote.name || state.username,
           bestScore: state.bestScore,
           coins,
+          freeHintUsed,
           unlockedBoard: state.unlockedBoard,
           bestStars: state.bestStars,
           tutorialSeen: state.tutorialSeen,
