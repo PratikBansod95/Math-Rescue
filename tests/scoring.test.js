@@ -6,6 +6,7 @@ import {
   calcTaskStars,
   bestBoardRating,
   levelStarPace,
+  calcLevelCoinReward,
 } from "../public/js/scoring.js";
 
 test("POINTS_CORRECT is ten per cleared level", () => {
@@ -21,6 +22,13 @@ test("calcTaskStars awards 3 only on a clean first solve", () => {
 test("bestBoardRating returns highest cleared level rating", () => {
   assert.equal(bestBoardRating({ 1: 2, 2: 3, 3: 1 }), 3);
   assert.equal(bestBoardRating({}), 0);
+});
+
+test("calcLevelCoinReward awards coins for 2 and 3 star clears", () => {
+  assert.equal(calcLevelCoinReward(3), 8);
+  assert.equal(calcLevelCoinReward(2), 5);
+  assert.equal(calcLevelCoinReward(1), 0);
+  assert.equal(calcLevelCoinReward(0), 0);
 });
 
 test("levelStarPace maps earned stars to HUD segments", () => {

@@ -2846,6 +2846,52 @@ button:disabled { cursor: not-allowed }
   font-variant-numeric: tabular-nums;
 }
 
+.menu-hud__stats {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  justify-self: end;
+}
+
+.menu-hud__coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 2.45rem;
+  padding: 0.15rem 0.62rem 0.15rem 0.48rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2px solid #fcd34d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 2px 0 #fbbf24;
+}
+
+.menu-hud__coins-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.menu-hud__coins-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.menu-hud__coins-val {
+  font-family: "Space Grotesk", Quicksand, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #b45309;
+  line-height: 1;
+  min-width: 1.15em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .menu-hud__score {
   display: inline-flex;
   align-items: center;
@@ -2858,7 +2904,6 @@ button:disabled { cursor: not-allowed }
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .9),
     0 2px 0 #fbbf24;
-  justify-self: end;
   cursor: pointer;
   font: inherit;
   color: inherit;

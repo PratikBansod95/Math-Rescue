@@ -2,6 +2,9 @@
 
 export const POINTS_CORRECT = 10;
 export const POINTS_WRONG = 2;
+export const COINS_PER_3_STARS = 8;
+export const COINS_PER_2_STARS = 5;
+export const HINT_COST = 10;
 
 /** Per-level stars earned on success (1★ only on forced-solution fail). */
 export function calcTaskStars({ firstTry, usedNudge, retriesUsed }) {
@@ -19,6 +22,14 @@ export function bestBoardRating(levelStars) {
     }
   }
   return best;
+}
+
+/** Coins earned when clearing a level at a given star rating. */
+export function calcLevelCoinReward(stars) {
+  const n = Math.floor(Number(stars) || 0);
+  if (n >= 3) return COINS_PER_3_STARS;
+  if (n >= 2) return COINS_PER_2_STARS;
+  return 0;
 }
 
 /** In-run HUD segments (0–3) from stars earned this level. */

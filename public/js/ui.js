@@ -53,6 +53,7 @@ export function createUI({ mount, handlers }) {
     menuScreen: shell.querySelector("[data-menu-screen]"),
     menuLevel: shell.querySelector("[data-menu-level]"),
     menuCoins: shell.querySelector("[data-menu-coins]"),
+    menuTrophy: shell.querySelector("[data-menu-trophy]"),
     menuPlayLevel: shell.querySelector("[data-menu-play-level]"),
     menuPlayTitle: shell.querySelector("[data-menu-play-title]"),
     menuPlay: shell.querySelector("[data-menu-play]"),
@@ -295,7 +296,7 @@ export function createUI({ mount, handlers }) {
         state.gameMode === "daily" ? "DAILY CHALLENGE" : `LEVEL ${state.levelIndex}`;
       renderLevelTrack(els.levelTrack, state);
 
-      els.coins.textContent = String(state.gameMode === "daily" ? state.bestScore : state.score);
+      els.coins.textContent = String(state.coins || 0);
       updateTimerChip(els, state);
       updateChase(els, state, catRun, celebrate);
       els.bestScore.textContent = String(state.bestScore);
@@ -391,12 +392,20 @@ function template() {
             <span class="menu-hud__level-tag">Level</span>
             <strong class="menu-hud__level-num" data-menu-level>1</strong>
           </div>
-          <button class="menu-hud__score" data-menu-open-leaderboard type="button" aria-label="Open Rescue League leaderboard" title="Rescue League">
-            <span class="menu-hud__score-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#fbbf24"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-            <strong class="menu-hud__score-val" data-menu-coins>0</strong>
-          </button>
+          <div class="menu-hud__stats">
+            <div class="menu-hud__coins" aria-label="Your coins">
+              <span class="menu-hud__coins-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fde68a" stroke-width="1.6"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
+              </span>
+              <strong class="menu-hud__coins-val" data-menu-coins>0</strong>
+            </div>
+            <button class="menu-hud__score" data-menu-open-leaderboard type="button" aria-label="Open Rescue League leaderboard" title="Rescue League">
+              <span class="menu-hud__score-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#fbbf24"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </span>
+              <strong class="menu-hud__score-val" data-menu-trophy>0</strong>
+            </button>
+          </div>
         </header>
 
         <div class="menu-hero menu-hero--banner">
@@ -681,12 +690,14 @@ function template() {
         <div class="level-track" data-level-track></div>
       </div>
 
-      <div class="stat-chip stat-chip--coins">
+      <div class="stat-chip stat-chip--coins" aria-label="Your coins">
         <span class="coin-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fde68a" stroke-width="1.6"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
         </span>
-        <strong data-coins>0</strong>
-        <span class="coin-plus" aria-hidden="true">+</span>
+        <div class="stat-chip__body">
+          <small>Coins</small>
+          <strong data-coins>0</strong>
+        </div>
       </div>
 
       <button class="icon-btn" data-mute type="button" aria-label="Mute sound">
@@ -1081,7 +1092,8 @@ function updateMenuScreen(els, state) {
 
   const level = Math.max(1, Number(state.unlockedBoard) || 1);
   if (els.menuLevel) els.menuLevel.textContent = String(level);
-  if (els.menuCoins) els.menuCoins.textContent = String(state.bestScore || 0);
+  if (els.menuCoins) els.menuCoins.textContent = String(state.coins || 0);
+  if (els.menuTrophy) els.menuTrophy.textContent = String(state.bestScore || 0);
   if (els.menuPlayLevel) {
     els.menuPlayLevel.textContent = state.canResume
       ? `LEVEL ${resumeLevelFromSave(state.resume)}`
@@ -1437,7 +1449,9 @@ function updateResults(els, state) {
   els.resultStars.textContent = `★ ${levelStars} this level`;
   els.resultRank.textContent = state.result.title;
   els.resultMessage.textContent = `${state.result.message} Level ${state.unlockedBoard} is now unlocked.`;
-  els.resultBest.textContent = `Total score ${state.bestScore} · Best ★ ${state.bestStars}`;
+  els.resultBest.textContent = state.coinsEarnedThisLevel
+    ? `+${state.coinsEarnedThisLevel} coins · Total score ${state.bestScore} · Best ★ ${state.bestStars}`
+    : `Total score ${state.bestScore} · Best ★ ${state.bestStars}`;
 }
 
 function updateCoachTip(els, state) {

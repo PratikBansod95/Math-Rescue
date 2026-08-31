@@ -42,6 +42,8 @@ import {
   POINTS_WRONG,
   bestBoardRating,
   calcTaskStars,
+  calcLevelCoinReward,
+  HINT_COST,
 } from "./scoring.js";
 import { ensurePlayerIdentity } from "./playerIdentity.js";
 import { validateNickname } from "./nicknameValidation.js";
@@ -89,6 +91,8 @@ export function createGame({ mount }) {
         difficulty: getDifficulty(DEFAULT_DIFFICULTY_ID),
         score: 0,
         bestScore: 0,
+        coins: 0,
+        coinsEarnedThisLevel: 0,
         bestStars: 0,
         runStars: 0,
         taskStarsEarned: 0,
@@ -371,6 +375,7 @@ export function createGame({ mount }) {
 
       function applyProfileToState(profile) {
         state.bestScore = profile.bestScore;
+        state.coins = profile.coins || 0;
         state.unlockedBoard = profile.unlockedBoard;
         state.boardStars = { ...(profile.boardStars || {}) };
         state.bestStars = bestBoardRating(state.boardStars);
@@ -579,6 +584,7 @@ export function createGame({ mount }) {
         state.expression = "";
         state.usedCounts = new Map();
         state.result = null;
+        state.coinsEarnedThisLevel = 0;
         resetTaskFlags();
         state.feedback = {
           kind: "neutral",
@@ -669,6 +675,8 @@ export function createGame({ mount }) {
         state.username = "";
         state.usernameKey = "";
         state.bestScore = 0;
+        state.coins = 0;
+        state.coinsEarnedThisLevel = 0;
         state.unlockedBoard = 1;
         state.bestStars = 0;
         state.boardStars = {};
@@ -1262,7 +1270,7 @@ export function createGame({ mount }) {
         }, 780);
       }
 
-      function onHintOrNext() {
+      async function onHintOrNext() {
         if (state.phase === "review") {
           if (state.gameMode === "daily") {
             finishDaily();
@@ -1287,6 +1295,25 @@ export function createGame({ mount }) {
           return;
         }
 
+        if ((state.coins || 0) < HINT_COST) {
+          state.feedback = {
+            kind: "bad",
+            text: "Not enough coins",
+            detail: `Hints cost ${HINT_COST} coins. You have ${state.coins || 0}.`,
+          };
+          render();
+          return;
+        }
+
+        const confirmed = await askConfirm({
+          title: "Use a hint?",
+          message: `This hint costs ${HINT_COST} coins. You have ${state.coins} coins.`,
+          confirmLabel: "Yes",
+          cancelLabel: "No",
+        });
+        if (!confirmed || disposed) return;
+
+        state.coins -= HINT_COST;
         state.usedNudge = true;
         state.firstTry = false;
         const nudge = buildPuzzleNudge(state.round);
@@ -1297,6 +1324,7 @@ export function createGame({ mount }) {
         };
         audio.play("skip");
         render();
+        persist();
       }
 
       function retryLevelWithNewPuzzle() {
@@ -1342,6 +1370,11 @@ export function createGame({ mount }) {
           state.unlockedBoard = finishedLevel + 1;
         }
         state.bestScore += Math.max(0, state.score);
+        const coinsEarned = calcLevelCoinReward(earned);
+        if (coinsEarned > 0) {
+          state.coins = (state.coins || 0) + coinsEarned;
+        }
+        state.coinsEarnedThisLevel = coinsEarned;
         const prevStars = Number(state.boardStars?.[finishedLevel]) || 0;
         state.boardStars = {
           ...(state.boardStars || {}),
@@ -1365,7 +1398,9 @@ export function createGame({ mount }) {
         state.feedback = {
           kind: "good",
           text: `Level ${finishedLevel} complete!`,
-          detail: `★${earned} · Level ${state.unlockedBoard} unlocked · Total ${state.bestScore}`,
+          detail: coinsEarned
+            ? `★${earned} · +${coinsEarned} coins · Level ${state.unlockedBoard} unlocked · Total ${state.bestScore}`
+            : `★${earned} · Level ${state.unlockedBoard} unlocked · Total ${state.bestScore}`,
         };
         state.correction = null;
         state.resume = null;
@@ -1489,6 +1524,7 @@ export function createGame({ mount }) {
           ...existing,
           name: state.username,
           bestScore: state.bestScore,
+          coins: Math.max(0, state.coins || 0),
           unlockedBoard: state.unlockedBoard,
           bestStars: bestBoardRating({
             ...(existing.boardStars || {}),
