@@ -268,9 +268,19 @@ export function createUI({ mount, handlers }) {
   });
   on(els.menuMute, "click", handlers.onToggleSound);
 
+  let lastMenuState = null;
+  if (typeof window !== "undefined") {
+    window.addEventListener("resize", () => {
+      if (!els.menuPath || lastMenuState?.phase !== "menu") return;
+      delete els.menuPath.dataset.signature;
+      updateMenuScreen(els, lastMenuState);
+    });
+  }
+
   return {
     shell,
     render(state, options = {}) {
+      lastMenuState = state;
       shell.dataset.phase = state.phase;
       shell.classList.toggle("is-shaking", Boolean(state.shake));
       shell.classList.toggle("tutorial-on", Boolean(state.showTutorial));
@@ -1709,13 +1719,19 @@ function boardStatus(board, unlocked, stars) {
   return "locked";
 }
 
+function menuPathVisibleCount() {
+  if (typeof window === "undefined") return 4;
+  return window.matchMedia("(max-width: 400px)").matches ? 3 : 4;
+}
+
 function renderMenuPath(container, state) {
   if (!container) return;
   const unlocked = Math.max(1, Number(state.unlockedBoard) || 1);
-  const start = Math.max(1, unlocked - 2);
-  const end = start + 3;
+  const visibleCount = menuPathVisibleCount();
+  const start = Math.max(1, unlocked - (visibleCount - 1));
+  const end = start + visibleCount - 1;
   const starsMap = state.boardStars || {};
-  const signature = `${start}:${end}:${unlocked}:${JSON.stringify(starsMap)}`;
+  const signature = `${visibleCount}:${start}:${end}:${unlocked}:${JSON.stringify(starsMap)}`;
   if (container.dataset.signature === signature) return;
   container.dataset.signature = signature;
   container.replaceChildren();
@@ -1735,8 +1751,11 @@ function renderMenuPath(container, state) {
 
   const levelsWrap = document.createElement("div");
   levelsWrap.className = "menu-path__levels";
+  levelsWrap.style.setProperty("--path-nodes", String(visibleCount));
   const progress =
-    end > start ? Math.min(100, Math.max(12, ((unlocked - start + 0.5) / (end - start + 1)) * 100)) : 100;
+    end > start
+      ? Math.min(100, Math.max(12, ((unlocked - start + 0.5) / (end - start + 1)) * 100))
+      : 100;
   levelsWrap.style.setProperty("--path-progress", `${progress}%`);
 
   for (let board = start; board <= end; board += 1) {

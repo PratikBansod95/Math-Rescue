@@ -3237,7 +3237,7 @@ button:disabled { cursor: not-allowed }
 
 .menu-path {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
   gap: 0.65rem;
   padding: clamp(0.7rem, 2.8vw, 0.85rem) clamp(0.65rem, 3vw, 0.85rem);
@@ -3314,20 +3314,21 @@ button:disabled { cursor: not-allowed }
 .menu-path__track {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: clamp(0.35rem, 2vw, 0.55rem);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: clamp(0.28rem, 2vw, 0.5rem);
   width: 100%;
   min-width: 0;
 }
 
 .menu-path__levels {
   position: relative;
+  flex: 1 1 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--path-nodes, 4), minmax(0, 1fr));
   align-items: end;
-  gap: clamp(0.2rem, 1.5vw, 0.45rem);
+  gap: clamp(0.15rem, 1.2vw, 0.4rem);
   min-width: 0;
   padding: 0.1rem 0.05rem 0.35rem;
 }
@@ -3369,9 +3370,9 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-path .journey-node--compact .journey-node__badge {
-  width: clamp(2.25rem, 16vw, 3rem);
-  height: clamp(2.25rem, 16vw, 3rem);
-  font-size: clamp(0.8rem, 3.2vw, 1.08rem);
+  width: clamp(2rem, 13vw, 3rem);
+  height: clamp(2rem, 13vw, 3rem);
+  font-size: clamp(0.76rem, 3vw, 1.08rem);
   border: 2px solid rgba(255, 255, 255, .75);
 }
 
@@ -3384,9 +3385,9 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-path .journey-node--compact.journey-node--current .journey-node__badge {
-  width: clamp(2.45rem, 17vw, 3.2rem);
-  height: clamp(2.45rem, 17vw, 3.2rem);
-  font-size: clamp(0.86rem, 3.4vw, 1.12rem);
+  width: clamp(2.15rem, 14vw, 3.2rem);
+  height: clamp(2.15rem, 14vw, 3.2rem);
+  font-size: clamp(0.8rem, 3.2vw, 1.12rem);
   background: linear-gradient(165deg, #bbf7d0 0%, #4ade80 42%, #16a34a 100%);
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, .65),
@@ -3430,10 +3431,11 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-path__aside {
-  flex: none;
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-end;
-  gap: 0.45rem;
+  gap: clamp(0.25rem, 1.5vw, 0.45rem);
+  padding-bottom: 0.35rem;
 }
 
 .menu-path__divider {
@@ -3452,10 +3454,10 @@ button:disabled { cursor: not-allowed }
   display: grid;
   justify-items: center;
   align-content: end;
-  gap: 0.28rem;
-  width: clamp(3.35rem, 20vw, 4.35rem);
-  min-width: 3.1rem;
-  padding: 0.38rem 0.28rem 0.34rem;
+  gap: 0.24rem;
+  width: clamp(2.85rem, 18vw, 4.35rem);
+  min-width: 2.85rem;
+  padding: 0.34rem 0.24rem 0.3rem;
   border: 1.5px solid rgba(191, 219, 254, .95);
   border-radius: 1.05rem;
   background:
@@ -5155,38 +5157,34 @@ button:disabled { cursor: not-allowed }
   padding-bottom: 0.55rem;
 }
 
-@media (max-width: 420px) {
-  .menu-path__track {
-    grid-template-columns: 1fr;
-    gap: 0.55rem;
-  }
-
-  .menu-path__aside {
-    width: 100%;
-    padding-top: 0.42rem;
-    border-top: 1px solid rgba(148, 163, 184, .28);
-    justify-content: stretch;
-  }
-
+@media (max-width: 400px) {
   .menu-path__divider {
-    display: none;
+    height: 2.35rem;
+    margin-bottom: 0.35rem;
   }
 
-  .menu-path__journey {
-    width: 100%;
-    min-width: 0;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    justify-items: start;
-    column-gap: 0.65rem;
-    padding: 0.52rem 0.72rem;
-    border-radius: 999px;
+  .menu-path__journey-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .menu-path__journey-icon svg {
+    width: 1.35rem;
+    height: 1.35rem;
   }
 
   .menu-path__journey-label {
-    justify-self: start;
-    font-size: 0.72rem;
+    font-size: 0.54rem;
     letter-spacing: 0.06em;
+  }
+
+  .menu-path .journey-node--compact .journey-node__stars {
+    display: none;
+  }
+
+  .menu-path__levels::before,
+  .menu-path__levels::after {
+    bottom: 1.05rem;
   }
 }
 
