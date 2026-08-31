@@ -441,6 +441,7 @@ export function createGame({ mount }) {
       function onChangeName() {
         stopPuzzleTimer();
         clearCatchTimeout();
+        persist({ remote: false });
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
         state.phase = "nickname";
@@ -1574,10 +1575,12 @@ export function createGame({ mount }) {
         state.boardStars = boardStars;
         state.bestStars = bestBoardRating(boardStars);
         state.levelIndex = state.unlockedBoard;
+        const coins = Math.max(0, Number(existing.coins) || 0, Number(state.coins) || 0);
         state.profiles[state.usernameKey] = ensurePlayerIdentity({
           ...existing,
           name: remote.name || state.username,
           bestScore: state.bestScore,
+          coins,
           unlockedBoard: state.unlockedBoard,
           bestStars: state.bestStars,
           tutorialSeen: state.tutorialSeen,
