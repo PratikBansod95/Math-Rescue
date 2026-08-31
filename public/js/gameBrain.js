@@ -4,7 +4,13 @@
  * Runs entirely in the browser (no API, no downloaded model).
  */
 
-import { DIVISIONS, DIFFICULTIES, hashSeed } from "./puzzle.js";
+import {
+  DIVISIONS,
+  DIFFICULTIES,
+  hashSeed,
+  journeyDifficultyForLevel,
+  JOURNEY_KID_FRIENDLY_MAX,
+} from "./puzzle.js";
 
 const MAX_RECENT_RUNS = 24;
 const DIVISION_IDS = DIVISIONS.map((d) => d.id);
@@ -165,8 +171,12 @@ export function planNextPuzzle(profile = {}, brain = emptyBrainState(), context 
     pickStyle = skill > 55 ? "balanced" : "gentle";
   }
 
-  const divisionId = skillToDivision(skill);
-  const difficultyId = skillToDifficulty(Math.min(skill, journeyLevel * 5 + 10));
+  const capped = journeyDifficultyForLevel(journeyLevel);
+  let divisionId = capped.divisionId;
+  let difficultyId = capped.difficultyId;
+  if (pickStyle === "gentle" && journeyLevel <= JOURNEY_KID_FRIENDLY_MAX) {
+    difficultyId = "easy";
+  }
 
   const uniqueSeed = normalized.uniqueSeed;
   const puzzleVariant = uniqueSeed + journeyLevel * 17;

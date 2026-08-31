@@ -42,6 +42,28 @@ export const DIFFICULTIES = [
 export const DEFAULT_DIVISION_ID = DIVISIONS[0].id;
 export const DEFAULT_DIFFICULTY_ID = DIFFICULTIES[0].id;
 
+/** Journey levels at or below this use small whole numbers and simple equations. */
+export const JOURNEY_KID_FRIENDLY_MAX = 25;
+
+/** Map journey level → division + difficulty (slow ramp for kids). */
+export function journeyDifficultyForLevel(journeyLevel) {
+  const level = Math.max(1, Math.floor(Number(journeyLevel) || 1));
+  if (level <= 12) {
+    return { divisionId: DEFAULT_DIVISION_ID, difficultyId: "easy" };
+  }
+  if (level <= JOURNEY_KID_FRIENDLY_MAX) {
+    const difficultyIndex = Math.min(2, Math.floor((level - 12) / 4));
+    return { divisionId: DEFAULT_DIVISION_ID, difficultyId: DIFFICULTIES[difficultyIndex].id };
+  }
+  if (level <= 40) {
+    const difficultyIndex = Math.min(3, 2 + Math.floor((level - JOURNEY_KID_FRIENDLY_MAX) / 5));
+    return { divisionId: DIVISIONS[1].id, difficultyId: DIFFICULTIES[difficultyIndex].id };
+  }
+  const difficultyIndex = Math.min(DIFFICULTIES.length - 1, 3 + Math.floor((level - 40) / 8));
+  const divisionIndex = level <= 55 ? 1 : 2;
+  return { divisionId: DIVISIONS[divisionIndex].id, difficultyId: DIFFICULTIES[difficultyIndex].id };
+}
+
 const EPSILON = 1e-9;
 const MIN_INTEGER = 1;
 
@@ -175,15 +197,20 @@ export function createAdaptiveRound({
     if (cards.every((card) => card.key === cards[0].key)) continue;
 
     const solutions = findIntegerTargets(cards, level, difficulty, difficultyId);
+    const friendly = isFriendlyLevel(level, difficultyId);
     let pool = solutions;
-    if (pickStyle === "gentle") {
+    if (friendly) {
+      pool = preferFriendlyTargets(solutions, level, difficultyId);
+      if (!pool.length) pool = solutions;
+    } else if (pickStyle === "gentle") {
       pool = preferFriendlyTargets(solutions, level, difficultyId);
       if (!pool.length) pool = solutions;
     }
     if (!pool.length) continue;
 
-    const picked =
-      pickStyle === "tough"
+    const picked = friendly
+      ? pickGentleSolution(pool)
+      : pickStyle === "tough"
         ? pickHardestSolution(pool)
         : pickStyle === "gentle"
           ? pickGentleSolution(pool)
@@ -263,7 +290,7 @@ export function findAlternateSolutions(round, attempted = "", limit = 3) {
 }
 
 function specialTypeForLevel(levelIndex, division) {
-  if (levelIndex <= 5) return null;
+  if (levelIndex <= 15) return null;
   if (levelIndex % 5 === 0) return "matching-target-cards";
   if (levelIndex % 10 === 0) {
     return division.allowFractions ? "all-target-with-fraction" : "matching-target-cards";
@@ -336,11 +363,7 @@ function generateCards(division, difficulty, levelIndex, difficultyId = DEFAULT_
   if (isFriendlyLevel(levelIndex, difficultyId)) {
     maxInt = Math.min(maxInt, 5 + levelIndex);
   }
-  const fractionCount = isFriendlyLevel(levelIndex, difficultyId)
-    ? 0
-    : division.allowFractions
-      ? Math.min(2, difficulty.fractionCards)
-      : 0;
+  const fractionCount = 0;
   const raw = [];
 
   for (let i = 0; i < fractionCount; i += 1) {
@@ -379,7 +402,7 @@ function randomFraction(denominatorMax) {
 }
 
 function isFriendlyLevel(levelIndex, difficultyId) {
-  return levelIndex <= 5 || difficultyId === "easy";
+  return levelIndex <= JOURNEY_KID_FRIENDLY_MAX || difficultyId === "easy";
 }
 
 function findIntegerTargets(cards, levelIndex, difficulty, difficultyId = DEFAULT_DIFFICULTY_ID) {
@@ -414,7 +437,7 @@ function preferFriendlyTargets(solutions, levelIndex, difficultyId) {
   if (!isFriendlyLevel(levelIndex, difficultyId)) return solutions;
 
   const positive = solutions.filter((s) => s.value > 0);
-  const gentleCap = 18 + levelIndex * 3;
+  const gentleCap = 12 + levelIndex * 2;
   const gentle = positive.filter((s) => s.value <= gentleCap);
   const pool = gentle.length ? gentle : positive;
   if (!pool.length) return solutions;

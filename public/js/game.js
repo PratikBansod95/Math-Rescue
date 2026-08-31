@@ -14,6 +14,7 @@ import {
   needsSpaceBefore,
   displayExpression,
   formatNumber,
+  journeyDifficultyForLevel,
 } from "./puzzle.js";
 import { createDailyRound } from "./dailyChallenges.js";
 import {
@@ -1770,18 +1771,11 @@ function isOperatorFragment(fragment) {
   return /[+\-*/()]/.test(String(fragment || ""));
 }
 
-/** Shared path: levels 1–5 stay Easy; then difficulty rises level by level. */
+/** Shared path: slow kid-friendly ramp — whole numbers, easy puzzles early on. */
 function applyLevelProgression(state, effectiveLevel) {
-  const level = Math.max(1, effectiveLevel);
-  if (level <= 5) {
-    state.difficultyId = "easy";
-    state.divisionId = DIVISIONS[0].id;
-  } else {
-    const difficultyIndex = Math.min(DIFFICULTIES.length - 1, level - 5);
-    const divisionIndex = Math.min(DIVISIONS.length - 1, Math.floor((level - 1) / 2));
-    state.difficultyId = DIFFICULTIES[difficultyIndex].id;
-    state.divisionId = DIVISIONS[divisionIndex].id;
-  }
+  const { divisionId, difficultyId } = journeyDifficultyForLevel(effectiveLevel);
+  state.difficultyId = difficultyId;
+  state.divisionId = divisionId;
   state.difficulty = getDifficulty(state.difficultyId);
   state.division = getDivision(state.divisionId);
 }
