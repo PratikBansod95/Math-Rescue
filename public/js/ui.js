@@ -397,13 +397,19 @@ function template() {
               <span class="menu-hud__coins-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f5b942"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#fde68a" stroke-width="1.6"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="800" fill="#92400e">$</text></svg>
               </span>
-              <strong class="menu-hud__coins-val" data-menu-coins>0</strong>
+              <span class="menu-hud__stat-copy">
+                <small class="menu-hud__stat-tag">Coins</small>
+                <strong class="menu-hud__coins-val" data-menu-coins>0</strong>
+              </span>
             </div>
             <button class="menu-hud__score" data-menu-open-leaderboard type="button" aria-label="Open Rescue League leaderboard" title="Rescue League">
               <span class="menu-hud__score-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" fill="#fbbf24"/><path d="M7 5H5a2 2 0 0 0 2 3M17 5h2a2 2 0 0 1-2 3M10 16h4v2H10zM9 20h6" fill="none" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/></svg>
               </span>
-              <strong class="menu-hud__score-val" data-menu-trophy>0</strong>
+              <span class="menu-hud__stat-copy">
+                <small class="menu-hud__stat-tag menu-hud__stat-tag--league">Score</small>
+                <strong class="menu-hud__score-val" data-menu-trophy>0</strong>
+              </span>
             </button>
           </div>
         </header>

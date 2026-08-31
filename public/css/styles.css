@@ -2849,30 +2849,52 @@ button:disabled { cursor: not-allowed }
 .menu-hud__stats {
   display: flex;
   align-items: center;
-  gap: 0.38rem;
+  gap: 0.42rem;
   justify-self: end;
+}
+
+.menu-hud__stat-copy {
+  display: grid;
+  gap: 0.02rem;
+  align-items: start;
+  text-align: left;
+  line-height: 1;
+}
+
+.menu-hud__stat-tag {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #b45309;
+  line-height: 1;
+}
+
+.menu-hud__stat-tag--league {
+  color: #3b82f6;
 }
 
 .menu-hud__coins {
   display: inline-flex;
   align-items: center;
-  gap: 0.28rem;
+  gap: 0.34rem;
   min-height: 2.45rem;
-  padding: 0.15rem 0.62rem 0.15rem 0.48rem;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
-  border: 2px solid #fcd34d;
+  padding: 0.2rem 0.62rem 0.2rem 0.48rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, #fff7d6 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .9),
-    0 2px 0 #fbbf24;
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    0 2px 0 #d97706;
 }
 
 .menu-hud__coins-icon {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.28rem;
+  height: 1.28rem;
   flex: none;
   display: grid;
   place-items: center;
+  filter: drop-shadow(0 1px 0 rgba(146, 64, 14, .25));
 }
 
 .menu-hud__coins-icon svg {
@@ -2883,27 +2905,26 @@ button:disabled { cursor: not-allowed }
 
 .menu-hud__coins-val {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 0.98rem;
+  font-size: 0.96rem;
   font-weight: 800;
-  color: #b45309;
+  color: #92400e;
   line-height: 1;
   min-width: 1.15em;
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 .menu-hud__score {
   display: inline-flex;
   align-items: center;
-  gap: 0.32rem;
+  gap: 0.34rem;
   min-height: 2.45rem;
-  padding: 0.15rem 0.72rem 0.15rem 0.5rem;
+  padding: 0.2rem 0.68rem 0.2rem 0.5rem;
   border-radius: 999px;
-  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
-  border: 2px solid #fcd34d;
+  background: linear-gradient(180deg, #ffffff 0%, #e8f2ff 100%);
+  border: 2px solid #93c5fd;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .9),
-    0 2px 0 #fbbf24;
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    0 2px 0 #bfdbfe;
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -2911,23 +2932,24 @@ button:disabled { cursor: not-allowed }
 }
 
 .menu-hud__score:hover {
-  filter: brightness(1.03);
+  filter: brightness(1.02);
+  border-color: #60a5fa;
 }
 
 .menu-hud__score:active {
   transform: translateY(1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .9),
-    0 1px 0 #fbbf24;
+    0 1px 0 #93c5fd;
 }
 
 .menu-hud__score-icon {
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.28rem;
+  height: 1.28rem;
   flex: none;
   display: grid;
   place-items: center;
-  filter: drop-shadow(0 1px 1px rgba(146, 64, 14, .2));
+  filter: drop-shadow(0 1px 1px rgba(37, 99, 235, .18));
 }
 
 .menu-hud__score-icon svg {
@@ -2938,12 +2960,11 @@ button:disabled { cursor: not-allowed }
 
 .menu-hud__score-val {
   font-family: "Space Grotesk", Quicksand, sans-serif;
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   font-weight: 800;
-  color: #b45309;
+  color: #1d4ed8;
   line-height: 1;
   min-width: 1.15em;
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
