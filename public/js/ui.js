@@ -1082,7 +1082,7 @@ function updateControls(els, state) {
   els.hintButton.disabled =
     review
       ? false
-      : !playing || Boolean(state.usedNudge);
+      : !playing || Boolean(state.levelHintUsed);
   els.hintLabel.textContent = state.hintLabel || (review ? "Next" : "Hint");
 
   for (const button of els.operatorPad.querySelectorAll("button")) {

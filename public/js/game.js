@@ -115,6 +115,7 @@ export function createGame({ mount }) {
         showTutorial: false,
         retriesLeft: MAX_RETRIES,
         usedNudge: false,
+        levelHintUsed: false,
         attempts: 0,
         firstTry: true,
         shake: false,
@@ -577,8 +578,12 @@ export function createGame({ mount }) {
           state.puzzleVariant = 0;
           state.score = 0;
           state.runStars = 0;
+          state.levelHintUsed = false;
           state.showTutorial = !state.tutorialSeen;
           state.tutorialStep = state.showTutorial ? 1 : 0;
+        }
+        if (resuming) {
+          state.levelHintUsed = Boolean(state.resume?.levelHintUsed);
         }
         state.round = makeRound(state);
         state.expression = "";
@@ -823,6 +828,7 @@ export function createGame({ mount }) {
         state.difficultyId = config.difficultyId;
         state.division = getDivision(config.divisionId);
         state.difficulty = getDifficulty(config.difficultyId);
+        state.levelHintUsed = false;
         resetTaskFlags();
         state.expression = "";
         state.usedCounts = new Map();
@@ -1077,7 +1083,7 @@ export function createGame({ mount }) {
         state.dailyElapsedSeconds = Math.max(0, state.timerLimit - Math.max(0, state.timeLeft));
         const stars = calcTaskStars({
           firstTry: state.firstTry && state.attempts <= 1,
-          usedNudge: state.usedNudge,
+          usedNudge: state.levelHintUsed,
           retriesUsed: MAX_RETRIES - state.retriesLeft,
         });
         state.taskStarsEarned = stars;
@@ -1142,7 +1148,7 @@ export function createGame({ mount }) {
             ok: false,
             stars: 1,
             secondsLeft: Math.max(0, Number(state.timeLeft) || 0),
-            usedHint: state.usedNudge,
+            usedHint: state.levelHintUsed,
             retriesUsed: Math.max(0, MAX_RETRIES - (state.retriesLeft || 0)),
           });
         }
@@ -1285,11 +1291,11 @@ export function createGame({ mount }) {
         }
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
 
-        if (state.usedNudge) {
+        if (state.levelHintUsed) {
           state.feedback = {
             kind: "skip",
-            text: buildPuzzleNudge(state.round).text,
-            detail: "Hint already used on this puzzle.",
+            text: "Only one hint per level.",
+            detail: "You already used your hint for this level.",
           };
           render();
           return;
@@ -1314,6 +1320,7 @@ export function createGame({ mount }) {
         if (!confirmed || disposed) return;
 
         state.coins -= HINT_COST;
+        state.levelHintUsed = true;
         state.usedNudge = true;
         state.firstTry = false;
         const nudge = buildPuzzleNudge(state.round);
@@ -1360,7 +1367,7 @@ export function createGame({ mount }) {
           ok: true,
           stars: state.taskStarsEarned || state.runStars || 2,
           secondsLeft: Math.max(0, Number(state.timeLeft) || 0),
-          usedHint: state.usedNudge,
+          usedHint: state.levelHintUsed,
           retriesUsed: Math.max(0, MAX_RETRIES - (state.retriesLeft || 0)),
         });
         state.phase = "finished";
@@ -1502,6 +1509,7 @@ export function createGame({ mount }) {
           puzzleVariant: state.puzzleVariant || 0,
           score: state.score,
           runStars: state.runStars,
+          levelHintUsed: Boolean(state.levelHintUsed),
         };
       }
 

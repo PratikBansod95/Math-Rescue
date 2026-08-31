@@ -148,6 +148,7 @@ function normalizeResume(resume) {
   const puzzleVariant = Number(resume.puzzleVariant);
   const score = Number(resume.score);
   const runStars = Number(resume.runStars);
+  const levelHintUsed = Boolean(resume.levelHintUsed);
   return {
     usernameKey,
     levelIndex: Number.isFinite(levelIndex) ? Math.max(1, levelIndex) : 1,
@@ -157,6 +158,7 @@ function normalizeResume(resume) {
         : Math.max(0, (Number(resume.taskIndex) || 1) - 1),
     score: Number.isFinite(score) ? Math.max(0, score) : 0,
     runStars: Number.isFinite(runStars) ? Math.max(0, runStars) : 0,
+    levelHintUsed,
   };
 }
 
