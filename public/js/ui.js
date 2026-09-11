@@ -3,6 +3,7 @@ import { levelStarPace } from "./scoring.js";
 import { getDailyConfig } from "./puzzle.js";
 import { dailyPuzzleNumber, formatDailyCountdown, msUntilNextDaily } from "./daily.js";
 import { burstConfetti } from "./confetti.js";
+import { createOutcomeVideo } from "./outcomeVideo.js";
 
 const OPERATORS = [
   { label: "+", value: " + " },
@@ -145,6 +146,7 @@ export function createUI({ mount, handlers }) {
     chaseTimer: els.chaseTimer,
     chaseBar: els.chaseBar,
   });
+  const outcomeVideo = createOutcomeVideo(shell);
   buildOperatorPad(els.operatorPad, handlers.onAppend, handlers.onBackspace);
 
   if (typeof ResizeObserver !== "undefined" && els.playShell) {
@@ -279,6 +281,8 @@ export function createUI({ mount, handlers }) {
 
   return {
     shell,
+    playOutcomeVideo: outcomeVideo.play,
+    stopOutcomeVideo: outcomeVideo.stop,
     render(state, options = {}) {
       lastMenuState = state;
       shell.dataset.phase = state.phase;
@@ -355,6 +359,7 @@ export function createUI({ mount, handlers }) {
 
     destroy() {
       if (typeof celebrate.stop === "function") celebrate.stop();
+      outcomeVideo.stop();
       catRun.destroy();
       coachResizeObserver?.disconnect();
       coachResizeObserver = null;
@@ -899,6 +904,13 @@ function template() {
           <button class="screen-btn screen-btn--ghost" data-daily-continue type="button">Back to menu</button>
         </div>
       </section>
+    </div>
+
+    <div class="outcome-video-overlay" data-outcome-video hidden aria-live="polite">
+      <div class="outcome-video-card">
+        <video data-outcome-video-player playsinline webkit-playsinline preload="auto"></video>
+        <button type="button" class="outcome-video-skip" data-outcome-video-skip>Skip</button>
+      </div>
     </div>
   `;
 }

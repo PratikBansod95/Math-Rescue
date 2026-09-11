@@ -203,6 +203,7 @@ export function createGame({ mount }) {
         },
       });
 
+      const { playOutcomeVideo, stopOutcomeVideo } = ui;
       const confirm = createConfirmDialog();
 
       document.addEventListener("visibilitychange", onVisibilityChange);
@@ -220,6 +221,7 @@ export function createGame({ mount }) {
         document.removeEventListener("visibilitychange", onVisibilityChange);
         document.removeEventListener("keydown", onDocumentKeydown);
         confirm.destroy();
+        stopOutcomeVideo();
         audio.dispose();
         ui.destroy();
         mount.replaceChildren();
@@ -466,6 +468,7 @@ export function createGame({ mount }) {
       }
 
       function goToMenu({ openJourney = false } = {}) {
+        stopOutcomeVideo();
         if (["playing", "review"].includes(state.phase) && state.gameMode === "journey") {
           state.resume = buildResume();
         }
@@ -1153,6 +1156,7 @@ export function createGame({ mount }) {
         audio.play("correct");
         audio.playBlip(880, { duration: 0.08, volume: 0.13 });
         vibrate(35);
+        void playOutcomeVideo("success");
         render();
       }
 
@@ -1299,6 +1303,7 @@ export function createGame({ mount }) {
         stopPuzzleTimer();
         audio.play("incorrect");
         vibrate(28);
+        void playOutcomeVideo("timeout");
         render();
         clearCatchTimeout();
         /* 1) swallow  2) post-eat celebration  3) fail review */
@@ -1391,6 +1396,7 @@ export function createGame({ mount }) {
       }
 
       function retryLevelWithNewPuzzle() {
+        stopOutcomeVideo();
         state.puzzleVariant = (state.puzzleVariant || 0) + 1;
         const brainRound = usesBrainForJourney(state.puzzleVariant);
         state.phase = "playing";
