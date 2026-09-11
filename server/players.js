@@ -2,7 +2,6 @@ import {
   getSql,
   normalizeUsername,
   clampDisplayName,
-  mergeBoardStars,
   rowToPlayer,
 } from "./db.js";
 import { hashPlayerToken, playerTokenMatches } from "./playerAuth.js";
@@ -15,6 +14,18 @@ import {
   validatePlayerToken,
   validateRegisterBody,
 } from "./validation.js";
+import { sanitizePlayerProgress } from "./scoreIntegrity.js";
+
+async function countDailySuccesses(playerId) {
+  if (!playerId) return 0;
+  const sql = getSql();
+  const rows = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM daily_results
+    WHERE player_id = ${playerId}::uuid AND daily_score > 0
+  `;
+  return Number(rows[0]?.total) || 0;
+}
 
 function mapLeaderboardEntry(row, rank, currentPlayerId = "") {
   return {
@@ -86,43 +97,51 @@ export async function registerPlayer(body, rawToken) {
     throw new ValidationError("That nickname is already taken.", "nickname", 409);
   }
 
-  const unlockedBoard = Math.max(1, request.localUnlockedBoard || 1);
-  const bestScore = Math.max(0, request.localBestScore || 0);
-  const bestStars = Math.min(3, Math.max(0, request.localBestStars || 0));
-  const boardStars = mergeBoardStars({}, request.localBoardStars || {});
-  const tutorialSeen = Boolean(request.localTutorialSeen);
+  const dailySuccessCount = await countDailySuccesses(request.playerId);
+  const sanitized = sanitizePlayerProgress({
+    existing: existingPlayer || nameOwner || {},
+    incoming: {
+      unlockedBoard: Math.max(1, request.localUnlockedBoard || 1),
+      boardStars: request.localBoardStars || {},
+      bestScore: request.localBestScore || 0,
+      bestStars: request.localBestStars || 0,
+      tutorialSeen: Boolean(request.localTutorialSeen),
+      coins: request.localCoins || 0,
+    },
+    dailySuccessCount,
+  });
 
   let row;
   if (existingPlayer) {
-    const mergedStars = mergeBoardStars(existingPlayer.board_stars || {}, boardStars);
     const rows = await sql`
       UPDATE players
       SET
         username_key = ${nicknameKey},
         display_name = ${displayName},
         auth_token_hash = ${tokenHash},
-        unlocked_board = ${Math.max(Number(existingPlayer.unlocked_board) || 1, unlockedBoard)},
-        best_score = ${Math.max(Number(existingPlayer.best_score) || 0, bestScore)},
-        best_stars = ${Math.min(3, Math.max(Number(existingPlayer.best_stars) || 0, bestStars))},
-        board_stars = ${mergedStars},
-        tutorial_seen = ${Boolean(existingPlayer.tutorial_seen) || tutorialSeen},
+        unlocked_board = ${sanitized.unlockedBoard},
+        best_score = ${sanitized.bestScore},
+        best_stars = ${sanitized.bestStars},
+        board_stars = ${sanitized.boardStars},
+        coins = ${sanitized.coins},
+        tutorial_seen = ${sanitized.tutorialSeen},
         updated_at = now()
       WHERE id = ${request.playerId}::uuid
       RETURNING *
     `;
     row = rows[0];
   } else if (nameOwner && nameOwner.id === request.playerId) {
-    const mergedStars = mergeBoardStars(nameOwner.board_stars || {}, boardStars);
     const rows = await sql`
       UPDATE players
       SET
         display_name = ${displayName},
         auth_token_hash = ${tokenHash},
-        unlocked_board = ${Math.max(Number(nameOwner.unlocked_board) || 1, unlockedBoard)},
-        best_score = ${Math.max(Number(nameOwner.best_score) || 0, bestScore)},
-        best_stars = ${Math.min(3, Math.max(Number(nameOwner.best_stars) || 0, bestStars))},
-        board_stars = ${mergedStars},
-        tutorial_seen = ${Boolean(nameOwner.tutorial_seen) || tutorialSeen},
+        unlocked_board = ${sanitized.unlockedBoard},
+        best_score = ${sanitized.bestScore},
+        best_stars = ${sanitized.bestStars},
+        board_stars = ${sanitized.boardStars},
+        coins = ${sanitized.coins},
+        tutorial_seen = ${sanitized.tutorialSeen},
         updated_at = now()
       WHERE id = ${nameOwner.id}::uuid
       RETURNING *
@@ -139,6 +158,7 @@ export async function registerPlayer(body, rawToken) {
         best_score,
         best_stars,
         board_stars,
+        coins,
         tutorial_seen
       )
       VALUES (
@@ -146,11 +166,12 @@ export async function registerPlayer(body, rawToken) {
         ${nicknameKey},
         ${displayName},
         ${tokenHash},
-        ${unlockedBoard},
-        ${bestScore},
-        ${bestStars},
-        ${boardStars},
-        ${tutorialSeen}
+        ${sanitized.unlockedBoard},
+        ${sanitized.bestScore},
+        ${sanitized.bestStars},
+        ${sanitized.boardStars},
+        ${sanitized.coins},
+        ${sanitized.tutorialSeen}
       )
       RETURNING *
     `;
@@ -169,9 +190,6 @@ export async function upsertPlayer(username, body = {}, rawToken = "") {
   }
 
   const displayName = clampDisplayName(body.name || body.displayName || username, key);
-  const unlockedBoard = Math.max(1, Math.floor(Number(body.unlockedBoard) || 1));
-  const bestScore = Math.max(0, Math.floor(Number(body.bestScore) || 0));
-  const bestStars = Math.min(3, Math.max(0, Math.floor(Number(body.bestStars) || 0)));
   const tutorialSeen = Boolean(body.tutorialSeen);
   const incomingStars = body.boardStars || {};
   const playerId = body.playerId ? validatePlayerId(body.playerId) : null;
@@ -195,6 +213,21 @@ export async function upsertPlayer(username, body = {}, rawToken = "") {
     }
   }
 
+  const dailySuccessCount = await countDailySuccesses(existing?.id || playerId);
+  const sanitized = sanitizePlayerProgress({
+    existing: existing || {},
+    incoming: {
+      unlockedBoard: body.unlockedBoard,
+      boardStars: incomingStars,
+      bestScore: body.bestScore,
+      bestStars: body.bestStars,
+      coins: body.coins,
+      tutorialSeen,
+      dailyMeta: body.dailyMeta,
+    },
+    dailySuccessCount,
+  });
+
   if (!existing) {
     const tokenHash = token ? hashPlayerToken(token) : null;
     const rows = playerId
@@ -208,18 +241,22 @@ export async function upsertPlayer(username, body = {}, rawToken = "") {
             best_score,
             best_stars,
             board_stars,
-            tutorial_seen
+            coins,
+            tutorial_seen,
+            daily_meta
           )
           VALUES (
             ${playerId}::uuid,
             ${key},
             ${displayName},
             ${tokenHash},
-            ${unlockedBoard},
-            ${bestScore},
-            ${bestStars},
-            ${mergeBoardStars({}, incomingStars)},
-            ${tutorialSeen}
+            ${sanitized.unlockedBoard},
+            ${sanitized.bestScore},
+            ${sanitized.bestStars},
+            ${sanitized.boardStars},
+            ${sanitized.coins},
+            ${sanitized.tutorialSeen},
+            ${sanitized.dailyMeta}
           )
           RETURNING *
         `
@@ -232,33 +269,38 @@ export async function upsertPlayer(username, body = {}, rawToken = "") {
             best_score,
             best_stars,
             board_stars,
-            tutorial_seen
+            coins,
+            tutorial_seen,
+            daily_meta
           )
           VALUES (
             ${key},
             ${displayName},
             ${tokenHash},
-            ${unlockedBoard},
-            ${bestScore},
-            ${bestStars},
-            ${mergeBoardStars({}, incomingStars)},
-            ${tutorialSeen}
+            ${sanitized.unlockedBoard},
+            ${sanitized.bestScore},
+            ${sanitized.bestStars},
+            ${sanitized.boardStars},
+            ${sanitized.coins},
+            ${sanitized.tutorialSeen},
+            ${sanitized.dailyMeta}
           )
           RETURNING *
         `;
     return rowToPlayer(rows[0]);
   }
 
-  const mergedStars = mergeBoardStars(existing.board_stars || {}, incomingStars);
   const rows = await sql`
     UPDATE players
     SET
       display_name = ${displayName},
-      unlocked_board = ${Math.max(Number(existing.unlocked_board) || 1, unlockedBoard)},
-      best_score = ${Math.max(Number(existing.best_score) || 0, bestScore)},
-      best_stars = ${Math.min(3, Math.max(Number(existing.best_stars) || 0, bestStars))},
-      board_stars = ${mergedStars},
-      tutorial_seen = ${Boolean(existing.tutorial_seen) || tutorialSeen},
+      unlocked_board = ${sanitized.unlockedBoard},
+      best_score = ${sanitized.bestScore},
+      best_stars = ${sanitized.bestStars},
+      board_stars = ${sanitized.boardStars},
+      coins = ${sanitized.coins},
+      tutorial_seen = ${sanitized.tutorialSeen},
+      daily_meta = ${sanitized.dailyMeta},
       updated_at = now()
     WHERE username_key = ${key}
     RETURNING *

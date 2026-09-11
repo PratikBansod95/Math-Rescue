@@ -53,7 +53,9 @@ export function rowToPlayer(row) {
     bestScore: Number(row.best_score) || 0,
     bestStars: Number(row.best_stars) || 0,
     boardStars: row.board_stars && typeof row.board_stars === "object" ? row.board_stars : {},
+    coins: Number(row.coins) || 0,
     tutorialSeen: Boolean(row.tutorial_seen),
+    dailyMeta: row.daily_meta && typeof row.daily_meta === "object" ? row.daily_meta : {},
     updatedAt: row.updated_at || null,
   };
 }

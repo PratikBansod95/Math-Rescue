@@ -89,10 +89,21 @@ export async function savePlayer(profile) {
       bestScore: profile.bestScore,
       bestStars: profile.bestStars,
       boardStars: profile.boardStars || {},
+      coins: Math.max(0, Number(profile.coins) || 0),
       tutorialSeen: Boolean(profile.tutorialSeen),
+      dailyMeta: profile.daily || {},
     }),
   });
   return data?.player || null;
+}
+
+export async function submitDaily(payload, playerToken) {
+  const data = await request("/api/daily/submit", {
+    method: "POST",
+    headers: playerAuthorization(playerToken),
+    body: JSON.stringify(payload),
+  });
+  return data || null;
 }
 
 export async function deletePlayer(username, { playerId, playerToken } = {}) {
@@ -120,15 +131,18 @@ export async function fetchLeaderboard(limit = 10, playerId = "") {
 
 export function remoteToLocalProfile(player) {
   if (!player) return null;
+  const dailyMeta = player.dailyMeta && typeof player.dailyMeta === "object" ? player.dailyMeta : {};
   return {
     name: player.name,
     playerId: player.playerId || "",
     bestScore: Number(player.bestScore) || 0,
     unlockedBoard: Math.max(1, Number(player.unlockedBoard) || 1),
     bestStars: Number(player.bestStars) || 0,
+    coins: Math.max(0, Number(player.coins) || 0),
     tutorialSeen: Boolean(player.tutorialSeen),
     taskStars: {},
     boardStars: player.boardStars && typeof player.boardStars === "object" ? player.boardStars : {},
+    daily: dailyMeta,
     registered: Boolean(player.playerId),
   };
 }

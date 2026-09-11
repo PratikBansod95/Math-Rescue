@@ -35,6 +35,7 @@ import {
   deletePlayer,
   fetchLeaderboard,
   registerPlayer,
+  submitDaily,
   remoteToLocalProfile,
   leaderboardToUi,
 } from "./api.js";
@@ -315,6 +316,7 @@ export function createGame({ mount }) {
               localBestStars: profile.bestStars,
               localBoardStars: profile.boardStars,
               localTutorialSeen: profile.tutorialSeen,
+              localCoins: profile.coins || 0,
             },
             profile.playerToken,
           );
@@ -939,6 +941,46 @@ export function createGame({ mount }) {
         }
         persist();
         void refreshLeaderboard(3);
+        void submitDailyToCloud({
+          profile: state.profiles[state.usernameKey],
+          dateKey,
+          stars,
+          timeSeconds,
+          succeeded,
+          dailyMeta: nextDaily,
+        });
+      }
+
+      async function submitDailyToCloud({ profile, dateKey, stars, timeSeconds, succeeded, dailyMeta }) {
+        if (!profile?.playerId || !profile?.playerToken) {
+          scheduleRemoteSync();
+          return;
+        }
+        try {
+          const payload = await submitDaily(
+            {
+              playerId: profile.playerId,
+              dateKey,
+              stars,
+              timeSeconds,
+              succeeded,
+              dailyMeta,
+            },
+            profile.playerToken,
+          );
+          if (payload?.bestScore != null) {
+            state.bestScore = Math.max(state.bestScore || 0, Number(payload.bestScore) || 0);
+            state.profiles[state.usernameKey] = {
+              ...state.profiles[state.usernameKey],
+              bestScore: state.bestScore,
+            };
+            persist();
+          }
+        } catch (error) {
+          if (error.status !== 409) {
+            scheduleRemoteSync();
+          }
+        }
       }
 
       function onDailyContinue() {
@@ -1596,8 +1638,20 @@ export function createGame({ mount }) {
         state.boardStars = boardStars;
         state.bestStars = bestBoardRating(boardStars);
         state.levelIndex = state.unlockedBoard;
-        const coins = Math.max(0, Number(existing.coins) || 0, Number(state.coins) || 0);
+        const coins = Math.max(
+          0,
+          Number(existing.coins) || 0,
+          Number(remote.coins) || 0,
+          Number(state.coins) || 0,
+        );
         const freeHintUsed = Boolean(existing.freeHintUsed || state.freeHintUsed);
+        const remoteDaily = normalizeDaily(remote.daily);
+        const mergedDaily = normalizeDaily({
+          ...normalizeDaily(existing.daily),
+          attemptedDate: remoteDaily.attemptedDate || normalizeDaily(existing.daily).attemptedDate,
+          todayResult: remoteDaily.todayResult || normalizeDaily(existing.daily).todayResult,
+        });
+        state.coins = coins;
         state.profiles[state.usernameKey] = ensurePlayerIdentity({
           ...existing,
           name: remote.name || state.username,
@@ -1609,6 +1663,7 @@ export function createGame({ mount }) {
           tutorialSeen: state.tutorialSeen,
           taskStars: existing.taskStars || {},
           boardStars,
+          daily: mergedDaily,
           playerId: remote.playerId || existing.playerId,
           playerToken: existing.playerToken,
           registered: Boolean(remote.playerId || existing.registered),
@@ -1648,7 +1703,9 @@ export function createGame({ mount }) {
           bestScore: profile.bestScore,
           bestStars: profile.bestStars,
           boardStars: profile.boardStars,
+          coins: profile.coins,
           tutorialSeen: profile.tutorialSeen,
+          daily: profile.daily,
         })
           .then(() => {
             if (!disposed) state.syncStatus = "ok";

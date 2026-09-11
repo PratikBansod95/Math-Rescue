@@ -84,6 +84,7 @@ export function validateRegisterBody(raw) {
     localBoardStars:
       raw.localBoardStars && typeof raw.localBoardStars === "object" ? raw.localBoardStars : {},
     localTutorialSeen: Boolean(raw.localTutorialSeen),
+    localCoins: parseOptionalInt(raw.localCoins, "localCoins"),
   };
 }
 

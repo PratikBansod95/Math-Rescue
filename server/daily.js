@@ -6,6 +6,11 @@ import {
   validatePlayerId,
   validatePlayerToken,
 } from "./validation.js";
+import {
+  DAILY_CAREER_BONUS,
+  dailyScoreFromResult,
+  utcDateKey,
+} from "./scoreIntegrity.js";
 
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -15,14 +20,6 @@ function validateDateKey(raw) {
     throw new ValidationError("dateKey must be YYYY-MM-DD.", "dateKey");
   }
   return dateKey;
-}
-
-function validateDailyScore(value) {
-  const score = Math.floor(Number(value));
-  if (!Number.isFinite(score) || score < 0 || score > 500) {
-    throw new ValidationError("dailyScore is invalid.", "dailyScore");
-  }
-  return score;
 }
 
 function validateStars(value) {
@@ -41,6 +38,10 @@ function validateTimeSeconds(value) {
   return seconds;
 }
 
+function validateSucceeded(value) {
+  return Boolean(value);
+}
+
 function mapDailyEntry(row, rank, currentPlayerId = "") {
   return {
     rank,
@@ -55,7 +56,7 @@ function mapDailyEntry(row, rank, currentPlayerId = "") {
 }
 
 export async function getDailyLeaderboard(dateKey, limit = 25, currentPlayerId = "") {
-  const safeDate = validateDateKey(dateKey || new Date().toISOString().slice(0, 10));
+  const safeDate = validateDateKey(dateKey || utcDateKey());
   const safeLimit = validateLeaderboardLimit(limit);
   const playerId = currentPlayerId ? validatePlayerId(currentPlayerId) : "";
   const sql = getSql();
@@ -110,9 +111,14 @@ export async function submitDailyResult(body = {}, rawToken = "") {
   const playerId = validatePlayerId(body.playerId);
   const token = validatePlayerToken(rawToken);
   const dateKey = validateDateKey(body.dateKey);
-  const dailyScore = validateDailyScore(body.dailyScore);
+  const today = utcDateKey();
+  if (dateKey !== today) {
+    throw new ValidationError("Daily submit must be for today (UTC).", "dateKey");
+  }
   const stars = validateStars(body.stars);
   const timeSeconds = validateTimeSeconds(body.timeSeconds);
+  const succeeded = validateSucceeded(body.succeeded);
+  const dailyScore = dailyScoreFromResult(stars, timeSeconds, succeeded);
   const dailyMeta =
     body.dailyMeta && typeof body.dailyMeta === "object" && !Array.isArray(body.dailyMeta)
       ? body.dailyMeta
@@ -120,7 +126,7 @@ export async function submitDailyResult(body = {}, rawToken = "") {
 
   const sql = getSql();
   const playerRows = await sql`
-    SELECT id, username_key, display_name, auth_token_hash
+    SELECT id, username_key, display_name, auth_token_hash, best_score
     FROM players
     WHERE id = ${playerId}::uuid
     LIMIT 1
@@ -169,6 +175,7 @@ export async function submitDailyResult(body = {}, rawToken = "") {
     UPDATE players
     SET
       daily_meta = ${dailyMeta},
+      best_score = ${succeeded ? Number(player.best_score) + DAILY_CAREER_BONUS : Number(player.best_score)},
       updated_at = now()
     WHERE id = ${playerId}::uuid
   `;
@@ -198,5 +205,6 @@ export async function submitDailyResult(body = {}, rawToken = "") {
   return {
     entry: mapDailyEntry(rows[0], Number(rankRows[0]?.rank) || 0, playerId),
     dateKey,
+    bestScore: succeeded ? Number(player.best_score) + DAILY_CAREER_BONUS : Number(player.best_score),
   };
 }

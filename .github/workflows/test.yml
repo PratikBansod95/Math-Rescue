@@ -16,7 +16,10 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - name: Syntax check client and server
         run: |
           for f in public/js/*.js server/*.js api/*.js api/**/*.js; do

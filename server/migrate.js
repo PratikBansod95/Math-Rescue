@@ -40,6 +40,9 @@ async function main() {
   await sql`ALTER TABLE players ADD COLUMN IF NOT EXISTS daily_meta JSONB NOT NULL DEFAULT '{}'::jsonb`;
   console.log("OK: daily_meta column");
 
+  await sql`ALTER TABLE players ADD COLUMN IF NOT EXISTS coins INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0)`;
+  console.log("OK: coins column");
+
   await sql`
     CREATE TABLE IF NOT EXISTS daily_results (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -68,6 +71,21 @@ async function main() {
     WHERE auth_token_hash IS NOT NULL
   `;
   console.log("OK: auth_token_hash index");
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      rate_key TEXT PRIMARY KEY,
+      hits INTEGER NOT NULL DEFAULT 0 CHECK (hits >= 0),
+      window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `;
+  console.log("OK: rate_limits table");
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS rate_limits_window_idx
+    ON rate_limits (window_start)
+  `;
+  console.log("OK: rate_limits index");
 
   console.log("Migration complete.");
 }

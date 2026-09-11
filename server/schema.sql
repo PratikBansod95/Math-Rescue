@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS players (
   best_score INTEGER NOT NULL DEFAULT 0 CHECK (best_score >= 0),
   best_stars INTEGER NOT NULL DEFAULT 0 CHECK (best_stars >= 0),
   board_stars JSONB NOT NULL DEFAULT '{}'::jsonb,
+  coins INTEGER NOT NULL DEFAULT 0 CHECK (coins >= 0),
   tutorial_seen BOOLEAN NOT NULL DEFAULT false,
   auth_token_hash TEXT,
   daily_meta JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -36,3 +37,11 @@ CREATE TABLE IF NOT EXISTS daily_results (
 
 CREATE INDEX IF NOT EXISTS daily_results_date_score_idx
   ON daily_results (date_key, daily_score DESC, time_seconds ASC);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  rate_key TEXT PRIMARY KEY,
+  hits INTEGER NOT NULL DEFAULT 0 CHECK (hits >= 0),
+  window_start TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS rate_limits_window_idx ON rate_limits (window_start);
