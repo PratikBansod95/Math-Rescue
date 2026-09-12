@@ -1,7 +1,7 @@
 import { createCatRunAnimator } from "./chaseCatRun.js";
 import { levelStarPace } from "./scoring.js";
 import { getDailyConfig, getUsedCardIndices } from "./puzzle.js";
-import { dailyPuzzleNumber, formatRescueCountdown, msUntilNextDaily, rescueNumber, buildChaseTrackBar } from "./daily.js";
+import { dailyPuzzleNumber, formatRescueCountdown, msUntilNextDaily, rescueNumber, utcDateKey, buildChaseTrackBar } from "./daily.js";
 import { paintDailySharePreview } from "./dailyShareCard.js";
 import { burstConfetti } from "./confetti.js";
 import { createOutcomeVideo } from "./outcomeVideo.js";
@@ -491,7 +491,7 @@ function template() {
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
             <span class="menu-feature__copy">
-              <strong>DAILY RESCUE</strong>
+              <strong data-menu-daily-label>Daily Challenge #1</strong>
             </span>
             <span class="menu-feature__chev" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1245,6 +1245,18 @@ function updateMenuScreen(els, state) {
   const dailyFeature = els.menuScreen?.querySelector(".menu-feature--daily");
   if (dailyFeature) {
     dailyFeature.classList.toggle("is-complete", Boolean(state.dailyCompletedToday));
+  }
+  const dailyLabel = els.menuScreen?.querySelector("[data-menu-daily-label]");
+  const challengeNum = rescueNumber(state.dailyDateKey || utcDateKey());
+  if (dailyLabel) {
+    dailyLabel.textContent = `Daily Challenge #${challengeNum}`;
+  }
+  const dailyOpenBtn = els.menuScreen?.querySelector("[data-menu-open-daily]");
+  if (dailyOpenBtn) {
+    dailyOpenBtn.setAttribute(
+      "aria-label",
+      `Daily Challenge number ${challengeNum}, open today's puzzle`,
+    );
   }
   if (els.menuDailyStreak) {
     const streak = Number(state.rescueStreak) || 0;
