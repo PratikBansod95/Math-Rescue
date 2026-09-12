@@ -1430,7 +1430,7 @@ function updateDailyModal(els, state) {
       boardWrap.hidden = false;
       for (const entry of entries.slice(0, 5)) {
         const li = document.createElement("li");
-        li.textContent = `${entry.rank}. ${entry.name} · ${entry.timeSeconds || 0}s`;
+        li.textContent = `${entry.name} · ${entry.timeSeconds || 0}s`;
         boardList.append(li);
       }
     } else {
