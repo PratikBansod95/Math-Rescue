@@ -162,7 +162,6 @@ export function createGame({ mount }) {
         menuDailyOpen: false,
         dailyLeaderboardToday: [],
         dailyLeaderboardPlayer: null,
-        guestMode: false,
         deviceDaily: emptyDailyState(),
         deviceId: "",
         dailyOperationCount: 0,
@@ -292,21 +291,18 @@ export function createGame({ mount }) {
         }
 
         state.round = makeRound(state);
-        state.correction = null;
-        state.guestMode = true;
-        syncDailyFromStorage();
-        goToMenu();
+        state.phase = "nickname";
         state.feedback = {
           kind: "neutral",
-          text: "Play Daily Rescue now — add a name anytime to save journey progress.",
-          detail: "",
+          text: "Enter a rescue name to play.",
+          detail: "One nickname saves your journey, Daily Rescue, and streak on this device.",
         };
+        state.correction = null;
         render();
       }
 
       async function onConfirmNickname() {
-        if (state.phase !== "nickname" && state.phase !== "menu") return;
-        if (state.nicknamePending) return;
+        if (state.phase !== "nickname" || state.nicknamePending) return;
         const validation = validateNickname(state.username);
         if (!validation.ok) {
           state.nicknameError = validation.message;
@@ -323,7 +319,6 @@ export function createGame({ mount }) {
         profile.name = nickname;
         profile.daily = mergeDeviceDailyIntoProfile(profile.daily, state.deviceDaily);
         state.profiles[state.usernameKey] = profile;
-        state.guestMode = false;
         applyProfileToState(profile);
 
         state.nicknamePending = true;
@@ -444,28 +439,14 @@ export function createGame({ mount }) {
       }
 
       function getDailyStorage() {
-        if (state.usernameKey) {
-          return normalizeDaily(state.profiles[state.usernameKey]?.daily);
-        }
-        return normalizeDaily(state.deviceDaily);
+        return normalizeDaily(state.profiles[state.usernameKey]?.daily);
       }
 
       function syncDailyFromStorage() {
-        const daily = reconcileRescueStreak(getDailyStorage(), utcDateKey());
-        const dateKey = utcDateKey();
-        state.dailyDateKey = dateKey;
-        state.dailyTodayResult =
-          daily.todayResult?.dateKey === dateKey ? daily.todayResult : null;
-        state.dailyCompletedToday = hasCompletedToday(daily, dateKey);
-        state.rescueStreak = daily.rescueStreak || 0;
-        state.longestRescueStreak = daily.longestRescueStreak || 0;
+        syncDailyFromProfile(currentProfile());
       }
 
       function syncDailyFromProfile(profile = currentProfile()) {
-        if (!state.usernameKey) {
-          syncDailyFromStorage();
-          return;
-        }
         const daily = reconcileRescueStreak(normalizeDaily(profile?.daily), utcDateKey());
         const dateKey = utcDateKey();
         state.dailyDateKey = dateKey;
@@ -477,14 +458,7 @@ export function createGame({ mount }) {
       }
 
       function writeDailyStorage(daily) {
-        const normalized = normalizeDaily(daily);
-        if (state.usernameKey) {
-          writeDailyToProfile(normalized);
-          return;
-        }
-        state.deviceDaily = normalized;
-        syncDailyFromStorage();
-        persist({ remote: false });
+        writeDailyToProfile(normalizeDaily(daily));
       }
 
       function writeDailyToProfile(daily) {
@@ -598,16 +572,6 @@ export function createGame({ mount }) {
       }
 
       function onPlayFromMenu() {
-        if (state.guestMode && !state.usernameKey) {
-          state.phase = "nickname";
-          state.feedback = {
-            kind: "neutral",
-            text: "Pick a rescue name to start your journey.",
-            detail: "Daily Rescue works without a name — journey progress needs one.",
-          };
-          render();
-          return;
-        }
         if (state.phase !== "menu") return;
         if (resumeIsValid(state.resume)) {
           startLevel(resumeLevel(state.resume), { resume: true });

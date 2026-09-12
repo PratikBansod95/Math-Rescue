@@ -121,8 +121,10 @@ test("formatRescueCountdown uses HH:MM:SS", () => {
   assert.match(formatRescueCountdown(3661000), /^\d{2}:\d{2}:\d{2}$/);
 });
 
-test("rescueNumber increases over time", () => {
-  assert.ok(rescueNumber("2026-08-22") > rescueNumber("2026-01-01"));
+test("rescueNumber starts at 1 on launch day and increments", () => {
+  assert.equal(rescueNumber("2026-09-12"), 1);
+  assert.equal(rescueNumber("2026-09-13"), 2);
+  assert.ok(rescueNumber("2026-09-12") < rescueNumber("2026-09-14"));
 });
 
 test("createDailyRescueRound is solvable", async () => {

@@ -1,8 +1,8 @@
 /** Daily Rescue — UTC day key, one attempt, streaks, share metrics. */
 
 export const DAILY_CAREER_BONUS = 5;
-/** Rescue #N counts from this UTC midnight (product launch). */
-export const RESCUE_LAUNCH_UTC = Date.UTC(2026, 0, 1);
+/** Rescue #1 = first UTC day of Daily Rescue (2026-09-12). */
+export const RESCUE_LAUNCH_UTC = Date.UTC(2026, 8, 12);
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
