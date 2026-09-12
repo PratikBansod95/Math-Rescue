@@ -238,9 +238,8 @@ export function createUI({ mount, handlers }) {
   });
   on(shell.querySelector("[data-daily-continue]"), "click", handlers.onDailyContinue);
   on(shell.querySelector("[data-daily-share]"), "click", handlers.onDailyShare);
-  on(shell.querySelector("[data-daily-open-ranks]"), "click", () => {
-    handlers.onOpenLeaderboard?.();
-  });
+  on(shell.querySelector("[data-daily-open-ranks]"), "click", handlers.onOpenDailyTodayLeague);
+  on(shell.querySelector("[data-daily-close-today-league]"), "click", handlers.onCloseDailyTodayLeague);
   on(els.menuJourneyMount, "click", (event) => {
     const btn = event.target.closest("[data-select-board]");
     if (!btn) return;
@@ -920,6 +919,16 @@ function template() {
           <button class="screen-btn screen-btn--ghost" data-daily-continue type="button">Back to menu</button>
         </div>
       </section>
+      <div class="daily-result-league" data-daily-today-league hidden>
+        <div class="daily-result-league-card screen-card" role="dialog" aria-modal="true" aria-labelledby="daily-today-league-title">
+          <p class="daily-result-league__kicker">Daily Rescue · UTC day</p>
+          <h2 id="daily-today-league-title">Today&apos;s fastest rescues</h2>
+          <p class="daily-result-league__hint">One run per player — ranked by solve time.</p>
+          <ol class="daily-result-league__list" data-daily-today-league-list></ol>
+          <p class="daily-result-league__you" data-daily-today-league-you hidden></p>
+          <button class="screen-btn screen-btn--primary" data-daily-close-today-league type="button">Back to result</button>
+        </div>
+      </div>
     </div>
 
     <div class="outcome-video-overlay" data-outcome-video hidden aria-live="polite">
@@ -1495,6 +1504,47 @@ function updateDailyResult(els, state) {
     if (canvasEl.dataset.renderSig !== sig) {
       canvasEl.dataset.renderSig = sig;
       paintDailySharePreview(canvasEl, result);
+    }
+  }
+
+  updateDailyTodayLeague(els.dailyResultOverlay, state);
+}
+
+function updateDailyTodayLeague(overlay, state) {
+  if (!overlay) return;
+  const panel = overlay.querySelector("[data-daily-today-league]");
+  const listEl = overlay.querySelector("[data-daily-today-league-list]");
+  const youEl = overlay.querySelector("[data-daily-today-league-you]");
+  if (!panel || !listEl) return;
+
+  const show = state.phase === "daily_finished" && state.dailyTodayLeagueOpen;
+  panel.hidden = !show;
+  if (!show) return;
+
+  listEl.replaceChildren();
+  const entries = state.dailyLeaderboardToday || [];
+  if (!entries.length) {
+    const empty = document.createElement("li");
+    empty.className = "daily-result-league__empty";
+    empty.textContent = "No times yet — invite friends to play today’s rescue.";
+    listEl.append(empty);
+  } else {
+    for (const entry of entries.slice(0, 15)) {
+      const li = document.createElement("li");
+      li.textContent = `${entry.name || "Player"} · ${entry.timeSeconds || 0}s`;
+      if (entry.isCurrentPlayer) li.classList.add("is-you");
+      listEl.append(li);
+    }
+  }
+
+  const player = state.dailyLeaderboardPlayer;
+  if (youEl) {
+    if (player?.rank) {
+      youEl.hidden = false;
+      youEl.textContent = `Your rank #${player.rank} · ${player.timeSeconds || 0}s`;
+    } else {
+      youEl.hidden = true;
+      youEl.textContent = "";
     }
   }
 }

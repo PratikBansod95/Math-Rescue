@@ -162,6 +162,7 @@ export function createGame({ mount }) {
         menuDailyOpen: false,
         dailyLeaderboardToday: [],
         dailyLeaderboardPlayer: null,
+        dailyTodayLeagueOpen: false,
         deviceDaily: emptyDailyState(),
         deviceId: "",
         dailyOperationCount: 0,
@@ -210,6 +211,8 @@ export function createGame({ mount }) {
           onStartDaily,
           onDailyContinue,
           onDailyShare,
+          onOpenDailyTodayLeague,
+          onCloseDailyTodayLeague,
           onUsernameInput,
           onToggleSound,
           onTutorialSkip,
@@ -385,7 +388,7 @@ export function createGame({ mount }) {
       }
 
       function onOpenLeaderboard() {
-        if (state.phase !== "menu" && state.phase !== "daily_finished") return;
+        if (state.phase !== "menu") return;
         state.menuLeaderboardOpen = true;
         render();
         void refreshLeaderboard(LEADERBOARD_PANEL_LIMIT);
@@ -1063,6 +1066,7 @@ export function createGame({ mount }) {
       }
 
       function onDailyContinue() {
+        state.dailyTodayLeagueOpen = false;
         goToMenu();
         persist();
       }
@@ -1081,6 +1085,18 @@ export function createGame({ mount }) {
             showMenuToast("Could not share result");
           }
         }
+      }
+
+      function onOpenDailyTodayLeague() {
+        if (state.phase !== "daily_finished") return;
+        state.dailyTodayLeagueOpen = true;
+        void refreshDailyLeaderboard();
+        render();
+      }
+
+      function onCloseDailyTodayLeague() {
+        state.dailyTodayLeagueOpen = false;
+        render();
       }
 
       function onComingSoon() {
