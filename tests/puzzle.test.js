@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRound, evaluateSubmission } from "../public/js/puzzle.js";
+import { createRound, evaluateSubmission, getUsedCardIndices } from "../public/js/puzzle.js";
 
 test("evaluateSubmission requires all four cards", () => {
   const round = {
@@ -29,4 +29,17 @@ test("createRound produces a solvable board-1 puzzle", () => {
   assert.ok(Number.isFinite(round.target));
   const check = evaluateSubmission(round.exampleSolution, round);
   assert.equal(check.ok, true);
+});
+
+test("getUsedCardIndices marks duplicate card slots independently", () => {
+  const cards = [
+    { key: "3", input: "3", value: 3 },
+    { key: "3", input: "3", value: 3 },
+    { key: "5", input: "5", value: 5 },
+    { key: "7", input: "7", value: 7 },
+  ];
+  const once = getUsedCardIndices("3", cards);
+  assert.equal(once.size, 1);
+  const twice = getUsedCardIndices("3 + 3", cards);
+  assert.equal(twice.size, 2);
 });

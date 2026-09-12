@@ -1,8 +1,8 @@
 import { createCatRunAnimator } from "./chaseCatRun.js";
 import { levelStarPace } from "./scoring.js";
-import { getDailyConfig } from "./puzzle.js";
+import { getDailyConfig, getUsedCardIndices } from "./puzzle.js";
 import { dailyPuzzleNumber, formatRescueCountdown, msUntilNextDaily, rescueNumber, buildChaseTrackBar } from "./daily.js";
-import { renderDailyShareCard } from "./dailyShareCard.js";
+import { paintDailySharePreview } from "./dailyShareCard.js";
 import { burstConfetti } from "./confetti.js";
 import { createOutcomeVideo } from "./outcomeVideo.js";
 
@@ -314,6 +314,8 @@ export function createUI({ mount, handlers }) {
       els.coins.textContent = String(state.coins || 0);
       updateTimerChip(els, state);
       updateChase(els, state, catRun, celebrate);
+      if (options.light) return;
+
       els.bestScore.textContent = String(state.bestScore);
       els.welcome.textContent = state.usernameKey
         ? `Welcome back, ${state.username}.`
@@ -906,7 +908,10 @@ function template() {
         <p class="daily-result__stars" data-daily-result-stars>★★★</p>
         <p class="daily-result__meta" data-daily-result-meta>Escaped 82% · 0:52 · 3 ops</p>
         <p class="daily-result__streak" data-daily-result-streak hidden></p>
-        <canvas class="daily-result__share-canvas" data-daily-result-canvas width="360" height="210" aria-hidden="true"></canvas>
+        <div class="daily-result__share-preview">
+          <p class="daily-result__share-label">Share preview</p>
+          <canvas class="daily-result__share-canvas" data-daily-result-canvas width="720" height="420" aria-hidden="true"></canvas>
+        </div>
         <p class="daily-result__reset" data-daily-result-reset>Next rescue in 06:12:04</p>
         <p class="daily-result__nudge">Send this to a friend and see who gets the cat further.</p>
         <div class="daily-result__actions">
@@ -1021,6 +1026,22 @@ function renderLevelTrack(track, state) {
   }
 }
 
+function bindPrimaryAction(button, handler) {
+  button.addEventListener("pointerdown", (event) => {
+    if (button.disabled) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    handler();
+  });
+  button.addEventListener("keydown", (event) => {
+    if (button.disabled) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handler();
+    }
+  });
+}
+
 function buildOperatorPad(container, onAppend, onBackspace) {
   for (const op of OPERATORS) {
     const button = document.createElement("button");
@@ -1028,7 +1049,7 @@ function buildOperatorPad(container, onAppend, onBackspace) {
     button.className = "operator-button";
     button.textContent = op.label;
     button.setAttribute("aria-label", `Add ${op.label}`);
-    button.addEventListener("click", () => onAppend(op.value));
+    bindPrimaryAction(button, () => onAppend(op.value));
     container.append(button);
   }
 
@@ -1037,61 +1058,97 @@ function buildOperatorPad(container, onAppend, onBackspace) {
   backspace.className = "operator-button operator-button--back";
   backspace.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-9l-6-6 6-6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m13 10 4 4m0-4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
   backspace.setAttribute("aria-label", "Backspace");
-  backspace.addEventListener("click", onBackspace);
+  bindPrimaryAction(backspace, onBackspace);
   container.append(backspace);
 }
 
-function renderCards(container, state, onAppend, onPuzzleGo) {
-  container.replaceChildren();
-  const availability = countByKey(state.round.cards);
-  const locked = state.phase !== "playing" || state.awaitingStart;
+function cardStructureKey(state) {
+  const cards = state.round?.cards || [];
+  return [
+    state.awaitingStart ? "start" : "play",
+    state.round?.target,
+    cards.map((card) => `${card.key}:${card.input}`).join("|"),
+  ].join(":");
+}
 
-  for (let i = 0; i < state.round.cards.length; i += 1) {
-    const card = state.round.cards[i];
-    const theme = CARD_THEMES[i] || CARD_THEMES[0];
-    const used = state.usedCounts.get(card.key) || 0;
-    const max = availability.get(card.key) || 0;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `number-card number-card--${theme.position} number-card--${theme.tone}`;
-    button.disabled = locked || used >= max;
-    button.setAttribute("aria-label", `Use number card ${card.label}`);
-    button.innerHTML = `
+function syncNumberCardDisabled(container, state) {
+  const locked = state.phase !== "playing" || state.awaitingStart;
+  const usedIndices = getUsedCardIndices(state.expression, state.round.cards);
+  const buttons = container.querySelectorAll("[data-number-card]");
+  for (const button of buttons) {
+    const index = Number(button.dataset.numberCard);
+    button.disabled = locked || usedIndices.has(index);
+  }
+}
+
+function renderCards(container, state, onAppend, onPuzzleGo) {
+  const cards = state.round?.cards || [];
+  const structureKey = cardStructureKey(state);
+
+  if (container.dataset.structureKey !== structureKey) {
+    container.dataset.structureKey = structureKey;
+    container.replaceChildren();
+
+    for (let i = 0; i < cards.length; i += 1) {
+      const card = cards[i];
+      const theme = CARD_THEMES[i] || CARD_THEMES[0];
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `number-card number-card--${theme.position} number-card--${theme.tone}`;
+      button.dataset.numberCard = String(i);
+      button.setAttribute("aria-label", `Use number card ${card.label}`);
+      button.innerHTML = `
       <span class="number-card__badge" aria-hidden="true">${cardIcon(theme.icon)}</span>
       <span class="number-card__glow" aria-hidden="true"></span>
     `;
-    button.append(renderCardValue(card));
-    button.addEventListener("click", () => onAppend(card.input));
-    container.append(button);
-  }
+      button.append(renderCardValue(card));
+      bindPrimaryAction(button, () => onAppend(card.input));
+      container.append(button);
+    }
 
-  if (state.phase === "playing" && state.awaitingStart) {
-    const startBtn = document.createElement("button");
-    startBtn.type = "button";
-    startBtn.className = "target-badge target-badge--start";
-    startBtn.setAttribute("aria-label", "Start puzzle and reveal target");
-    startBtn.disabled = false;
-    startBtn.innerHTML = `
+    if (state.phase === "playing" && state.awaitingStart) {
+      const startBtn = document.createElement("button");
+      startBtn.type = "button";
+      startBtn.className = "target-badge target-badge--start";
+      startBtn.dataset.cardCenter = "start";
+      startBtn.setAttribute("aria-label", "Start puzzle and reveal target");
+      startBtn.innerHTML = `
       <span class="target-badge__label">Ready</span>
       <strong class="target-badge__value target-badge__value--start">Start</strong>
     `;
-    startBtn.addEventListener("click", () => onPuzzleGo?.());
-    container.append(startBtn);
-    return;
-  }
-
-  const target = document.createElement("div");
-  target.className = "target-badge";
-  if (state.feedback.kind === "good") target.classList.add("target-badge--pulse");
-  target.setAttribute(
-    "aria-label",
-    `Target number ${state.round.targetLabel || state.round.target}`
-  );
-  target.innerHTML = `
+      bindPrimaryAction(startBtn, () => onPuzzleGo?.());
+      container.append(startBtn);
+    } else {
+      const target = document.createElement("div");
+      target.className = "target-badge";
+      target.dataset.cardCenter = "target";
+      target.setAttribute(
+        "aria-label",
+        `Target number ${state.round.targetLabel || state.round.target}`,
+      );
+      target.innerHTML = `
     <span class="target-badge__label">Target</span>
     <strong class="target-badge__value">${state.round.targetLabel || state.round.target}</strong>
   `;
-  container.append(target);
+      container.append(target);
+    }
+  } else {
+    const center = container.querySelector("[data-card-center]");
+    const wantsStart = state.phase === "playing" && state.awaitingStart;
+    const hasStart = center?.dataset.cardCenter === "start";
+    if (Boolean(wantsStart) !== Boolean(hasStart)) {
+      container.dataset.structureKey = "";
+      renderCards(container, state, onAppend, onPuzzleGo);
+      return;
+    }
+    if (center?.dataset.cardCenter === "target") {
+      center.classList.toggle("target-badge--pulse", state.feedback.kind === "good");
+      const value = center.querySelector(".target-badge__value");
+      if (value) value.textContent = String(state.round.targetLabel || state.round.target);
+    }
+  }
+
+  syncNumberCardDisabled(container, state);
 }
 
 function cardIcon(kind) {
@@ -1427,9 +1484,18 @@ function updateDailyResult(els, state) {
     resetEl.textContent = `Next rescue in ${result.resetsIn || formatRescueCountdown()}`;
   }
   if (canvasEl) {
-    const card = renderDailyShareCard(result, { width: 360, height: 210 });
-    const ctx = canvasEl.getContext("2d");
-    if (ctx) ctx.drawImage(card, 0, 0, canvasEl.width, canvasEl.height);
+    const sig = [
+      result.dateKey,
+      result.succeeded,
+      result.timeSeconds,
+      result.operationCount,
+      result.rescueStreak,
+      result.escapePercent,
+    ].join("|");
+    if (canvasEl.dataset.renderSig !== sig) {
+      canvasEl.dataset.renderSig = sig;
+      paintDailySharePreview(canvasEl, result);
+    }
   }
 }
 

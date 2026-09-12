@@ -1338,7 +1338,7 @@ export function createGame({ mount }) {
             onTimerExpire();
             return;
           }
-          render();
+          render({ light: true });
         }, 250);
       }
 
@@ -1563,7 +1563,9 @@ export function createGame({ mount }) {
       }
 
       function render(options = {}) {
-        state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        if (!options.light) {
+          state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        }
         state.hintLabel =
           state.phase === "review"
             ? state.gameMode === "daily"

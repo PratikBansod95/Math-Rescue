@@ -245,6 +245,23 @@ export function countUsedCards(expression, cards) {
   return parsed.ok ? countTokens(parsed.tokens).counts : new Map();
 }
 
+/** Which physical card slots (0–3) are already in the expression — handles duplicate values. */
+export function getUsedCardIndices(expression, cards) {
+  const used = new Set();
+  if (!cards?.length) return used;
+  const parsed = tokenize(String(expression || "").trim(), cards);
+  if (!parsed.ok) return used;
+  const consumed = new Array(cards.length).fill(false);
+  for (const token of parsed.tokens) {
+    if (token.type !== "number") continue;
+    const index = cards.findIndex((card, i) => !consumed[i] && card.key === token.key);
+    if (index === -1) break;
+    consumed[index] = true;
+    used.add(index);
+  }
+  return used;
+}
+
 export function evaluateSubmission(expression, round) {
   const trimmed = expression.trim();
   if (!trimmed) return fail("Enter an equation first.");
