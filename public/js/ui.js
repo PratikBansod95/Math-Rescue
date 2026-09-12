@@ -1437,7 +1437,7 @@ function updateDailyModal(els, state) {
     boardList.replaceChildren();
     if (entries.length) {
       boardWrap.hidden = false;
-      for (const entry of entries.slice(0, 5)) {
+      for (const entry of entries.slice(0, 3)) {
         const li = document.createElement("li");
         li.textContent = `${entry.name} · ${entry.timeSeconds || 0}s`;
         boardList.append(li);
