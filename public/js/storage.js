@@ -3,6 +3,11 @@ import { ensurePlayerIdentity } from "./playerIdentity.js";
 import { MAX_NICKNAME_LENGTH, normalizeNicknameKey } from "./nicknameValidation.js";
 import { emptyDailyState, normalizeDaily } from "./daily.js";
 import { emptyBrainState, normalizeBrain } from "./gameBrain.js";
+import {
+  emptyDeviceRescueSave,
+  mergeDeviceDailyIntoProfile,
+  normalizeDeviceRescueSave,
+} from "./deviceRescue.js";
 
 const STORAGE_KEY = "math-rescue-v1";
 const LEGACY_KEYS = ["mathmaster-v2", "mathmaster-v1"];
@@ -65,7 +70,14 @@ export function loadState() {
         version: VERSION,
         resume: null,
       });
-      saveState(migrated);
+      saveState({
+        profiles: migrated.profiles,
+        lastUsername: migrated.lastUsername,
+        settings: migrated.settings,
+        resume: migrated.resume,
+        deviceId: migrated.deviceId,
+        deviceDaily: migrated.deviceDaily,
+      });
       return migrated;
     }
   } catch {
@@ -74,23 +86,29 @@ export function loadState() {
   return emptySave();
 }
 
-export function saveState({ profiles, lastUsername, settings, resume }) {
+export function saveState({ profiles, lastUsername, settings, resume, deviceId, deviceDaily } = {}) {
   try {
     const previous = safeReadRaw();
     const nextUsername =
       typeof lastUsername === "string" && lastUsername.trim()
         ? lastUsername.trim().slice(0, 8)
         : previous?.lastUsername || "";
+    const device = normalizeDeviceRescueSave({
+      deviceId: deviceId ?? previous?.deviceId,
+      deviceDaily: deviceDaily ?? previous?.deviceDaily,
+    });
 
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         version: VERSION,
-        profiles: normalizeProfiles(profiles),
+        profiles: normalizeProfiles(profiles ?? previous?.profiles ?? {}),
         lastUsername: nextUsername,
-        settings: normalizeSettings(settings),
+        settings: normalizeSettings(settings ?? previous?.settings),
         resume: normalizeResume(resume === undefined ? previous?.resume : resume),
-      })
+        deviceId: device.deviceId,
+        deviceDaily: device.deviceDaily,
+      }),
     );
   } catch {
     // Ignore quota / private mode failures.
@@ -105,20 +123,29 @@ export function topProfilesByScore(profiles, limit = 5) {
 }
 
 function emptySave() {
+  const device = emptyDeviceRescueSave();
   return {
     profiles: {},
     lastUsername: "",
     settings: defaultSettings(),
     resume: null,
+    deviceId: device.deviceId,
+    deviceDaily: device.deviceDaily,
   };
 }
 
 function normalizeSave(data) {
+  const device = normalizeDeviceRescueSave({
+    deviceId: data?.deviceId,
+    deviceDaily: data?.deviceDaily,
+  });
   return {
     profiles: normalizeProfiles(data.profiles),
     lastUsername: typeof data.lastUsername === "string" ? data.lastUsername.trim().slice(0, 8) : "",
     settings: normalizeSettings(data.settings),
     resume: normalizeResume(data.resume),
+    deviceId: device.deviceId,
+    deviceDaily: device.deviceDaily,
   };
 }
 

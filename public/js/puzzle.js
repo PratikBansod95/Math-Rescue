@@ -148,16 +148,16 @@ export function createRound({
   };
 }
 
-/** Shared daily puzzle — always the toughest challenge; date only seeds the board. */
+/** Shared Daily Rescue puzzle — fixed moderate difficulty for all players. */
 export const DAILY_CHALLENGE_CONFIG = {
-  divisionId: "lower-secondary",
+  divisionId: "upper-primary",
   difficultyId: "medium",
-  level: 11,
-  timer: 60,
-  label: "Expert challenge",
+  level: 10,
+  timer: 75,
+  label: "Moderate rescue",
 };
 
-/** UTC date seeds the shared daily puzzle (same board for everyone each day). */
+/** UTC date seeds the shared Daily Rescue puzzle (same board for everyone each day). */
 export function getDailyConfig(dateKey) {
   void dateKey;
   return { ...DAILY_CHALLENGE_CONFIG };

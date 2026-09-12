@@ -6,12 +6,17 @@ import {
   DAILY_CAREER_BONUS,
   hasCompletedToday,
   markDailyAttempted,
-  dailyPuzzleNumber,
+  rescueNumber,
   normalizeDaily,
   emptyDailyState,
   buildDailyShareText,
+  buildChaseTrackBar,
+  recordRescueOutcome,
+  reconcileRescueStreak,
+  formatRescueCountdown,
+  computeEscapeMetrics,
 } from "../public/js/daily.js";
-import { createDailyRound } from "../public/js/dailyChallenges.js";
+import { createDailyRescueRound } from "../public/js/dailyChallenges.js";
 import { getDailyConfig, DAILY_CHALLENGE_CONFIG } from "../public/js/puzzle.js";
 
 test("utcDateKey returns YYYY-MM-DD", () => {
@@ -19,9 +24,9 @@ test("utcDateKey returns YYYY-MM-DD", () => {
   assert.equal(key, "2026-08-22");
 });
 
-test("createDailyRound is deterministic for a date", () => {
-  const a = createDailyRound("2026-08-22");
-  const b = createDailyRound("2026-08-22");
+test("createDailyRescueRound is deterministic for a date", () => {
+  const a = createDailyRescueRound("2026-08-22");
+  const b = createDailyRescueRound("2026-08-22");
   assert.equal(a.target, b.target);
   assert.deepEqual(
     a.cards.map((card) => card.input),
@@ -29,19 +34,20 @@ test("createDailyRound is deterministic for a date", () => {
   );
 });
 
-test("createDailyRound changes across dates", () => {
-  const a = createDailyRound("2026-08-22");
-  const b = createDailyRound("2026-08-23");
-  assert.notEqual(a.target, b.target);
+test("createDailyRescueRound changes across dates", () => {
+  const a = createDailyRescueRound("2026-08-22");
+  const b = createDailyRescueRound("2026-08-23");
+  const sameTarget = a.target === b.target;
+  const sameCards =
+    JSON.stringify(a.cards.map((c) => c.input)) ===
+    JSON.stringify(b.cards.map((c) => c.input));
+  assert.equal(sameTarget && sameCards, false);
 });
 
-test("getDailyConfig always uses the expert challenge", () => {
+test("getDailyConfig uses moderate rescue settings", () => {
   const sat = getDailyConfig("2026-08-22");
-  const sun = getDailyConfig("2026-08-23");
-  assert.deepEqual(sat, DAILY_CHALLENGE_CONFIG);
-  assert.deepEqual(sun, DAILY_CHALLENGE_CONFIG);
-  assert.equal(sat.label, "Expert challenge");
-  assert.equal(sat.timer, 60);
+  assert.equal(sat.label, DAILY_CHALLENGE_CONFIG.label);
+  assert.equal(sat.timer, 75);
   assert.equal(sat.difficultyId, "medium");
 });
 
@@ -58,29 +64,71 @@ test("hasCompletedToday locks after any attempt today", () => {
   assert.equal(hasCompletedToday(daily, "2026-08-23"), false);
 });
 
-test("markDailyAttempted records the UTC date once", () => {
-  const first = markDailyAttempted(emptyDailyState(), "2026-08-22");
-  assert.equal(first.attemptedDate, "2026-08-22");
-  const second = markDailyAttempted(first, "2026-08-22");
-  assert.equal(second.attemptedDate, "2026-08-22");
+test("recordRescueOutcome increments streak on consecutive success days", () => {
+  const first = recordRescueOutcome(emptyDailyState(), {
+    dateKey: "2026-08-21",
+    succeeded: true,
+    timeSeconds: 40,
+    operationCount: 3,
+    timerLimit: 75,
+  });
+  assert.equal(first.rescueStreak, 1);
+  const second = recordRescueOutcome(first, {
+    dateKey: "2026-08-22",
+    succeeded: true,
+    timeSeconds: 35,
+    operationCount: 2,
+    timerLimit: 75,
+  });
+  assert.equal(second.rescueStreak, 2);
 });
 
-test("buildDailyShareText mentions Daily Challenge", () => {
-  const text = buildDailyShareText({ succeeded: true, careerBonus: 5, stars: 3, timeSeconds: 42 });
-  assert.match(text, /Daily Challenge/);
-  assert.match(text, /\+5 career pts/);
+test("reconcileRescueStreak resets after missing a day", () => {
+  const stale = normalizeDaily({
+    lastSuccessDate: "2026-08-20",
+    rescueStreak: 4,
+  });
+  const fixed = reconcileRescueStreak(stale, "2026-08-22");
+  assert.equal(fixed.rescueStreak, 0);
 });
 
-test("dailyPuzzleNumber increases over time", () => {
-  assert.ok(dailyPuzzleNumber("2026-08-22") > dailyPuzzleNumber("2026-01-01"));
+test("buildDailyShareText uses chase track without spoilers", () => {
+  const metrics = computeEscapeMetrics({
+    succeeded: true,
+    timeSeconds: 52,
+    timerLimit: 75,
+    operationCount: 3,
+  });
+  const text = buildDailyShareText({
+    dateKey: "2026-08-22",
+    succeeded: true,
+    timeSeconds: 52,
+    operationCount: 3,
+    escapePercent: metrics.escapePercent,
+    rescueStreak: 2,
+    metrics,
+  });
+  assert.match(text, /Rescue #/);
+  assert.match(text, /escaped by \d+%/);
+  assert.match(text, /0:52/);
+  assert.match(text, /3 ops/);
+  assert.match(text, /🐱/);
+  assert.match(text, /🦈/);
+  assert.doesNotMatch(text, /\+/);
 });
 
-test("createDailyRound uses the separate tough challenge bank", async () => {
-  const { DAILY_CHALLENGE_BANK } = await import("../public/js/dailyChallenges.js");
+test("formatRescueCountdown uses HH:MM:SS", () => {
+  assert.match(formatRescueCountdown(3661000), /^\d{2}:\d{2}:\d{2}$/);
+});
+
+test("rescueNumber increases over time", () => {
+  assert.ok(rescueNumber("2026-08-22") > rescueNumber("2026-01-01"));
+});
+
+test("createDailyRescueRound is solvable", async () => {
   const { evaluateSubmission } = await import("../public/js/puzzle.js");
-  assert.ok(DAILY_CHALLENGE_BANK.length >= 12);
-  const round = createDailyRound("2026-08-22");
+  const round = createDailyRescueRound("2026-08-22");
   const check = evaluateSubmission(round.exampleSolution, round);
   assert.equal(check.ok, true, check.reason);
-  assert.match(round.note || "", /Daily Challenge/);
+  assert.match(round.note || "", /Daily Rescue/);
 });

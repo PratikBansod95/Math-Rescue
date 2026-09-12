@@ -16,7 +16,7 @@ import {
   formatNumber,
   journeyDifficultyForLevel,
 } from "./puzzle.js";
-import { createDailyRound } from "./dailyChallenges.js";
+import { createDailyRescueRound } from "./dailyChallenges.js";
 import {
   normalizeBrain,
   planNextPuzzle,
@@ -35,6 +35,7 @@ import {
   deletePlayer,
   fetchLeaderboard,
   registerPlayer,
+  fetchDailyLeaderboard,
   submitDaily,
   remoteToLocalProfile,
   leaderboardToUi,
@@ -54,12 +55,18 @@ import {
   hasCompletedToday,
   markDailyAttempted,
   normalizeDaily,
+  emptyDailyState,
   calcDailyCareerBonus,
-  formatDailyCountdown,
+  formatRescueCountdown,
   msUntilNextDaily,
   buildDailyShareText,
-  dailyPuzzleNumber,
+  rescueNumber,
+  recordRescueOutcome,
+  reconcileRescueStreak,
+  computeEscapeMetrics,
 } from "./daily.js";
+import { shareDailyResult } from "./dailyShareCard.js";
+import { mergeDeviceDailyIntoProfile } from "./deviceRescue.js";
 
 const MAX_RETRIES = 2;
 const LEADERBOARD_PANEL_LIMIT = 100;
@@ -153,6 +160,14 @@ export function createGame({ mount }) {
         dailyTodayResult: null,
         dailyResult: null,
         menuDailyOpen: false,
+        dailyLeaderboardToday: [],
+        dailyLeaderboardPlayer: null,
+        guestMode: false,
+        deviceDaily: emptyDailyState(),
+        deviceId: "",
+        dailyOperationCount: 0,
+        rescueStreak: 0,
+        longestRescueStreak: 0,
         brainSkill: 12,
         brainMessage: "",
         dailyElapsedSeconds: 0,
@@ -241,6 +256,8 @@ export function createGame({ mount }) {
         const saved = loadState();
         state.profiles = saved.profiles;
         state.resume = saved.resume;
+        state.deviceDaily = normalizeDaily(saved.deviceDaily);
+        state.deviceId = saved.deviceId || "";
         settings = saved.settings;
         state.settings = settings;
         state.soundOn = settings.sound !== false;
@@ -275,18 +292,21 @@ export function createGame({ mount }) {
         }
 
         state.round = makeRound(state);
-        state.phase = "nickname";
+        state.correction = null;
+        state.guestMode = true;
+        syncDailyFromStorage();
+        goToMenu();
         state.feedback = {
           kind: "neutral",
-          text: "Enter a name to save your progress.",
-          detail: "Progress syncs to the cloud when online, and stays on this device offline.",
+          text: "Play Daily Rescue now — add a name anytime to save journey progress.",
+          detail: "",
         };
-        state.correction = null;
         render();
       }
 
       async function onConfirmNickname() {
-        if (state.phase !== "nickname" || state.nicknamePending) return;
+        if (state.phase !== "nickname" && state.phase !== "menu") return;
+        if (state.nicknamePending) return;
         const validation = validateNickname(state.username);
         if (!validation.ok) {
           state.nicknameError = validation.message;
@@ -301,7 +321,9 @@ export function createGame({ mount }) {
           state.profiles[state.usernameKey] || { name: nickname, ...emptyProfile() },
         );
         profile.name = nickname;
+        profile.daily = mergeDeviceDailyIntoProfile(profile.daily, state.deviceDaily);
         state.profiles[state.usernameKey] = profile;
+        state.guestMode = false;
         applyProfileToState(profile);
 
         state.nicknamePending = true;
@@ -421,13 +443,48 @@ export function createGame({ mount }) {
         writeBrainToProfile(brain);
       }
 
-      function syncDailyFromProfile(profile = currentProfile()) {
-        const daily = normalizeDaily(profile?.daily);
+      function getDailyStorage() {
+        if (state.usernameKey) {
+          return normalizeDaily(state.profiles[state.usernameKey]?.daily);
+        }
+        return normalizeDaily(state.deviceDaily);
+      }
+
+      function syncDailyFromStorage() {
+        const daily = reconcileRescueStreak(getDailyStorage(), utcDateKey());
         const dateKey = utcDateKey();
         state.dailyDateKey = dateKey;
         state.dailyTodayResult =
           daily.todayResult?.dateKey === dateKey ? daily.todayResult : null;
         state.dailyCompletedToday = hasCompletedToday(daily, dateKey);
+        state.rescueStreak = daily.rescueStreak || 0;
+        state.longestRescueStreak = daily.longestRescueStreak || 0;
+      }
+
+      function syncDailyFromProfile(profile = currentProfile()) {
+        if (!state.usernameKey) {
+          syncDailyFromStorage();
+          return;
+        }
+        const daily = reconcileRescueStreak(normalizeDaily(profile?.daily), utcDateKey());
+        const dateKey = utcDateKey();
+        state.dailyDateKey = dateKey;
+        state.dailyTodayResult =
+          daily.todayResult?.dateKey === dateKey ? daily.todayResult : null;
+        state.dailyCompletedToday = hasCompletedToday(daily, dateKey);
+        state.rescueStreak = daily.rescueStreak || 0;
+        state.longestRescueStreak = daily.longestRescueStreak || 0;
+      }
+
+      function writeDailyStorage(daily) {
+        const normalized = normalizeDaily(daily);
+        if (state.usernameKey) {
+          writeDailyToProfile(normalized);
+          return;
+        }
+        state.deviceDaily = normalized;
+        syncDailyFromStorage();
+        persist({ remote: false });
       }
 
       function writeDailyToProfile(daily) {
@@ -516,10 +573,10 @@ export function createGame({ mount }) {
         }
         if (state.phase === "playing" || state.phase === "review") {
           const ok = await askConfirm({
-            title: state.gameMode === "daily" ? "Leave Daily Challenge?" : "Leave this puzzle?",
+            title: state.gameMode === "daily" ? "Leave Daily Rescue?" : "Leave this puzzle?",
             message:
               state.gameMode === "daily"
-                ? "You only get one official daily attempt per day. Leaving now will forfeit today's challenge."
+                ? "You only get one official Daily Rescue per UTC day. Leaving now will forfeit today's attempt."
                 : "Your level progress is saved. You can continue later from the menu.",
             confirmLabel: "Yes, leave",
             cancelLabel: "No",
@@ -541,6 +598,16 @@ export function createGame({ mount }) {
       }
 
       function onPlayFromMenu() {
+        if (state.guestMode && !state.usernameKey) {
+          state.phase = "nickname";
+          state.feedback = {
+            kind: "neutral",
+            text: "Pick a rescue name to start your journey.",
+            detail: "Daily Rescue works without a name — journey progress needs one.",
+          };
+          render();
+          return;
+        }
         if (state.phase !== "menu") return;
         if (resumeIsValid(state.resume)) {
           startLevel(resumeLevel(state.resume), { resume: true });
@@ -780,9 +847,33 @@ export function createGame({ mount }) {
         }
       }
 
+      function bumpDailyOperation() {
+        if (state.gameMode !== "daily") return;
+        state.dailyOperationCount += 1;
+      }
+
+      async function refreshDailyLeaderboard() {
+        const profile = currentProfile();
+        try {
+          const payload = await fetchDailyLeaderboard(
+            state.dailyDateKey || utcDateKey(),
+            10,
+            profile?.playerId || state.playerId || "",
+          );
+          if (disposed) return;
+          state.dailyLeaderboardToday = payload.entries || [];
+          state.dailyLeaderboardPlayer = payload.playerEntry;
+          if (state.menuDailyOpen || state.phase === "daily_finished") render();
+        } catch {
+          // offline — keep local result only
+        }
+      }
+
       function onOpenDaily() {
         if (state.phase !== "menu") return;
+        syncDailyFromStorage();
         state.menuDailyOpen = true;
+        void refreshDailyLeaderboard();
         render();
       }
 
@@ -793,7 +884,7 @@ export function createGame({ mount }) {
 
       function onStartDaily() {
         if (state.phase !== "menu") return;
-        syncDailyFromProfile();
+        syncDailyFromStorage();
         if (state.dailyCompletedToday) {
           if (state.dailyTodayResult) {
             state.menuDailyOpen = false;
@@ -804,7 +895,7 @@ export function createGame({ mount }) {
           }
           state.menuDailyOpen = false;
           showMenuToast(
-            `Daily Challenge locked · resets in ${formatDailyCountdown(msUntilNextDaily())}`,
+            `Daily Rescue locked · next in ${formatRescueCountdown(msUntilNextDaily())}`,
           );
           render();
           return;
@@ -822,12 +913,9 @@ export function createGame({ mount }) {
         state.showTutorial = false;
         state.tutorialStep = 0;
         state.dailyDateKey = utcDateKey();
-        const attemptedDaily = markDailyAttempted(
-          normalizeDaily(currentProfile()?.daily),
-          state.dailyDateKey,
-        );
-        writeDailyToProfile(attemptedDaily);
-        state.round = createDailyRound(state.dailyDateKey);
+        state.dailyOperationCount = 0;
+        writeDailyStorage(markDailyAttempted(getDailyStorage(), state.dailyDateKey));
+        state.round = createDailyRescueRound(state.dailyDateKey);
         const config = state.round.dailyConfig || { timer: 75 };
         state.divisionId = config.divisionId;
         state.difficultyId = config.difficultyId;
@@ -843,8 +931,8 @@ export function createGame({ mount }) {
         state.dailyElapsedSeconds = 0;
         state.feedback = {
           kind: "neutral",
-          text: "Daily Challenge — one expert puzzle for everyone today.",
-          detail: config.label || "Solve it for +5 career points.",
+          text: `Daily Rescue #${rescueNumber(state.dailyDateKey)} — same puzzle for everyone today.`,
+          detail: config.label || "One attempt · UTC midnight reset.",
         };
         startDailyTimer(config.timer || 75);
         render();
@@ -869,22 +957,44 @@ export function createGame({ mount }) {
         const dateKey = todayResult?.dateKey || state.dailyDateKey || utcDateKey();
         const succeeded = Boolean(todayResult?.succeeded);
         const careerBonus = Number(todayResult?.careerBonus) || 0;
+        const timeSeconds = Number(todayResult?.timeSeconds) || 0;
+        const operationCount = Number(todayResult?.operationCount) || 0;
+        const escapePercent = Number(todayResult?.escapePercent) || 0;
+        const metrics = computeEscapeMetrics({
+          succeeded,
+          timeSeconds,
+          timerLimit: state.timerLimit || 75,
+          operationCount,
+          usedHint: Boolean(todayResult?.usedHint),
+        });
+        const storage = getDailyStorage();
+        const rescueStreak = storage.rescueStreak || state.rescueStreak || 0;
+        const shareText = buildDailyShareText({
+          dateKey,
+          timeSeconds,
+          operationCount,
+          escapePercent: succeeded ? escapePercent : metrics.escapePercent,
+          succeeded,
+          rescueStreak,
+          metrics,
+        });
         return {
           dateKey,
-          puzzleNumber: dailyPuzzleNumber(dateKey),
+          puzzleNumber: rescueNumber(dateKey),
           stars: Number(todayResult?.stars) || 1,
-          timeSeconds: Number(todayResult?.timeSeconds) || 0,
+          timeSeconds,
+          operationCount,
+          escapePercent: succeeded ? escapePercent : 0,
+          usedHint: Boolean(todayResult?.usedHint),
+          timerLimit: state.timerLimit || 75,
           careerBonus,
           succeeded,
+          rescueStreak,
+          longestRescueStreak: storage.longestRescueStreak || state.longestRescueStreak || 0,
           totalScore: state.bestScore,
-          shareText: buildDailyShareText({
-            dateKey,
-            stars: todayResult?.stars,
-            timeSeconds: todayResult?.timeSeconds,
-            succeeded,
-            careerBonus,
-          }),
-          resetsIn: formatDailyCountdown(msUntilNextDaily()),
+          shareText,
+          metrics,
+          resetsIn: formatRescueCountdown(msUntilNextDaily()),
         };
       }
 
@@ -899,43 +1009,41 @@ export function createGame({ mount }) {
           state.dailyElapsedSeconds || state.timerLimit - secondsLeft,
         );
         const careerBonus = calcDailyCareerBonus(succeeded);
-        const profile = currentProfile();
-        const currentDaily = normalizeDaily(profile?.daily);
-        const todayResult = {
+        const nextDaily = recordRescueOutcome(getDailyStorage(), {
           dateKey,
+          succeeded,
           stars,
           timeSeconds,
+          operationCount: state.dailyOperationCount,
+          usedHint: state.usedNudge,
+          timerLimit: state.timerLimit,
           careerBonus,
-          succeeded,
-        };
-        const nextDaily = {
-          ...markDailyAttempted(currentDaily, dateKey),
-          todayResult,
-        };
-        writeDailyToProfile(nextDaily);
-        if (careerBonus > 0) {
+        });
+        writeDailyStorage(nextDaily);
+        if (careerBonus > 0 && state.usernameKey) {
           state.bestScore += careerBonus;
+          state.profiles[state.usernameKey] = {
+            ...ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile()),
+            bestScore: state.bestScore,
+          };
         }
-        state.profiles[state.usernameKey] = {
-          ...ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile()),
-          bestScore: state.bestScore,
-          daily: nextDaily,
-        };
+        state.rescueStreak = nextDaily.rescueStreak;
+        state.longestRescueStreak = nextDaily.longestRescueStreak;
         state.phase = "daily_finished";
         state.gameMode = "journey";
         state.reviewOutcome = null;
         state.correction = null;
-        state.dailyResult = buildDailyResultView(todayResult);
+        state.dailyResult = buildDailyResultView(nextDaily.todayResult);
         state.feedback = succeeded
           ? {
               kind: "good",
-              text: `Daily Challenge complete! +${careerBonus} career pts`,
-              detail: `Total score ${state.bestScore}`,
+              text: `Daily Rescue complete! +${careerBonus} career pts`,
+              detail: `Escape ${state.dailyResult.escapePercent}% · streak ${state.rescueStreak}`,
             }
           : {
               kind: "bad",
-              text: "Daily Challenge over",
-              detail: "No bonus this time — try again tomorrow.",
+              text: "Daily Rescue over",
+              detail: `Next rescue in ${formatRescueCountdown(msUntilNextDaily())}`,
             };
         render();
         if (succeeded) {
@@ -943,15 +1051,19 @@ export function createGame({ mount }) {
           audio.playBlip(990, { duration: 0.13, volume: 0.12 });
         }
         persist();
+        void refreshDailyLeaderboard();
         void refreshLeaderboard(3);
-        void submitDailyToCloud({
-          profile: state.profiles[state.usernameKey],
-          dateKey,
-          stars,
-          timeSeconds,
-          succeeded,
-          dailyMeta: nextDaily,
-        });
+        const profile = currentProfile();
+        if (profile?.playerId && profile?.playerToken) {
+          void submitDailyToCloud({
+            profile,
+            dateKey,
+            stars,
+            timeSeconds,
+            succeeded,
+            dailyMeta: nextDaily,
+          });
+        }
       }
 
       async function submitDailyToCloud({ profile, dateKey, stars, timeSeconds, succeeded, dailyMeta }) {
@@ -992,20 +1104,18 @@ export function createGame({ mount }) {
       }
 
       async function onDailyShare() {
-        const text = state.dailyResult?.shareText || buildDailyShareText();
+        const result = state.dailyResult;
+        if (!result) return;
         try {
-          if (navigator.share) {
-            await navigator.share({ text, title: "Daily Challenge" });
-            return;
+          const mode = await shareDailyResult(result, { text: result.shareText });
+          showMenuToast(mode === "shared" ? "Shared!" : "Result copied!");
+        } catch {
+          try {
+            await navigator.clipboard.writeText(result.shareText || "");
+            showMenuToast("Result copied!");
+          } catch {
+            showMenuToast("Could not share result");
           }
-        } catch {
-          // fall through to clipboard
-        }
-        try {
-          await navigator.clipboard.writeText(text);
-          showMenuToast("Result copied!");
-        } catch {
-          showMenuToast("Could not share result");
         }
       }
 
@@ -1054,6 +1164,7 @@ export function createGame({ mount }) {
           detail: retriesDetail(),
         };
         state.correction = null;
+        if (state.gameMode === "daily") bumpDailyOperation();
         if (state.showTutorial) {
           if (state.tutorialStep === 2 && !isOperatorFragment(fragment)) {
             state.tutorialStep = 3;
@@ -1093,6 +1204,7 @@ export function createGame({ mount }) {
 
       function onSubmit() {
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
+        if (state.gameMode === "daily") bumpDailyOperation();
         state.attempts += 1;
         const result = evaluateSubmission(state.expression, state.round);
 
@@ -1585,7 +1697,14 @@ export function createGame({ mount }) {
       function persist({ remote = true } = {}) {
         if (!state.storageReady) return;
         if (!state.usernameKey) {
-          persistSettings();
+          saveState({
+            profiles: state.profiles,
+            lastUsername: "",
+            settings,
+            resume: state.resume,
+            deviceId: state.deviceId,
+            deviceDaily: normalizeDaily(state.deviceDaily),
+          });
           return;
         }
         const existing = ensurePlayerIdentity(state.profiles[state.usernameKey] || emptyProfile());
@@ -1616,6 +1735,8 @@ export function createGame({ mount }) {
           lastUsername: state.username,
           settings,
           resume: state.resume,
+          deviceId: state.deviceId,
+          deviceDaily: normalizeDaily(state.deviceDaily),
         });
         if (remote) scheduleRemoteSync();
       }
@@ -1627,6 +1748,8 @@ export function createGame({ mount }) {
           lastUsername: state.username,
           settings,
           resume: state.resume,
+          deviceId: state.deviceId,
+          deviceDaily: normalizeDaily(state.deviceDaily),
         });
       }
 
@@ -1656,6 +1779,16 @@ export function createGame({ mount }) {
           ...normalizeDaily(existing.daily),
           attemptedDate: remoteDaily.attemptedDate || normalizeDaily(existing.daily).attemptedDate,
           todayResult: remoteDaily.todayResult || normalizeDaily(existing.daily).todayResult,
+          rescueStreak: Math.max(
+            normalizeDaily(existing.daily).rescueStreak,
+            remoteDaily.rescueStreak,
+          ),
+          longestRescueStreak: Math.max(
+            normalizeDaily(existing.daily).longestRescueStreak,
+            remoteDaily.longestRescueStreak,
+          ),
+          lastSuccessDate:
+            remoteDaily.lastSuccessDate || normalizeDaily(existing.daily).lastSuccessDate,
         });
         state.coins = coins;
         state.profiles[state.usernameKey] = ensurePlayerIdentity({

@@ -117,6 +117,20 @@ export async function deletePlayer(username, { playerId, playerToken } = {}) {
   return Boolean(data?.deleted);
 }
 
+export async function fetchDailyLeaderboard(dateKey = "", limit = 25, playerId = "") {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (dateKey) params.set("date", dateKey);
+  if (playerId) params.set("playerId", playerId);
+  const data = await request(`/api/daily?${params.toString()}`);
+  return {
+    dateKey: data?.dateKey || dateKey,
+    entries: Array.isArray(data?.entries) ? data.entries : [],
+    playerEntry: data?.playerEntry || null,
+    limit: Number(data?.limit) || limit,
+    fetchedAt: data?.fetchedAt || null,
+  };
+}
+
 export async function fetchLeaderboard(limit = 10, playerId = "") {
   const params = new URLSearchParams({ limit: String(limit) });
   if (playerId) params.set("playerId", playerId);

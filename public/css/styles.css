@@ -4316,6 +4316,64 @@ button:disabled { cursor: not-allowed }
   margin-top: 0.35rem;
 }
 
+.daily-panel__countdown,
+.daily-result__reset {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--menu-blue);
+}
+
+.daily-panel__board {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dbeafe;
+}
+
+.daily-panel__board h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.daily-panel__board ol {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #334155;
+  font-weight: 650;
+  font-size: 0.86rem;
+}
+
+.daily-result__track {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.08em;
+}
+
+.daily-result__streak {
+  margin: 0;
+  color: #ea580c;
+  font-weight: 800;
+}
+
+.daily-result__share-canvas {
+  width: min(100%, 20rem);
+  height: auto;
+  border-radius: 1rem;
+  box-shadow: 0 12px 28px rgba(15, 30, 70, 0.18);
+}
+
+.daily-result__nudge {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 650;
+}
+
 .league-row {
   display: grid;
   grid-template-columns: 2.4rem 1fr auto;

@@ -1,7 +1,8 @@
 import { createCatRunAnimator } from "./chaseCatRun.js";
 import { levelStarPace } from "./scoring.js";
 import { getDailyConfig } from "./puzzle.js";
-import { dailyPuzzleNumber, formatDailyCountdown, msUntilNextDaily } from "./daily.js";
+import { dailyPuzzleNumber, formatRescueCountdown, msUntilNextDaily, rescueNumber, buildChaseTrackBar } from "./daily.js";
+import { renderDailyShareCard } from "./dailyShareCard.js";
 import { burstConfetti } from "./confetti.js";
 import { createOutcomeVideo } from "./outcomeVideo.js";
 
@@ -307,7 +308,7 @@ export function createUI({ mount, handlers }) {
       });
 
       els.levelLabel.textContent =
-        state.gameMode === "daily" ? "DAILY CHALLENGE" : `LEVEL ${state.levelIndex}`;
+        state.gameMode === "daily" ? "DAILY RESCUE" : `LEVEL ${state.levelIndex}`;
       renderLevelTrack(els.levelTrack, state);
 
       els.coins.textContent = String(state.coins || 0);
@@ -319,7 +320,7 @@ export function createUI({ mount, handlers }) {
         : "Welcome to Math Rescue.";
       els.boardMeta.textContent =
         state.gameMode === "daily"
-          ? state.round?.dailyConfig?.label || "Daily puzzle"
+          ? state.round?.dailyConfig?.label || "Daily Rescue"
           : state.brainPlan
             ? state.brainMessage || "Rescue Brain puzzle"
             : `Level ${state.levelIndex}`;
@@ -489,7 +490,7 @@ function template() {
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
             <span class="menu-feature__copy">
-              <strong>DAILY CHALLENGE</strong>
+              <strong>DAILY RESCUE</strong>
             </span>
             <span class="menu-feature__chev" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -520,14 +521,20 @@ function template() {
 
       <div class="menu-daily screen-overlay" data-menu-daily hidden>
         <div class="daily-panel screen-card" role="dialog" aria-modal="true" aria-labelledby="daily-panel-title">
-          <p class="daily-panel__kicker">One puzzle · Everyone plays the same one</p>
-          <h2 id="daily-panel-title">Daily Challenge <span data-daily-puzzle-num>#1</span></h2>
-          <p class="daily-panel__flavor" data-daily-flavor>Today's challenge</p>
+          <p class="daily-panel__kicker">One puzzle · Everyone plays the same one · UTC reset</p>
+          <h2 id="daily-panel-title">Daily Rescue <span data-daily-puzzle-num>Rescue #1</span></h2>
+          <p class="daily-panel__flavor" data-daily-flavor>Moderate rescue</p>
+          <p class="daily-panel__countdown" data-daily-countdown hidden></p>
           <ul class="daily-panel__rules">
-            <li>One attempt per day — harder than journey levels</li>
-            <li>Solve it for <strong>+5 career points</strong> added to your score</li>
+            <li>One attempt per UTC day</li>
+            <li>Same tiles + target worldwide</li>
+            <li>Share your chase escape — no spoilers</li>
           </ul>
-          <button class="screen-btn screen-btn--primary" data-menu-start-daily type="button">Play today's challenge</button>
+          <div class="daily-panel__board" data-daily-leaderboard hidden>
+            <h3>Today&apos;s fastest rescues</h3>
+            <ol data-daily-leaderboard-list></ol>
+          </div>
+          <button class="screen-btn screen-btn--primary" data-menu-start-daily type="button">Play today&apos;s rescue</button>
           <button class="screen-btn screen-btn--ghost" data-menu-close-daily type="button">Back</button>
         </div>
       </div>
@@ -892,15 +899,19 @@ function template() {
     </div>
 
     <div class="daily-result screen-overlay" data-daily-result hidden>
-      <section class="daily-result-card screen-card" aria-label="Daily Challenge result">
-        <span class="daily-result__kicker" data-daily-result-kicker>Challenge complete</span>
+      <section class="daily-result-card screen-card" aria-label="Daily Rescue result">
+        <span class="daily-result__kicker" data-daily-result-kicker>Rescue complete</span>
         <strong class="daily-result__score" data-daily-result-score>+5</strong>
+        <p class="daily-result__track" data-daily-result-track>🐱▫️▫️▫️🦈</p>
         <p class="daily-result__stars" data-daily-result-stars>★★★</p>
-        <p class="daily-result__meta" data-daily-result-meta>+5 career pts · Total 40</p>
-        <p class="daily-result__reset" data-daily-result-reset>Next challenge in 6h</p>
+        <p class="daily-result__meta" data-daily-result-meta>Escaped 82% · 0:52 · 3 ops</p>
+        <p class="daily-result__streak" data-daily-result-streak hidden></p>
+        <canvas class="daily-result__share-canvas" data-daily-result-canvas width="360" height="210" aria-hidden="true"></canvas>
+        <p class="daily-result__reset" data-daily-result-reset>Next rescue in 06:12:04</p>
+        <p class="daily-result__nudge">Send this to a friend and see who gets the cat further.</p>
         <div class="daily-result__actions">
           <button class="screen-btn screen-btn--primary" data-daily-share type="button">Share result</button>
-          <button class="screen-btn" data-daily-open-ranks type="button">View league</button>
+          <button class="screen-btn" data-daily-open-ranks type="button">Today&apos;s league</button>
           <button class="screen-btn screen-btn--ghost" data-daily-continue type="button">Back to menu</button>
         </div>
       </section>
@@ -1169,6 +1180,16 @@ function updateMenuScreen(els, state) {
   if (dailyFeature) {
     dailyFeature.classList.toggle("is-complete", Boolean(state.dailyCompletedToday));
   }
+  if (els.menuDailyStreak) {
+    const streak = Number(state.rescueStreak) || 0;
+    if (streak > 0) {
+      els.menuDailyStreak.hidden = false;
+      els.menuDailyStreak.textContent = `Rescue streak 🔥 ${streak}`;
+    } else {
+      els.menuDailyStreak.hidden = true;
+      els.menuDailyStreak.textContent = "";
+    }
+  }
   if (els.menuDaily) {
     els.menuDaily.hidden = !state.menuDailyOpen;
   }
@@ -1320,17 +1341,43 @@ function updateDailyModal(els, state) {
   const puzzleNum = els.menuDaily.querySelector("[data-daily-puzzle-num]");
   const flavor = els.menuDaily.querySelector("[data-daily-flavor]");
   const startBtn = els.menuDaily.querySelector("[data-menu-start-daily]");
-  if (puzzleNum) puzzleNum.textContent = `#${dailyPuzzleNumber(dateKey)}`;
-  if (flavor) flavor.textContent = config.label || "Today's challenge";
+  const countdownEl = els.menuDaily.querySelector("[data-daily-countdown]");
+  const boardWrap = els.menuDaily.querySelector("[data-daily-leaderboard]");
+  const boardList = els.menuDaily.querySelector("[data-daily-leaderboard-list]");
+  if (puzzleNum) puzzleNum.textContent = `Rescue #${rescueNumber(dateKey)}`;
+  if (flavor) flavor.textContent = config.label || "Today's rescue";
+  if (countdownEl) {
+    if (state.dailyCompletedToday) {
+      countdownEl.hidden = false;
+      countdownEl.textContent = `Next rescue in ${formatRescueCountdown(msUntilNextDaily())}`;
+    } else {
+      countdownEl.hidden = true;
+      countdownEl.textContent = "";
+    }
+  }
   if (startBtn) {
     const lockedWithoutResult = state.dailyCompletedToday && !state.dailyTodayResult;
     startBtn.disabled = lockedWithoutResult;
     if (state.dailyCompletedToday) {
       startBtn.textContent = state.dailyTodayResult
         ? "View today's result"
-        : `Locked · ${formatDailyCountdown(msUntilNextDaily())}`;
+        : `Locked · ${formatRescueCountdown(msUntilNextDaily())}`;
     } else {
-      startBtn.textContent = "Play today's challenge";
+      startBtn.textContent = "Play today's rescue";
+    }
+  }
+  if (boardWrap && boardList) {
+    const entries = state.dailyLeaderboardToday || [];
+    boardList.replaceChildren();
+    if (entries.length) {
+      boardWrap.hidden = false;
+      for (const entry of entries.slice(0, 5)) {
+        const li = document.createElement("li");
+        li.textContent = `${entry.rank}. ${entry.name} · ${entry.timeSeconds || 0}s`;
+        boardList.append(li);
+      }
+    } else {
+      boardWrap.hidden = true;
     }
   }
 }
@@ -1343,30 +1390,46 @@ function updateDailyResult(els, state) {
   const result = state.dailyResult;
   const kickerEl = els.dailyResultOverlay.querySelector("[data-daily-result-kicker]");
   const scoreEl = els.dailyResultOverlay.querySelector("[data-daily-result-score]");
+  const trackEl = els.dailyResultOverlay.querySelector("[data-daily-result-track]");
   const starsEl = els.dailyResultOverlay.querySelector("[data-daily-result-stars]");
   const metaEl = els.dailyResultOverlay.querySelector("[data-daily-result-meta]");
+  const streakEl = els.dailyResultOverlay.querySelector("[data-daily-result-streak]");
   const resetEl = els.dailyResultOverlay.querySelector("[data-daily-result-reset]");
+  const canvasEl = els.dailyResultOverlay.querySelector("[data-daily-result-canvas]");
   const succeeded = Boolean(result.succeeded);
   if (kickerEl) {
-    kickerEl.textContent = succeeded ? "Challenge complete" : "Challenge over";
+    kickerEl.textContent = succeeded
+      ? `Rescue #${result.puzzleNumber || rescueNumber(result.dateKey)} complete`
+      : `Rescue #${result.puzzleNumber || rescueNumber(result.dateKey)} over`;
   }
   if (scoreEl) {
-    scoreEl.textContent = succeeded ? `+${result.careerBonus || 5}` : "+0";
+    scoreEl.textContent = succeeded ? `+${result.careerBonus || 5}` : "Caught";
+  }
+  if (trackEl) {
+    trackEl.textContent = buildChaseTrackBar(result.metrics || {});
   }
   if (starsEl) {
     const stars = Math.max(1, Math.min(3, Number(result.stars) || 1));
     starsEl.textContent = `${"★".repeat(stars)}${"☆".repeat(3 - stars)}`;
   }
   if (metaEl) {
-    const bits = [
-      succeeded ? `+${result.careerBonus || 0} career pts` : "No bonus",
-      `Total score ${result.totalScore ?? ""}`.trim(),
-      `${result.timeSeconds || 0}s`,
-    ].filter(Boolean);
-    metaEl.textContent = bits.join(" · ");
+    const clock = `${Math.floor((result.timeSeconds || 0) / 60)}:${String((result.timeSeconds || 0) % 60).padStart(2, "0")}`;
+    metaEl.textContent = succeeded
+      ? `Escaped ${result.escapePercent || 0}% · ${clock} · ${result.operationCount || 0} ops`
+      : `${clock} · ${result.operationCount || 0} ops · try again tomorrow`;
+  }
+  if (streakEl) {
+    const streak = Number(result.rescueStreak) || 0;
+    streakEl.hidden = streak <= 0;
+    streakEl.textContent = streak > 0 ? `Rescue streak 🔥 ${streak}` : "";
   }
   if (resetEl) {
-    resetEl.textContent = `Next challenge in ${result.resetsIn || formatDailyCountdown()}`;
+    resetEl.textContent = `Next rescue in ${result.resetsIn || formatRescueCountdown()}`;
+  }
+  if (canvasEl) {
+    const card = renderDailyShareCard(result, { width: 360, height: 210 });
+    const ctx = canvasEl.getContext("2d");
+    if (ctx) ctx.drawImage(card, 0, 0, canvasEl.width, canvasEl.height);
   }
 }
 
