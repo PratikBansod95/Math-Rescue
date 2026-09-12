@@ -4453,11 +4453,18 @@ button:disabled { cursor: not-allowed }
 .daily-result-league__list {
   margin: 0;
   padding-left: 1.25rem;
+  padding-right: 0.25rem;
   text-align: left;
   color: #334155;
   font-weight: 650;
   font-size: 0.9rem;
   line-height: 1.55;
+  /* ~5 rows visible, rest scroll */
+  max-height: 7.75rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .daily-result-league__list li.is-you {

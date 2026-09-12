@@ -1529,7 +1529,7 @@ function updateDailyTodayLeague(overlay, state) {
     empty.textContent = "No times yet — invite friends to play today’s rescue.";
     listEl.append(empty);
   } else {
-    for (const entry of entries.slice(0, 15)) {
+    for (const entry of entries) {
       const li = document.createElement("li");
       li.textContent = `${entry.name || "Player"} · ${entry.timeSeconds || 0}s`;
       if (entry.isCurrentPlayer) li.classList.add("is-you");

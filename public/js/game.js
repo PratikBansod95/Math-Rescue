@@ -824,7 +824,7 @@ export function createGame({ mount }) {
         try {
           const payload = await fetchDailyLeaderboard(
             state.dailyDateKey || utcDateKey(),
-            10,
+            25,
             profile?.playerId || state.playerId || "",
           );
           if (disposed) return;
