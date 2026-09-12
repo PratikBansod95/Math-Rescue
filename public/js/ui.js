@@ -491,7 +491,7 @@ function template() {
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#16a34a" stroke-width="2.2"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#22c55e" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="#22c55e"/></svg>
             </span>
             <span class="menu-feature__copy">
-              <strong data-menu-daily-label>Daily Challenge #1</strong>
+              <strong data-menu-daily-label>Global Challenge #1</strong>
             </span>
             <span class="menu-feature__chev" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -523,8 +523,8 @@ function template() {
       <div class="menu-daily screen-overlay" data-menu-daily hidden>
         <div class="daily-panel screen-card" role="dialog" aria-modal="true" aria-labelledby="daily-panel-title">
           <p class="daily-panel__kicker">One puzzle · Everyone plays the same one · UTC reset</p>
-          <h2 id="daily-panel-title">Daily Rescue <span data-daily-puzzle-num>Rescue #1</span></h2>
-          <p class="daily-panel__flavor" data-daily-flavor>Moderate rescue</p>
+          <h2 id="daily-panel-title">Global Challenge <span data-daily-puzzle-num>#1</span></h2>
+          <p class="daily-panel__flavor" data-daily-flavor>Expert global challenge</p>
           <p class="daily-panel__countdown" data-daily-countdown hidden></p>
           <ul class="daily-panel__rules">
             <li>One attempt per UTC day</li>
@@ -921,7 +921,7 @@ function template() {
       </section>
       <div class="daily-result-league" data-daily-today-league hidden>
         <div class="daily-result-league-card screen-card" role="dialog" aria-modal="true" aria-labelledby="daily-today-league-title">
-          <p class="daily-result-league__kicker">Daily Rescue · UTC day</p>
+          <p class="daily-result-league__kicker">Global Challenge · UTC day</p>
           <h2 id="daily-today-league-title">Today&apos;s fastest rescues</h2>
           <p class="daily-result-league__hint">One run per player — ranked by solve time.</p>
           <ol class="daily-result-league__list" data-daily-today-league-list></ol>
@@ -1249,13 +1249,13 @@ function updateMenuScreen(els, state) {
   const dailyLabel = els.menuScreen?.querySelector("[data-menu-daily-label]");
   const challengeNum = rescueNumber(state.dailyDateKey || utcDateKey());
   if (dailyLabel) {
-    dailyLabel.textContent = `Daily Challenge #${challengeNum}`;
+    dailyLabel.textContent = `Global Challenge #${challengeNum}`;
   }
   const dailyOpenBtn = els.menuScreen?.querySelector("[data-menu-open-daily]");
   if (dailyOpenBtn) {
     dailyOpenBtn.setAttribute(
       "aria-label",
-      `Daily Challenge number ${challengeNum}, open today's puzzle`,
+      `Global Challenge number ${challengeNum}, open today's puzzle`,
     );
   }
   if (els.menuDailyStreak) {
@@ -1422,8 +1422,8 @@ function updateDailyModal(els, state) {
   const countdownEl = els.menuDaily.querySelector("[data-daily-countdown]");
   const boardWrap = els.menuDaily.querySelector("[data-daily-leaderboard]");
   const boardList = els.menuDaily.querySelector("[data-daily-leaderboard-list]");
-  if (puzzleNum) puzzleNum.textContent = `Rescue #${rescueNumber(dateKey)}`;
-  if (flavor) flavor.textContent = config.label || "Today's rescue";
+  if (puzzleNum) puzzleNum.textContent = `#${rescueNumber(dateKey)}`;
+  if (flavor) flavor.textContent = config.label || "Expert global challenge";
   if (countdownEl) {
     if (state.dailyCompletedToday) {
       countdownEl.hidden = false;

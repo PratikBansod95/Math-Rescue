@@ -95,7 +95,7 @@ export function renderDailyShareCard(result = {}, { width = BASE_WIDTH, height =
 
   ctx.font = `600 ${Math.round(18 * fontScale)}px Quicksand, sans-serif`;
   ctx.fillStyle = "#64748b";
-  ctx.fillText("Math Rescue · Daily Rescue", padX, height - padBottom);
+  ctx.fillText("Math Rescue · Global Challenge", padX, height - padBottom);
 
   return canvas;
 }

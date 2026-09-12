@@ -44,11 +44,21 @@ test("createDailyRescueRound changes across dates", () => {
   assert.equal(sameTarget && sameCards, false);
 });
 
-test("getDailyConfig uses moderate rescue settings", () => {
+test("getDailyConfig uses expert global challenge settings", () => {
   const sat = getDailyConfig("2026-08-22");
   assert.equal(sat.label, DAILY_CHALLENGE_CONFIG.label);
-  assert.equal(sat.timer, 75);
-  assert.equal(sat.difficultyId, "medium");
+  assert.equal(sat.timer, 90);
+  assert.equal(sat.difficultyId, "advanced");
+});
+
+test("createDailyRescueRound includes at least one fraction tile", () => {
+  const round = createDailyRescueRound("2026-09-12");
+  assert.ok(round.cards.some((card) => card.denominator > 1));
+  for (const card of round.cards) {
+    if (card.denominator > 1) {
+      assert.match(card.label, /^\d+\/\d+$/);
+    }
+  }
 });
 
 test("calcDailyCareerBonus awards 5 only on success", () => {
@@ -132,5 +142,5 @@ test("createDailyRescueRound is solvable", async () => {
   const round = createDailyRescueRound("2026-08-22");
   const check = evaluateSubmission(round.exampleSolution, round);
   assert.equal(check.ok, true, check.reason);
-  assert.match(round.note || "", /Daily Rescue/);
+  assert.match(round.note || "", /Global Challenge/);
 });

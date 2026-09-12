@@ -148,14 +148,17 @@ export function createRound({
   };
 }
 
-/** Shared Daily Rescue puzzle — fixed moderate difficulty for all players. */
+/** Shared Global Challenge puzzle — tough, same board for everyone each UTC day. */
 export const DAILY_CHALLENGE_CONFIG = {
-  divisionId: "upper-primary",
-  difficultyId: "medium",
-  level: 10,
-  timer: 75,
-  label: "Moderate rescue",
+  divisionId: "upper-secondary",
+  difficultyId: "advanced",
+  level: 18,
+  timer: 90,
+  label: "Expert global challenge",
 };
+
+/** @deprecated alias */
+export const GLOBAL_CHALLENGE_CONFIG = DAILY_CHALLENGE_CONFIG;
 
 /** UTC date seeds the shared Daily Rescue puzzle (same board for everyone each day). */
 export function getDailyConfig(dateKey) {

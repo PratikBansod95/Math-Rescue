@@ -1,37 +1,49 @@
 /**
- * Daily Rescue — one global moderate puzzle per UTC date (same for everyone).
+ * Global Challenge — one expert puzzle per UTC date (same for everyone).
+ * Uses the tough puzzle bank (fraction tiles as A/B, never decimals on cards).
  */
 
 import { DAILY_CHALLENGE_BANK } from "./data/daily-challenges.data.js";
 import {
   createRoundFromSpec,
+  createToughProceduralRound,
   evaluateSubmission,
   getDailyConfig,
   hashDailySeed,
 } from "./puzzle.js";
 
-const FALLBACK_RESCUE_SPECS = [
-  { cards: [2, 3, 5, 8], target: 24, solution: "((8 - 2) * (5 - 3))" },
-  { cards: [3, 4, 6, 9], target: 24, solution: "((9 - 3) * (6 - 4))" },
-  { cards: [2, 4, 7, 9], target: 24, solution: "((9 - 7) * (4 + 2))" },
-  { cards: [1, 5, 6, 8], target: 24, solution: "((8 - 2) * (6 - 1))" },
-  { cards: [3, 5, 7, 10], target: 24, solution: "((10 - 7) * (5 + 3))" },
+const FALLBACK_GLOBAL_SPECS = [
+  {
+    cards: [{ numerator: 2, denominator: 3 }, 4, 5, 8],
+    target: 11,
+    solution: "((5 + 2/3) * 2 - 8)",
+  },
+  {
+    cards: [{ numerator: 3, denominator: 4 }, 2, 6, 9],
+    target: 12,
+    solution: "((9 - 6) * (2 + 3/4) * 2)",
+  },
 ];
 
-function isWholeNumberCard(value) {
-  return typeof value === "number" && Number.isFinite(value) && Number.isInteger(value);
+function cardSpecHasFraction(value) {
+  if (typeof value === "number") return false;
+  if (!value || typeof value !== "object") return false;
+  return Number(value.denominator) > 1;
 }
 
-function moderateRescuePool() {
-  const fromBank = DAILY_CHALLENGE_BANK.filter((spec) =>
-    (spec?.cards || []).every(isWholeNumberCard),
-  );
-  return fromBank.length ? fromBank : FALLBACK_RESCUE_SPECS;
+function specHasFractionTile(spec) {
+  return (spec?.cards || []).some(cardSpecHasFraction);
+}
+
+/** Expert bank entries — always at least one A/B fraction tile per puzzle. */
+function globalChallengePool() {
+  const fromBank = DAILY_CHALLENGE_BANK.filter(specHasFractionTile);
+  return fromBank.length ? fromBank : FALLBACK_GLOBAL_SPECS;
 }
 
 export function dailyRescueIndex(dateKey, poolSize) {
   if (!poolSize) return 0;
-  const seed = hashDailySeed(dateKey, 0, "daily-rescue", "moderate");
+  const seed = hashDailySeed(dateKey, 0, "global-challenge", "expert");
   return seed % poolSize;
 }
 
@@ -40,40 +52,52 @@ export function dailyRescueVariant(dateKey) {
 }
 
 export function getDailyChallengeSpec(dateKey = "") {
-  const pool = moderateRescuePool();
+  const pool = globalChallengePool();
   const index = dailyRescueIndex(dateKey, pool.length);
   return pool[index] || pool[0];
 }
 
 function normalizeCardValue(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (value && typeof value === "object" && value.numerator != null && value.denominator != null) {
+    return { numerator: value.numerator, denominator: value.denominator };
+  }
   return 1;
 }
 
-export function createDailyRescueRound(dateKey) {
+function buildGlobalRound(dateKey, spec) {
   const config = getDailyConfig(dateKey);
-  const spec = getDailyChallengeSpec(dateKey);
-  const cardValues = (spec?.cards || [3, 5, 8, 9]).map(normalizeCardValue);
-  const round = createRoundFromSpec({
+  const cardValues = (spec?.cards || FALLBACK_GLOBAL_SPECS[0].cards).map(normalizeCardValue);
+  return createRoundFromSpec({
     cards: cardValues,
     target: Number(spec?.target) || 24,
-    exampleSolution: spec?.solution || "((9 - 5) * (8 - 3))",
-    note: `Daily Rescue · ${config.label}`,
+    exampleSolution: spec?.solution || FALLBACK_GLOBAL_SPECS[0].solution,
+    note: `Global Challenge · ${config.label}`,
     dailyConfig: config,
     dateKey,
   });
+}
 
-  const check = evaluateSubmission(round.exampleSolution, round);
-  if (check.ok) return round;
+export function createDailyRescueRound(dateKey) {
+  const spec = getDailyChallengeSpec(dateKey);
+  let round = buildGlobalRound(dateKey, spec);
+  let check = evaluateSubmission(round.exampleSolution, round);
+  if (check.ok && round.cards.some((card) => card.denominator > 1)) return round;
 
-  const fallback = FALLBACK_RESCUE_SPECS[dailyRescueIndex(dateKey, FALLBACK_RESCUE_SPECS.length)];
-  return createRoundFromSpec({
-    cards: fallback.cards,
-    target: fallback.target,
-    exampleSolution: fallback.solution,
-    note: `Daily Rescue · ${config.label}`,
-    dailyConfig: config,
-    dateKey,
+  for (let i = 0; i < FALLBACK_GLOBAL_SPECS.length; i += 1) {
+    const fallbackSpec = FALLBACK_GLOBAL_SPECS[(dailyRescueIndex(dateKey, 999) + i) % FALLBACK_GLOBAL_SPECS.length];
+    round = buildGlobalRound(dateKey, fallbackSpec);
+    check = evaluateSubmission(round.exampleSolution, round);
+    if (check.ok && round.cards.some((card) => card.denominator > 1)) return round;
+  }
+
+  const procedural = createToughProceduralRound(hashDailySeed(dateKey, 0, "global-fallback"));
+  return buildGlobalRound(dateKey, {
+    cards: procedural.cards.map((card) =>
+      card.denominator === 1 ? card.numerator : { numerator: card.numerator, denominator: card.denominator },
+    ),
+    target: procedural.target,
+    solution: procedural.exampleSolution,
   });
 }
 
