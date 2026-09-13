@@ -3825,9 +3825,9 @@ button:disabled { cursor: not-allowed }
 .league-panel {
   width: min(100%, 24rem);
   max-height: min(92vh, 40rem);
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  gap: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
   text-align: left;
   padding: 1.1rem 1rem 1rem;
   overflow: hidden;
@@ -3837,6 +3837,13 @@ button:disabled { cursor: not-allowed }
   box-shadow:
     0 28px 56px rgba(15, 30, 70, .28),
     inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+.league-panel__hero,
+.league-panel__you,
+.league-panel__podium,
+.league-panel__back {
+  flex: none;
 }
 
 .league-panel__hero {
@@ -3907,15 +3914,21 @@ button:disabled { cursor: not-allowed }
 }
 
 .league-panel__podium {
-  margin: 0.05rem 0 0.15rem;
+  flex: none;
+  width: 100%;
+  min-height: 8.5rem;
+  margin: 0;
+  padding: 0 0 0.2rem;
+  overflow: visible;
 }
 
 .league-podium {
   display: grid;
-  grid-template-columns: 1fr 1.12fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr) minmax(0, 1fr);
   align-items: end;
-  gap: 0.35rem;
-  padding: 0.35rem 0.15rem 0;
+  gap: 0.25rem;
+  padding: 0.15rem 0 0;
+  width: 100%;
 }
 
 .league-podium--solo {
@@ -3967,8 +3980,26 @@ button:disabled { cursor: not-allowed }
   box-shadow: 0 0 0 3px rgba(251, 191, 36, .35), 0 4px 12px rgba(245, 158, 11, .22);
 }
 
+.league-podium__identity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  padding: 0 0.1rem;
+}
+
+.league-podium__identity .league-row__tag {
+  flex: none;
+  font-size: 0.52rem;
+  padding: 0.08rem 0.28rem;
+}
+
 .league-podium__name {
   max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3984,12 +4015,20 @@ button:disabled { cursor: not-allowed }
 .league-podium__score {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.18rem 0.38rem;
+  gap: 0.15rem;
+  max-width: 100%;
+  padding: 0.15rem 0.32rem;
   border-radius: 999px;
   background: linear-gradient(180deg, #fffbeb, #fef3c7);
   border: 1.5px solid #fcd34d;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+}
+
+.league-podium__score .league-row__score-val {
+  font-size: 0.68rem;
+  max-width: 2.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .league-podium__pedestal {
@@ -4025,7 +4064,11 @@ button:disabled { cursor: not-allowed }
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  flex: 1 1 auto;
   min-height: 0;
+  margin-top: 0.1rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(203, 213, 225, .85);
   overflow: hidden;
 }
 
@@ -4116,6 +4159,28 @@ button:disabled { cursor: not-allowed }
 .league-panel__back {
   width: 100%;
   margin-top: 0.1rem;
+}
+
+@media (max-width: 420px) {
+  .league-podium__slot--1 .league-podium__pedestal {
+    height: 2.85rem;
+  }
+
+  .league-podium__slot--2 .league-podium__pedestal {
+    height: 2.15rem;
+  }
+
+  .league-podium__slot--3 .league-podium__pedestal {
+    height: 1.55rem;
+  }
+
+  .league-panel__podium {
+    min-height: 7.75rem;
+  }
+
+  .league-podium__name {
+    font-size: 0.65rem;
+  }
 }
 
 .league-panel__tabs {
@@ -4591,7 +4656,10 @@ button:disabled { cursor: not-allowed }
 .league-row__score {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.28rem;
+  min-width: 0;
+  max-width: 5.25rem;
   padding: 0.28rem 0.45rem 0.28rem 0.55rem;
   border-radius: 999px;
   background: linear-gradient(180deg, #fffbeb, #fef3c7);
@@ -4605,6 +4673,9 @@ button:disabled { cursor: not-allowed }
   font-weight: 800;
   color: #b45309;
   line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .league-row__score-ico {

@@ -1387,8 +1387,10 @@ function createLeaguePodiumSlot(entry, place) {
   slot.innerHTML = `
     <span class="league-podium__medal" aria-hidden="true">${leagueRankMedal(place)}</span>
     <span class="league-podium__avatar" style="--avatar-color:${color}">${escapeHtml(playerInitials(entry.name))}</span>
-    <strong class="league-podium__name">${escapeHtml(entry.name || "Player")}</strong>
-    ${isYou ? '<span class="league-row__tag">YOU</span>' : ""}
+    <div class="league-podium__identity">
+      <strong class="league-podium__name">${escapeHtml(entry.name || "Player")}</strong>
+      ${isYou ? '<span class="league-row__tag">YOU</span>' : ""}
+    </div>
     <span class="league-podium__score">
       <span class="league-row__score-val">${Number(entry.bestScore || 0).toLocaleString()}</span>
       <span class="league-row__score-ico" aria-hidden="true">🏆</span>
