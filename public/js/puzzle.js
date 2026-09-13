@@ -248,6 +248,36 @@ export function countUsedCards(expression, cards) {
   return parsed.ok ? countTokens(parsed.tokens).counts : new Map();
 }
 
+/** Which physical card slots (0–3) are already in the equation build log. */
+export function getUsedCardIndicesFromParts(parts) {
+  const used = new Set();
+  if (!Array.isArray(parts)) return used;
+  for (const part of parts) {
+    if (part?.kind === "card" && Number.isInteger(part.index) && part.index >= 0) {
+      used.add(part.index);
+    }
+  }
+  return used;
+}
+
+/** Rebuild display expression from append log (preserves which duplicate card was tapped). */
+export function buildExpressionFromParts(parts) {
+  let expression = "";
+  for (const part of parts || []) {
+    if (part?.kind === "card") {
+      const fragment = String(part.input ?? "");
+      expression = (
+        needsSpaceBefore(expression, fragment)
+          ? `${expression} ${fragment}`
+          : `${expression}${fragment}`
+      ).trimStart();
+    } else if (part?.kind === "frag") {
+      expression = `${expression}${part.value ?? ""}`;
+    }
+  }
+  return expression;
+}
+
 /** Which physical card slots (0–3) are already in the expression — handles duplicate values. */
 export function getUsedCardIndices(expression, cards) {
   const used = new Set();

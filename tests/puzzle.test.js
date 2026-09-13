@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRound, evaluateSubmission, getUsedCardIndices } from "../public/js/puzzle.js";
+import { createRound, evaluateSubmission, getUsedCardIndices, getUsedCardIndicesFromParts } from "../public/js/puzzle.js";
 
 test("evaluateSubmission requires all four cards", () => {
   const round = {
@@ -42,4 +42,12 @@ test("getUsedCardIndices marks duplicate card slots independently", () => {
   assert.equal(once.size, 1);
   const twice = getUsedCardIndices("3 + 3", cards);
   assert.equal(twice.size, 2);
+});
+
+test("getUsedCardIndicesFromParts uses the card slot that was tapped", () => {
+  const parts = [{ kind: "card", index: 2, input: "3" }];
+  const used = getUsedCardIndicesFromParts(parts);
+  assert.equal(used.size, 1);
+  assert.ok(used.has(2));
+  assert.equal(!used.has(0), true);
 });

@@ -1,6 +1,6 @@
 import { createCatRunAnimator } from "./chaseCatRun.js";
 import { levelStarPace } from "./scoring.js";
-import { getDailyConfig, getUsedCardIndices } from "./puzzle.js";
+import { getDailyConfig, getUsedCardIndices, getUsedCardIndicesFromParts } from "./puzzle.js";
 import { dailyPuzzleNumber, formatRescueCountdown, msUntilNextDaily, rescueNumber, utcDateKey, buildChaseTrackBar } from "./daily.js";
 import { paintDailySharePreview } from "./dailyShareCard.js";
 import { burstConfetti } from "./confetti.js";
@@ -1083,7 +1083,14 @@ function cardStructureKey(state) {
 
 function syncNumberCardDisabled(container, state) {
   const locked = state.phase !== "playing" || state.awaitingStart;
-  const usedIndices = getUsedCardIndices(state.expression, state.round.cards);
+  let usedIndices;
+  if (state.equationParts?.length) {
+    usedIndices = getUsedCardIndicesFromParts(state.equationParts);
+  } else if (state.usedCardIndices?.length) {
+    usedIndices = new Set(state.usedCardIndices);
+  } else {
+    usedIndices = getUsedCardIndices(state.expression, state.round.cards);
+  }
   const buttons = container.querySelectorAll("[data-number-card]");
   for (const button of buttons) {
     const index = Number(button.dataset.numberCard);
@@ -1112,7 +1119,7 @@ function renderCards(container, state, onAppend, onPuzzleGo) {
       <span class="number-card__glow" aria-hidden="true"></span>
     `;
       button.append(renderCardValue(card));
-      bindPrimaryAction(button, () => onAppend(card.input));
+      bindPrimaryAction(button, () => onAppend(card.input, i));
       container.append(button);
     }
 

@@ -8,6 +8,9 @@ import {
   countUsedCards,
   evaluateSubmission,
   findAlternateSolutions,
+  buildExpressionFromParts,
+  getUsedCardIndicesFromParts,
+  getUsedCardIndices,
   getDivision,
   getDifficulty,
   getRank,
@@ -130,6 +133,8 @@ export function createGame({ mount }) {
         shake: false,
         round: null,
         expression: "",
+        equationParts: [],
+        usedCardIndices: [],
         feedback: {
           kind: "neutral",
           text: "Use cards without repeating them to match the target.",
@@ -375,8 +380,7 @@ export function createGame({ mount }) {
         state.score = 0;
         state.runStars = 0;
         state.round = makeRound(state);
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.result = null;
         state.correction = null;
         state.resume = null;
@@ -486,8 +490,7 @@ export function createGame({ mount }) {
         state.menuSettingsOpen = false;
         state.menuHowToOpen = false;
         state.phase = "nickname";
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.result = null;
         state.correction = null;
         state.showTutorial = false;
@@ -523,8 +526,7 @@ export function createGame({ mount }) {
         state.chasePose = "idle";
         state.timerExpired = false;
         state.result = null;
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.correction = null;
         state.canResume = resumeIsValid(state.resume);
         state.levelIndex = state.unlockedBoard;
@@ -624,8 +626,7 @@ export function createGame({ mount }) {
           state.tutorialStep = state.showTutorial ? 1 : 0;
         }
         state.round = makeRound(state);
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.result = null;
         state.coinsEarnedThisLevel = 0;
         resetTaskFlags();
@@ -731,8 +732,7 @@ export function createGame({ mount }) {
         state.puzzleVariant = 0;
         state.score = 0;
         state.runStars = 0;
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.result = null;
         state.correction = null;
         state.menuSettingsOpen = false;
@@ -889,8 +889,7 @@ export function createGame({ mount }) {
         state.division = getDivision(config.divisionId);
         state.difficulty = getDifficulty(config.difficultyId);
         resetTaskFlags();
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.result = null;
         state.correction = null;
         state.resume = null;
@@ -1114,6 +1113,20 @@ export function createGame({ mount }) {
         }, 1600);
       }
 
+      function syncEquationFromParts() {
+        state.equationParts = state.equationParts || [];
+        state.expression = buildExpressionFromParts(state.equationParts);
+        state.usedCardIndices = [...getUsedCardIndicesFromParts(state.equationParts)];
+        state.usedCounts = countUsedCards(state.expression, state.round.cards);
+      }
+
+      function clearEquation() {
+        state.equationParts = [];
+        state.expression = "";
+        state.usedCardIndices = [];
+        state.usedCounts = new Map();
+      }
+
       function onPuzzleGo() {
         if (!isPlaying() || !state.awaitingStart) return;
         state.awaitingStart = false;
@@ -1130,14 +1143,17 @@ export function createGame({ mount }) {
         render();
       }
 
-      function onAppend(fragment) {
+      function onAppend(fragment, cardIndex) {
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
-        state.expression = (
-          needsSpaceBefore(state.expression, fragment)
-            ? `${state.expression} ${fragment}`
-            : `${state.expression}${fragment}`
-        ).trimStart();
-        state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        if (Number.isInteger(cardIndex)) {
+          const card = state.round?.cards?.[cardIndex];
+          if (!card || card.input !== fragment) return;
+          if (state.usedCardIndices.includes(cardIndex)) return;
+          state.equationParts.push({ kind: "card", index: cardIndex, input: fragment });
+        } else {
+          state.equationParts.push({ kind: "frag", value: fragment });
+        }
+        syncEquationFromParts();
         state.feedback = {
           kind: "neutral",
           text: "Nice. Keep shaping the equation.",
@@ -1158,8 +1174,9 @@ export function createGame({ mount }) {
 
       function onBackspace() {
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
-        state.expression = state.expression.trimEnd().slice(0, -1).trimEnd();
-        state.usedCounts = countUsedCards(state.expression, state.round.cards);
+        if (!state.equationParts.length) return;
+        state.equationParts.pop();
+        syncEquationFromParts();
         state.feedback = {
           kind: "neutral",
           text: "Adjust and try again.",
@@ -1171,8 +1188,7 @@ export function createGame({ mount }) {
 
       function onClear() {
         if (!isPlaying() || state.awaitingStart || state.timerExpired) return;
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.feedback = {
           kind: "neutral",
           text: "Fresh equation. You’ve got this.",
@@ -1263,7 +1279,11 @@ export function createGame({ mount }) {
         } else {
           state.dailyElapsedSeconds = Math.max(state.timerLimit, state.dailyElapsedSeconds || 0);
         }
+        state.equationParts = [];
         state.expression = correction.solution;
+        state.usedCardIndices = [
+          ...getUsedCardIndices(state.expression, state.round.cards),
+        ];
         state.usedCounts = countUsedCards(state.expression, state.round.cards);
         state.taskStarsEarned = 1;
         state.runStars = 1;
@@ -1493,8 +1513,7 @@ export function createGame({ mount }) {
         const brainRound = usesBrainForJourney(state.puzzleVariant);
         state.phase = "playing";
         state.reviewOutcome = null;
-        state.expression = "";
-        state.usedCounts = new Map();
+        clearEquation();
         state.correction = null;
         state.runStars = 0;
         state.taskStarsEarned = 0;
