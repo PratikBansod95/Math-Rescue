@@ -595,6 +595,7 @@ function template() {
           <p class="menu-settings__legal">
             <a href="./privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
           </p>
+          <p class="menu-settings__credit">A Game By Pratik</p>
           <button class="screen-btn screen-btn--ghost" data-menu-close-settings type="button">Close</button>
         </div>
       </div>
